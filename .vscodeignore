@@ -1,0 +1,13 @@
+.vscode/**
+node_modules/**
+src/**
+*.map
+*.tsbuildinfo
+.gitignore
+
+scripts/**
+
+test-mocks/**
+*.bak
+
+*.vsix
