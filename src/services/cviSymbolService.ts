@@ -17,7 +17,9 @@ export interface CviCompletionSymbol {
   name: string;
   signature: string;
   description?: string;
-  origin: 'project' | 'cvi';
+  origin: 'project' | 'standard';
+  header?: string;
+  insertText?: string;
 }
 
 const FUNCTION_KINDS = new Set<vscode.SymbolKind>([
@@ -26,8 +28,45 @@ const FUNCTION_KINDS = new Set<vscode.SymbolKind>([
   vscode.SymbolKind.Constructor
 ]);
 
+interface StandardCompletionDefinition {
+  name: string;
+  header: string;
+  signature: string;
+  insertText: string;
+  description: string;
+  languages?: Array<'c' | 'cpp'>;
+}
+
+const STANDARD_COMPLETIONS: StandardCompletionDefinition[] = [
+  { name: 'printf', header: 'stdio.h', signature: 'int printf(const char *format, ...);', insertText: 'printf(${1:"%s\\n"}, ${2:value})', description: 'Formatted output to stdout.' },
+  { name: 'fprintf', header: 'stdio.h', signature: 'int fprintf(FILE *stream, const char *format, ...);', insertText: 'fprintf(${1:stream}, ${2:"%s\\n"}, ${3:value})', description: 'Formatted output to a file stream.' },
+  { name: 'snprintf', header: 'stdio.h', signature: 'int snprintf(char *buffer, size_t size, const char *format, ...);', insertText: 'snprintf(${1:buffer}, sizeof(${1:buffer}), ${2:"%s"}, ${3:value})', description: 'Bounded formatted output into a character buffer.' },
+  { name: 'scanf', header: 'stdio.h', signature: 'int scanf(const char *format, ...);', insertText: 'scanf(${1:"%d"}, &${2:value})', description: 'Formatted input from stdin.' },
+  { name: 'fopen', header: 'stdio.h', signature: 'FILE *fopen(const char *filename, const char *mode);', insertText: 'fopen(${1:"file.txt"}, ${2:"r"})', description: 'Open a file stream.' },
+  { name: 'fclose', header: 'stdio.h', signature: 'int fclose(FILE *stream);', insertText: 'fclose(${1:file})', description: 'Close a file stream.' },
+  { name: 'fputs', header: 'stdio.h', signature: 'int fputs(const char *str, FILE *stream);', insertText: 'fputs(${1:"text"}, ${2:file})', description: 'Write a string to a file stream.' },
+  { name: 'fgets', header: 'stdio.h', signature: 'char *fgets(char *str, int count, FILE *stream);', insertText: 'fgets(${1:buffer}, sizeof(${1:buffer}), ${2:file})', description: 'Read a string from a file stream.' },
+  { name: 'malloc', header: 'stdlib.h', signature: 'void *malloc(size_t size);', insertText: 'malloc(${1:size})', description: 'Allocate memory from the heap.' },
+  { name: 'calloc', header: 'stdlib.h', signature: 'void *calloc(size_t count, size_t size);', insertText: 'calloc(${1:count}, sizeof(${2:*ptr}))', description: 'Allocate zero-initialized memory from the heap.' },
+  { name: 'realloc', header: 'stdlib.h', signature: 'void *realloc(void *ptr, size_t new_size);', insertText: 'realloc(${1:ptr}, ${2:newSize})', description: 'Resize a heap allocation.' },
+  { name: 'free', header: 'stdlib.h', signature: 'void free(void *ptr);', insertText: 'free(${1:ptr})', description: 'Release heap memory.' },
+  { name: 'atoi', header: 'stdlib.h', signature: 'int atoi(const char *str);', insertText: 'atoi(${1:text})', description: 'Convert a string to an int.' },
+  { name: 'strtol', header: 'stdlib.h', signature: 'long strtol(const char *str, char **endptr, int base);', insertText: 'strtol(${1:text}, ${2:NULL}, ${3:10})', description: 'Convert a string to a long with explicit base and end pointer.' },
+  { name: 'memset', header: 'string.h', signature: 'void *memset(void *dest, int ch, size_t count);', insertText: 'memset(${1:buffer}, ${2:0}, sizeof(${1:buffer}))', description: 'Fill a memory region with a byte value.' },
+  { name: 'memcpy', header: 'string.h', signature: 'void *memcpy(void *dest, const void *src, size_t count);', insertText: 'memcpy(${1:dest}, ${2:src}, ${3:size})', description: 'Copy a memory region.' },
+  { name: 'strlen', header: 'string.h', signature: 'size_t strlen(const char *str);', insertText: 'strlen(${1:text})', description: 'Return the length of a null-terminated string.' },
+  { name: 'strcmp', header: 'string.h', signature: 'int strcmp(const char *lhs, const char *rhs);', insertText: 'strcmp(${1:left}, ${2:right})', description: 'Compare two null-terminated strings.' },
+  { name: 'strncpy', header: 'string.h', signature: 'char *strncpy(char *dest, const char *src, size_t count);', insertText: 'strncpy(${1:dest}, ${2:src}, sizeof(${1:dest}) - 1)', description: 'Copy a bounded number of characters.' },
+  { name: 'time', header: 'time.h', signature: 'time_t time(time_t *arg);', insertText: 'time(${1:NULL})', description: 'Read the current calendar time.' },
+  { name: 'clock', header: 'time.h', signature: 'clock_t clock(void);', insertText: 'clock()', description: 'Read process CPU time.' },
+  { name: 'assert', header: 'assert.h', signature: 'void assert(scalar expression);', insertText: 'assert(${1:condition})', description: 'Abort in debug builds if the expression is false.' },
+  { name: 'std::cout', header: 'iostream', signature: 'std::ostream std::cout;', insertText: 'std::cout << ${1:value} << std::endl', description: 'Write to the standard C++ output stream.', languages: ['cpp'] },
+  { name: 'std::cerr', header: 'iostream', signature: 'std::ostream std::cerr;', insertText: 'std::cerr << ${1:value} << std::endl', description: 'Write to the standard C++ error stream.', languages: ['cpp'] },
+  { name: 'std::vector', header: 'vector', signature: 'template<class T> class std::vector;', insertText: 'std::vector<${1:int}> ${2:items}', description: 'Dynamic contiguous sequence container.', languages: ['cpp'] },
+  { name: 'std::string', header: 'string', signature: 'class std::string;', insertText: 'std::string ${1:text}', description: 'Standard C++ string type.', languages: ['cpp'] }
+];
+
 export class CviSymbolService {
-  private bundledCache?: CviCompletionSymbol[];
   private projectCache?: { key: string; symbols: CviCompletionSymbol[] };
 
   constructor(
@@ -40,28 +79,19 @@ export class CviSymbolService {
       return [];
     }
 
-    const uri = vscode.Uri.file(filePath);
-    try {
-      const provided = await vscode.commands.executeCommand<Array<vscode.DocumentSymbol | vscode.SymbolInformation>>(
-        'vscode.executeDocumentSymbolProvider',
-        uri
-      );
-      const flattened = flattenDocumentSymbols(provided ?? [], filePath);
-      if (flattened.length > 0) {
-        return dedupeSourceSymbols(flattened);
-      }
-    } catch {
-      // The lightweight fallback below keeps the feature available without cpptools.
-    }
-
+    // Keep this provider independent from Microsoft cpptools. Calling
+    // vscode.executeDocumentSymbolProvider here can force cpptools to parse the
+    // active translation unit while the user is typing, which is what produced
+    // long "Loading..." states on small managed C/C++ projects.
     return scanCFunctions(fs.readFileSync(filePath, 'utf8'), filePath);
   }
 
   completionSymbols(): CviCompletionSymbol[] {
-    return dedupeCompletionSymbols([
-      ...this.projectCompletionSymbols(),
-      ...this.bundledCviCompletionSymbols()
-    ]);
+    // Do not inject bundled API-pack symbols into normal C/C++ IntelliSense.
+    // The Microsoft C/C++ extension remains responsible for standard-library
+    // symbols such as FILE, printf, std::vector, etc. This provider only adds
+    // lightweight symbols parsed from the active project files.
+    return this.projectCompletionSymbols();
   }
 
   isCviWorkspaceFile(filePath: string): boolean {
@@ -124,46 +154,102 @@ export class CviSymbolService {
     this.projectCache = { key, symbols: dedupeCompletionSymbols(symbols) };
     return this.projectCache.symbols;
   }
-
-  private bundledCviCompletionSymbols(): CviCompletionSymbol[] {
-    if (this.bundledCache) {
-      return this.bundledCache;
-    }
-    const packPath = path.join(this.extensionPath, 'data', 'cvi_pack.json');
-    if (!fs.existsSync(packPath)) {
-      this.bundledCache = [];
-      return this.bundledCache;
-    }
-
-    try {
-      const raw = JSON.parse(fs.readFileSync(packPath, 'utf8')) as unknown;
-      const collected: CviCompletionSymbol[] = [];
-      collectPackFunctions(raw, collected);
-      this.bundledCache = dedupeCompletionSymbols(collected);
-    } catch {
-      this.bundledCache = [];
-    }
-    return this.bundledCache;
-  }
 }
 
 export class CviCompletionProvider implements vscode.CompletionItemProvider {
   constructor(private readonly symbols: CviSymbolService) {}
 
   provideCompletionItems(document: vscode.TextDocument): vscode.CompletionItem[] | undefined {
-    const enabled = vscode.workspace.getConfiguration('labwindowsCvi').get<boolean>('enableSupplementalCompletionProvider', true);
-    if (!enabled || document.uri.scheme !== 'file' || !this.symbols.isCviWorkspaceFile(document.uri.fsPath)) {
+    const configuration = vscode.workspace.getConfiguration('labwindowsCvi');
+    const projectEnabled = configuration.get<boolean>('enableSupplementalCompletionProvider', false);
+    const standardEnabled = configuration.get<boolean>('enableStandardLibraryCompletionProvider', true);
+
+    if (document.uri.scheme !== 'file' || !this.symbols.isCviWorkspaceFile(document.uri.fsPath)) {
       return undefined;
     }
-    return this.symbols.completionSymbols().map((symbol) => {
-      const item = new vscode.CompletionItem(symbol.name, vscode.CompletionItemKind.Function);
-      item.detail = symbol.signature;
-      item.documentation = new vscode.MarkdownString(symbol.description || (symbol.origin === 'cvi' ? 'LabWindows/CVI API symbol.' : 'Project symbol.'));
-      item.insertText = symbol.name;
-      item.sortText = `${symbol.origin === 'project' ? '0' : '5'}_${symbol.name.toLowerCase()}`;
+
+    const result: vscode.CompletionItem[] = [];
+    if (standardEnabled) {
+      result.push(...createStandardCompletionItems(document, configuration.get<boolean>('standardLibraryCompletionAutoInclude', true)));
+    }
+    if (projectEnabled) {
+      result.push(...this.symbols.completionSymbols().map((symbol) => {
+        const item = new vscode.CompletionItem(symbol.name, vscode.CompletionItemKind.Function);
+        item.detail = symbol.signature;
+        item.documentation = new vscode.MarkdownString(symbol.description || 'Project symbol.');
+        item.insertText = symbol.name;
+        item.sortText = `1_${symbol.name.toLowerCase()}`;
+        return item;
+      }));
+    }
+    return result.length ? result : undefined;
+  }
+}
+
+function createStandardCompletionItems(document: vscode.TextDocument, autoInclude: boolean): vscode.CompletionItem[] {
+  const language = document.languageId === 'cpp' ? 'cpp' : 'c';
+  const documentText = document.getText();
+  return STANDARD_COMPLETIONS
+    .filter((definition) => !definition.languages || definition.languages.includes(language))
+    // Keep the fallback provider restricted to missing headers. Once the user
+    // has included the matching standard header, Microsoft C/C++ IntelliSense
+    // already provides the real symbol with full semantic information. Keeping
+    // the CPM fallback active in that case produces duplicate entries such as
+    // two printf suggestions.
+    .filter((definition) => !hasHeaderInclude(documentText, definition.header))
+    .map((definition) => {
+      const item = new vscode.CompletionItem(definition.name, vscode.CompletionItemKind.Function);
+      item.detail = `${definition.signature}  <${definition.header}>`;
+      item.documentation = new vscode.MarkdownString(`${definition.description}
+
+Header: \`#include <${definition.header}>\``);
+      item.insertText = new vscode.SnippetString(definition.insertText);
+      item.sortText = `0_${definition.name.toLowerCase()}`;
+      if (autoInclude) {
+        const insertion = getHeaderIncludeInsertion(document, definition.header);
+        if (insertion) {
+          item.additionalTextEdits = [insertion];
+          item.detail = `${item.detail} · auto-include`;
+        }
+      }
       return item;
     });
+}
+
+function hasHeaderInclude(documentText: string, header: string): boolean {
+  const escaped = escapeRegExp(header);
+  const pattern = new RegExp(`^\\s*#\\s*include\\s*[<"]${escaped}[>"]`, 'm');
+  return pattern.test(documentText);
+}
+
+function getHeaderIncludeInsertion(document: vscode.TextDocument, header: string): vscode.TextEdit | undefined {
+  let lastIncludeLine = -1;
+  let firstCodeLine = 0;
+  for (let line = 0; line < document.lineCount; line += 1) {
+    const text = document.lineAt(line).text;
+    if (/^\s*#\s*include\b/.test(text)) {
+      lastIncludeLine = line;
+      firstCodeLine = line + 1;
+      continue;
+    }
+    if (lastIncludeLine >= 0) {
+      break;
+    }
+    if (/^\s*(?:\/\/.*|\/\*.*|\*.*|\*\/\s*)?$/.test(text)) {
+      firstCodeLine = line + 1;
+      continue;
+    }
+    break;
   }
+
+  const insertionLine = lastIncludeLine >= 0 ? lastIncludeLine + 1 : Math.min(firstCodeLine, document.lineCount);
+  const needsBlankLine = lastIncludeLine < 0 && insertionLine < document.lineCount && document.lineAt(insertionLine).text.trim().length > 0;
+  const includeText = `#include <${header}>\n${needsBlankLine ? '\n' : ''}`;
+  return vscode.TextEdit.insert(new vscode.Position(insertionLine, 0), includeText);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function collectPackFunctions(value: unknown, result: CviCompletionSymbol[]): void {
@@ -186,8 +272,8 @@ function collectPackFunctions(value: unknown, result: CviCompletionSymbol[]): vo
     result.push({
       name,
       signature,
-      description: typeof record.description === 'string' ? record.description : 'LabWindows/CVI API symbol.',
-      origin: 'cvi'
+      description: typeof record.description === 'string' ? record.description : 'C/C++ API symbol.',
+      origin: 'project'
     });
   }
   Object.values(record).forEach((entry) => collectPackFunctions(entry, result));

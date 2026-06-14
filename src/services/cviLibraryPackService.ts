@@ -21,34 +21,72 @@ function sanitizeVersion(version: string | undefined): string {
   return String(version || 'unknown').replace(/[^A-Za-z0-9._-]+/g, '_');
 }
 
-function createBackupPath(target: string, previousVersion: string | undefined): string {
+function createBackupPath(targetDirectory: string, fileName: string, previousVersion: string | undefined): string {
+  const backupDirectory = path.join(targetDirectory, 'backups');
+  fs.mkdirSync(backupDirectory, { recursive: true });
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const suffix = sanitizeVersion(previousVersion);
-  return path.join(path.dirname(target), `cvi_pack.backup-${suffix}-${timestamp}.json`);
+  return path.join(backupDirectory, `${fileName}.backup-${suffix}-${timestamp}.json`);
+}
+
+function isBundledLegacyCviPack(identity: PackIdentity | undefined, rawContent = ''): boolean {
+  const id = String(identity?.id || '').toLowerCase();
+  const name = String(identity?.name || '').toLowerCase();
+  const haystack = `${id} ${name} ${rawContent.slice(0, 250000).toLowerCase()}`;
+  return id === 'cvi-structured-pack'
+    || name.includes('labwindows/cvi')
+    || /\b(labwindows|cvi|cvifunc|cvicallback|messagepopup|loadpanel|setctrlval|getctrlval|installctrlcallback)\b/i.test(haystack);
+}
+
+function quarantineLegacyCviPackIfNeeded(targetDirectory: string, output: vscode.OutputChannel): void {
+  const legacyNames = fs.existsSync(targetDirectory)
+    ? fs.readdirSync(targetDirectory).filter((entry) => entry.toLowerCase().endsWith('.json'))
+    : [];
+
+  for (const legacyName of legacyNames) {
+    if (legacyName.toLowerCase() === 'cpm_core_pack.json') {
+      continue;
+    }
+    const legacyPath = path.join(targetDirectory, legacyName);
+    let raw = '';
+    try {
+      raw = fs.readFileSync(legacyPath, 'utf8');
+    } catch {
+      raw = '';
+    }
+    const identity = readPackIdentity(legacyPath);
+    if (!isBundledLegacyCviPack(identity, raw)) {
+      continue;
+    }
+    const backup = createBackupPath(targetDirectory, legacyName.replace(/\.json$/i, ''), identity?.version);
+    fs.renameSync(legacyPath, backup);
+    output.appendLine(`[C/C++ Libraries] Disabled legacy CVI library pack. Backup: ${backup}`);
+  }
 }
 
 /**
- * Seed or upgrade the writable CVI library pack used by the embedded explorer.
+ * Seed or upgrade the writable C/C++ core library pack used by the embedded explorer.
  *
- * The explorer edits a global-storage copy rather than the packaged JSON. When
- * the bundled pack version changes, the previous writable copy is backed up and
- * replaced so that newly shipped CVI metadata becomes visible immediately.
- * User modifications remain recoverable from the timestamped backup.
+ * Earlier CVI-derived builds seeded cvi_pack.json into global storage. That pack is
+ * now quarantined when it is the bundled LabWindows/CVI pack, otherwise it would keep
+ * polluting the C/C++ Libraries view with CVI-only APIs.
  */
-export function ensureBundledCviLibraryPack(context: vscode.ExtensionContext, output: vscode.OutputChannel): void {
-  const source = vscode.Uri.joinPath(context.extensionUri, 'data', 'cvi_pack.json').fsPath;
+export function ensureBundledCppLibraryPack(context: vscode.ExtensionContext, output: vscode.OutputChannel): void {
+  const source = vscode.Uri.joinPath(context.extensionUri, 'data', 'cpm_core_pack.json').fsPath;
   const targetDirectory = path.join(context.globalStorageUri.fsPath, 'packs');
-  const target = path.join(targetDirectory, 'cvi_pack.json');
+  const target = path.join(targetDirectory, 'cpm_core_pack.json');
 
   if (!fs.existsSync(source)) {
-    output.appendLine(`[CVI Libraries] Bundled pack not found: ${source}`);
+    output.appendLine(`[C/C++ Libraries] Bundled core pack not found: ${source}`);
     return;
   }
 
   fs.mkdirSync(targetDirectory, { recursive: true });
+  quarantineLegacyCviPackIfNeeded(targetDirectory, output);
+
   if (!fs.existsSync(target)) {
     fs.copyFileSync(source, target);
-    output.appendLine(`[CVI Libraries] Seeded CVI library pack: ${target}`);
+    output.appendLine(`[C/C++ Libraries] Seeded C/C++ core library pack: ${target}`);
     return;
   }
 
@@ -59,15 +97,21 @@ export function ensureBundledCviLibraryPack(context: vscode.ExtensionContext, ou
   const samePack = !installed?.id || !bundled?.id || installed.id === bundled.id;
 
   if (samePack && bundledVersion && bundledVersion !== installedVersion) {
-    const backup = createBackupPath(target, installedVersion);
+    const backup = createBackupPath(targetDirectory, 'cpm_core_pack', installedVersion);
     fs.copyFileSync(target, backup);
     fs.copyFileSync(source, target);
-    output.appendLine(`[CVI Libraries] Upgraded CVI library pack ${installedVersion || 'unknown'} -> ${bundledVersion}.`);
-    output.appendLine(`[CVI Libraries] Previous writable pack backed up to: ${backup}`);
+    output.appendLine(`[C/C++ Libraries] Upgraded C/C++ core library pack ${installedVersion || 'unknown'} -> ${bundledVersion}.`);
+    output.appendLine(`[C/C++ Libraries] Previous writable pack backed up to: ${backup}`);
     return;
   }
 
   if (!samePack) {
-    output.appendLine(`[CVI Libraries] Existing writable pack has a different id; kept unchanged: ${target}`);
+    const backup = createBackupPath(targetDirectory, 'cpm_core_pack-different-id', installedVersion);
+    fs.copyFileSync(target, backup);
+    fs.copyFileSync(source, target);
+    output.appendLine(`[C/C++ Libraries] Replaced incompatible core pack id with bundled C/C++ core pack. Backup: ${backup}`);
   }
 }
+
+// Backward-compatible exported name for older imports inside the extension.
+export const ensureBundledCviLibraryPack = ensureBundledCppLibraryPack;

@@ -190,13 +190,13 @@ export class CviInstallationService {
     return vscode.workspace.getConfiguration(CONFIG_SECTION);
   }
 
-  describe(root: string, source: CviInstallation['source']): CviInstallation {
+  describe(root: string, source: CviInstallation['source'], recursive = false): CviInstallation {
     const normalizedRoot = path.normalize(root);
-    const cCompilerExe = findExecutable(normalizedRoot, ['gcc', 'clang', 'cc'], true);
-    const cppCompilerExe = findExecutable(normalizedRoot, ['g++', 'clang++', 'c++'], true);
-    const archiverExe = findExecutable(normalizedRoot, ['ar', 'gcc-ar', 'llvm-ar'], true);
-    const debuggerExe = findExecutable(normalizedRoot, ['gdb', 'lldb'], true);
-    const intelliSenseCompiler = cppCompilerExe ?? cCompilerExe ?? findExecutable(normalizedRoot, ['clang', 'clang++'], true);
+    const cCompilerExe = findExecutable(normalizedRoot, ['gcc', 'clang', 'cc'], recursive);
+    const cppCompilerExe = findExecutable(normalizedRoot, ['g++', 'clang++', 'c++'], recursive);
+    const archiverExe = findExecutable(normalizedRoot, ['ar', 'gcc-ar', 'llvm-ar'], recursive);
+    const debuggerExe = findExecutable(normalizedRoot, ['gdb', 'lldb'], recursive);
+    const intelliSenseCompiler = cppCompilerExe ?? cCompilerExe ?? findExecutable(normalizedRoot, ['clang', 'clang++'], recursive);
 
     return {
       root: normalizedRoot,
@@ -213,17 +213,17 @@ export class CviInstallationService {
   }
 
   describeExplicitCompilerPaths(source: CviInstallation['source'] = 'configured'): CviInstallation | undefined {
-    const cCompiler = normalizeExistingPath(this.configuration.get<string>('cCompilerPath', ''));
-    const cppCompiler = normalizeExistingPath(this.configuration.get<string>('cppCompilerPath', ''));
-    const archiver = normalizeExistingPath(this.configuration.get<string>('archiverPath', ''));
-    const debuggerPath = normalizeExistingPath(this.configuration.get<string>('debuggerPath', ''));
-    const root = parentDirectoryOfExecutable(cppCompiler) ?? parentDirectoryOfExecutable(cCompiler);
-    if (!root) {
+    const cCompiler = normalizeExecutableSetting(this.configuration.get<string>('cCompilerPath', ''));
+    const cppCompiler = normalizeExecutableSetting(this.configuration.get<string>('cppCompilerPath', ''));
+    const archiver = normalizeExecutableSetting(this.configuration.get<string>('archiverPath', ''));
+    const debuggerPath = normalizeExecutableSetting(this.configuration.get<string>('debuggerPath', ''));
+    const root = parentDirectoryOfExecutable(cppCompiler) ?? parentDirectoryOfExecutable(cCompiler) ?? 'PATH';
+    if (!cCompiler && !cppCompiler) {
       return undefined;
     }
     return {
       root,
-      label: `${toolchainLabelFromRoot(root)} (configured paths)`,
+      label: `${toolchainLabelFromRoot(root)} (configured executables)`,
       compileExe: cCompiler,
       ideExe: undefined,
       clangCcExe: cppCompiler ?? cCompiler,
@@ -277,7 +277,7 @@ export class CviInstallationService {
     return [...byKey.values()];
   }
 
-  getActiveInstallation(workspaceCviDir?: string): CviInstallation | undefined {
+  getActiveInstallation(workspaceCviDir?: string, scanIfNeeded = true): CviInstallation | undefined {
     const explicit = this.describeExplicitCompilerPaths('configured');
     if (explicit && hasCompiler(explicit)) {
       return explicit;
@@ -298,7 +298,7 @@ export class CviInstallationService {
       }
     }
 
-    return this.getKnownInstallations()[0];
+    return scanIfNeeded ? this.getKnownInstallations()[0] : undefined;
   }
 
   async selectInstallation(workspaceCviDir?: string): Promise<CviInstallation | undefined> {
@@ -385,13 +385,13 @@ export class CviInstallationService {
     return {
       root,
       label: `${toolchainLabelFromRoot(root)} (manual paths)`,
-      compileExe: normalizeExistingPath(cCompiler),
+      compileExe: normalizeExecutableSetting(cCompiler),
       ideExe: undefined,
-      clangCcExe: normalizeExistingPath(cppCompiler) ?? normalizeExistingPath(cCompiler),
-      cCompilerExe: normalizeExistingPath(cCompiler) ?? cCompiler,
-      cppCompilerExe: normalizeExistingPath(cppCompiler) ?? cppCompiler,
-      archiverExe: normalizeExistingPath(archiver) ?? archiver,
-      debuggerExe: normalizeExistingPath(debuggerPath) ?? debuggerPath,
+      clangCcExe: normalizeExecutableSetting(cppCompiler) ?? normalizeExecutableSetting(cCompiler),
+      cCompilerExe: normalizeExecutableSetting(cCompiler),
+      cppCompilerExe: normalizeExecutableSetting(cppCompiler),
+      archiverExe: normalizeExecutableSetting(archiver),
+      debuggerExe: normalizeExecutableSetting(debuggerPath),
       source: 'manual'
     };
   }
@@ -424,12 +424,21 @@ function hasCompiler(installation: CviInstallation): boolean {
   return Boolean(installation.cCompilerExe || installation.cppCompilerExe || installation.compileExe || installation.clangCcExe);
 }
 
-function normalizeExistingPath(value: string | undefined): string | undefined {
+function normalizeExecutableSetting(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
-  if (!trimmed || ['gcc', 'g++', 'clang', 'clang++', 'ar', 'gdb', 'lldb'].includes(trimmed.toLowerCase())) {
+  if (!trimmed) {
     return undefined;
   }
-  return fs.existsSync(trimmed) ? path.normalize(trimmed) : trimmed;
+  if (fs.existsSync(trimmed)) {
+    return path.normalize(trimmed);
+  }
+  // Keep simple command names such as gcc, g++, ar or gdb. They are valid for
+  // both the build pipeline and cpptools compilerPath when the executable is on
+  // PATH, and they avoid an expensive PATH/toolchain scan during activation.
+  if (!path.isAbsolute(trimmed) && !trimmed.includes(path.sep) && !trimmed.includes('/')) {
+    return trimmed;
+  }
+  return trimmed;
 }
 
 async function promptPath(title: string, value: string): Promise<string | undefined> {

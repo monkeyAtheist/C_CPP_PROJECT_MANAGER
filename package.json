@@ -1,8 +1,8 @@
 {
-  "name": "cpp-project-manager",
-  "displayName": "C/C++ Project Manager",
+  "name": "c-cpp-project-manager-and-build",
+  "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.1.1",
+  "version": "0.2.7",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -40,7 +40,7 @@
     "onCommand:labwindowsCvi.diagnoseCppTools",
     "onCommand:labwindowsCvi.addWorkspaceFolderForIntelliSense",
     "onCommand:labwindowsCvi.repairCppToolsProvider",
-    "onCommand:labwindowsCvi.repairNativeWorkspaceCompatibility",
+    "onCommand:labwindowsCvi.enableAutomaticSuggestions",
     "onCommand:labwindowsCvi.chooseBuildAction",
     "onCommand:labwindowsCvi.clean",
     "onCommand:labwindowsCvi.cleanProject",
@@ -66,19 +66,7 @@
     "onCommand:labwindowsCvi.convertSelectedIntegerToDecimal",
     "onCommand:labwindowsCvi.convertSelectedIntegerToHexadecimal",
     "onCommand:labwindowsCvi.convertSelectedIntegerToBinary",
-    "onCommand:labwindowsCvi.openFunctionPanel",
-    "onCommand:labwindowsCvi.synchronizeBreakpoints",
-    "onCommand:labwindowsCvi.clearSynchronizedBreakpoints",
-    "onCommand:labwindowsCvi.diagnoseBreakpointBridge",
-    "onCommand:labwindowsCvi.chooseNativeDebugAction",
-    "onCommand:labwindowsCvi.nativeBuild",
-    "onCommand:labwindowsCvi.nativeRun",
-    "onCommand:labwindowsCvi.nativePause",
-    "onCommand:labwindowsCvi.nativeContinue",
-    "onCommand:labwindowsCvi.nativeStop",
-    "onCommand:labwindowsCvi.nativeState",
-    "onCommand:labwindowsCvi.diagnoseNativeCommandBridge",
-    "onCommand:labwindowsCvi.refreshNativeDebugView"
+    "onCommand:labwindowsCvi.openFunctionPanel"
   ],
   "main": "./out/extension.js",
   "scripts": {
@@ -173,10 +161,9 @@
         "icon": "$(wrench)"
       },
       {
-        "command": "labwindowsCvi.repairNativeWorkspaceCompatibility",
-        "title": "C/C++ Project Manager: Repair Native Workspace Compatibility",
-        "icon": "$(shield)",
-        "category": "C/C++ Project Manager"
+        "command": "labwindowsCvi.enableAutomaticSuggestions",
+        "title": "C/C++ Project Manager: Enable Automatic C/C++ Suggestions",
+        "icon": "$(sparkle)"
       },
       {
         "command": "labwindowsCvi.addWorkspaceFolderForIntelliSense",
@@ -277,6 +264,10 @@
       {
         "command": "labwindowsCvi.toggleObjOption",
         "title": "Toggle .Obj Option"
+      },
+      {
+        "command": "labwindowsCvi.renameFile",
+        "title": "Rename File..."
       },
       {
         "command": "labwindowsCvi.replaceFile",
@@ -464,7 +455,7 @@
       },
       {
         "command": "labwindowsCvi.insertSnippet",
-        "title": "C/C++ Project Manager: Insert C/C++ Snippet...",
+        "title": "CPM: Insert snippet",
         "category": "C/C++ Project Manager",
         "icon": "$(symbol-snippet)"
       },
@@ -611,78 +602,6 @@
         "command": "labwindowsCvi.convertSelectedIntegerToBinary",
         "title": "Convert Selected Integer to Binary",
         "category": "C/C++ Project Manager"
-      },
-      {
-        "command": "labwindowsCvi.synchronizeBreakpoints",
-        "title": "C/C++ Project Manager: Synchronize VS Code Breakpoints to Native Workspace",
-        "category": "C/C++ Project Manager",
-        "icon": "$(debug-breakpoint)"
-      },
-      {
-        "command": "labwindowsCvi.clearSynchronizedBreakpoints",
-        "title": "C/C++ Project Manager: Remove Synchronized Breakpoints from Native Workspace",
-        "category": "C/C++ Project Manager",
-        "icon": "$(debug-breakpoint-unverified)"
-      },
-      {
-        "command": "labwindowsCvi.diagnoseBreakpointBridge",
-        "title": "C/C++ Project Manager: Diagnose Native Breakpoint Bridge",
-        "category": "C/C++ Project Manager",
-        "icon": "$(pulse)"
-      },
-      {
-        "command": "labwindowsCvi.chooseNativeDebugAction",
-        "title": "C/C++ Project Manager: Native Debug Controls...",
-        "category": "C/C++ Project Manager",
-        "icon": "$(debug-alt-small)"
-      },
-      {
-        "command": "labwindowsCvi.nativeBuild",
-        "title": "C/C++ Project Manager: Build",
-        "category": "C/C++ Project Manager",
-        "icon": "$(tools)"
-      },
-      {
-        "command": "labwindowsCvi.nativeRun",
-        "title": "C/C++ Project Manager: Build & Run Debug",
-        "category": "C/C++ Project Manager",
-        "icon": "$(play)"
-      },
-      {
-        "command": "labwindowsCvi.nativePause",
-        "title": "C/C++ Project Manager: Pause",
-        "category": "C/C++ Project Manager",
-        "icon": "$(debug-pause)"
-      },
-      {
-        "command": "labwindowsCvi.nativeContinue",
-        "title": "C/C++ Project Manager: Continue",
-        "category": "C/C++ Project Manager",
-        "icon": "$(debug-continue)"
-      },
-      {
-        "command": "labwindowsCvi.nativeStop",
-        "title": "C/C++ Project Manager: Stop",
-        "category": "C/C++ Project Manager",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "labwindowsCvi.nativeState",
-        "title": "C/C++ Project Manager: Read Native C/C++ State",
-        "category": "C/C++ Project Manager",
-        "icon": "$(pulse)"
-      },
-      {
-        "command": "labwindowsCvi.refreshNativeDebugView",
-        "title": "C/C++ Project Manager: Refresh Native Debug Status",
-        "category": "C/C++ Project Manager",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "labwindowsCvi.diagnoseNativeCommandBridge",
-        "title": "C/C++ Project Manager: Diagnose Native Command Bridge",
-        "category": "C/C++ Project Manager",
-        "icon": "$(tools)"
       }
     ],
     "menus": {
@@ -803,11 +722,6 @@
           "command": "labwindowsCvi.addExistingProject",
           "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviWorkspace",
           "group": "modification@2"
-        },
-        {
-          "command": "labwindowsCvi.repairNativeWorkspaceCompatibility",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviWorkspace",
-          "group": "modification@3"
         },
         {
           "command": "labwindowsCvi.saveAll",
@@ -975,14 +889,19 @@
           "group": "build@2"
         },
         {
-          "command": "labwindowsCvi.replaceFile",
+          "command": "labwindowsCvi.renameFile",
           "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
           "group": "modification@1"
         },
         {
-          "command": "labwindowsCvi.removeFile",
+          "command": "labwindowsCvi.replaceFile",
           "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
           "group": "modification@2"
+        },
+        {
+          "command": "labwindowsCvi.removeFile",
+          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "group": "modification@3"
         },
         {
           "command": "labwindowsCvi.compileFile",
@@ -1137,6 +1056,10 @@
           "when": "false"
         },
         {
+          "command": "labwindowsCvi.renameFile",
+          "when": "false"
+        },
+        {
           "command": "labwindowsCvi.replaceFile",
           "when": "false"
         },
@@ -1243,50 +1166,6 @@
         {
           "command": "labwindowsCvi.openFunctionPanel",
           "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.chooseNativeDebugAction",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.clearSynchronizedBreakpoints",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.diagnoseBreakpointBridge",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.diagnoseNativeCommandBridge",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.nativeBuild",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.nativeContinue",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.nativePause",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.nativeRun",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.nativeState",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.nativeStop",
-          "when": "false"
-        },
-        {
-          "command": "labwindowsCvi.synchronizeBreakpoints",
-          "when": "false"
         }
       ],
       "editor/context": [
@@ -1385,13 +1264,13 @@
         },
         "labwindowsCvi.autoConfigureCppTools": {
           "type": "boolean",
-          "default": true,
-          "description": "Automatically create or update the managed C/C++ Project Manager entry in .vscode/c_cpp_properties.json when a C/C++ workspace is opened or the selected installation changes."
+          "default": false,
+          "description": "Automatically create or update the managed C/C++ Project Manager entry in .vscode/c_cpp_properties.json when a C/C++ workspace is opened or the selected installation changes. Disabled by default to avoid slowing Microsoft C/C++ IntelliSense; use the Sync IntelliSense command manually."
         },
         "labwindowsCvi.autoAddCviFolderToWorkspace": {
           "type": "boolean",
-          "default": true,
-          "description": "Automatically add the directory containing an opened C/C++ .cws or .prj file to the standard VS Code Explorer. This activates the generated .vscode/c_cpp_properties.json file and improves header resolution."
+          "default": false,
+          "description": "Automatically add the precise C/C++ project root to the standard VS Code Explorer. Disabled by default to avoid unexpected workspace changes and large IntelliSense indexing scopes."
         },
         "labwindowsCvi.uirTemplateVersion": {
           "type": "string",
@@ -1412,7 +1291,7 @@
         "labwindowsCvi.intelliSenseCompilerPath": {
           "type": "string",
           "default": "",
-          "description": "Optional explicit compiler executable used by Microsoft C/C++ IntelliSense. Leave empty to auto-detect the internal C/C++ Clang executable."
+          "description": "Optional explicit compiler executable used by Microsoft C/C++ IntelliSense. Leave empty to use the selected gcc/g++/clang toolchain."
         },
         "labwindowsCvi.additionalIncludePaths": {
           "type": "array",
@@ -1420,126 +1299,27 @@
           "items": {
             "type": "string"
           },
-          "description": "Additional include directories appended to the generated C/C++ IntelliSense configuration and dynamic provider."
+          "description": "Additional include directories appended to the generated C/C++ IntelliSense configuration."
         },
         "labwindowsCvi.enableSupplementalCompletionProvider": {
           "type": "boolean",
+          "default": false,
+          "description": "Provide supplemental completion items parsed from active project sources only. Disabled by default to leave completion fully managed by Microsoft C/C++ and avoid extra work while typing."
+        },
+        "labwindowsCvi.enableStandardLibraryCompletionProvider": {
+          "type": "boolean",
           "default": true,
-          "description": "Provide supplemental C/C++ completion items from the active C/C++ workspace and the embedded C/C++ API pack. The provider is scoped to C/C++ workspace files and does not run in unrelated C/C++ folders."
+          "description": "Provide lightweight completion items for common C/C++ standard-library symbols only when the matching header is not already included. This avoids duplicates with Microsoft C/C++ IntelliSense while still allowing auto-include insertion before the header exists."
+        },
+        "labwindowsCvi.standardLibraryCompletionAutoInclude": {
+          "type": "boolean",
+          "default": true,
+          "description": "When a standard-library completion item is accepted, insert the required #include if it is missing from the current file."
         },
         "labwindowsCvi.showPersistentStatusBarActions": {
           "type": "boolean",
           "default": true,
           "description": "Show compact C/C++ Project Manager actions in the VS Code status bar. These actions remain available when the C/C++ Workspace view is collapsed."
-        },
-        "labwindowsCvi.synchronizeBreakpointsBeforeNativeDebug": {
-          "type": "boolean",
-          "default": true,
-          "description": "Synchronize standard enabled VS Code source breakpoints from the selected C/C++ project into the native .cws workspace before opening the C/C++ Project Manager debugger."
-        },
-        "labwindowsCvi.synchronizeBreakpointsBeforeNativeRun": {
-          "type": "boolean",
-          "default": true,
-          "description": "Synchronize standard enabled VS Code source breakpoints into the native .cws workspace immediately before sending Run Project to the C/C++ Project Manager native command server."
-        },
-        "labwindowsCvi.nativeCommandTimeoutMs": {
-          "type": "number",
-          "default": 10000,
-          "minimum": 500,
-          "description": "Timeout in milliseconds used for one native C/C++ Project Manager command. The extension uses the historical DDE command server by default because it can target the workspace instance opened explicitly by the extension."
-        },
-        "labwindowsCvi.nativeCommandStartupTimeoutMs": {
-          "type": "number",
-          "default": 25000,
-          "minimum": 1000,
-          "description": "Maximum time in milliseconds to wait for the native C/C++ Project Manager command bridge after the IDE is opened automatically."
-        },
-        "labwindowsCvi.nativePostIdeStartDelayMs": {
-          "type": "number",
-          "default": 2000,
-          "minimum": 0,
-          "description": "Delay in milliseconds inserted after automatically opening the C/C++ Project Manager IDE and detecting its DDE command server, before sending build/debug session commands."
-        },
-        "labwindowsCvi.nativeDdeSessionStartupTimeoutMs": {
-          "type": "number",
-          "default": 30000,
-          "minimum": 5000,
-          "description": "Maximum time in milliseconds to establish the persistent DDE debug session before sending Run Project. The session stays open so Pause, Continue and Stop can be sent while the C/C++ user program is executing."
-        },
-        "labwindowsCvi.nativeActiveXProcessTimeoutMs": {
-          "type": "number",
-          "default": 15000,
-          "minimum": 5000,
-          "description": "Maximum host-process time in milliseconds allowed for the optional experimental PowerShell ActiveX compatibility bridge based on CVI.Application."
-        },
-        "labwindowsCvi.nativeBridgeProcessTimeoutMs": {
-          "type": "number",
-          "default": 120000,
-          "minimum": 30000,
-          "description": "Maximum host-process time in milliseconds allowed for the historical PowerShell DDE fallback bridge. The first DDE fallback invocation can compile and cache its managed helper locally."
-        },
-        "labwindowsCvi.activeXDiscoveryTimeoutMs": {
-          "type": "number",
-          "default": 10000,
-          "minimum": 3000,
-          "description": "Maximum time in milliseconds allowed for the targeted C/C++ Project Manager ActiveX registry diagnostic."
-        },
-        "labwindowsCvi.powershellExecutable": {
-          "type": "string",
-          "default": "powershell.exe",
-          "description": "Windows PowerShell executable used to run the embedded C/C++ Project Manager compatibility bridge and diagnostic scripts."
-        },
-        "labwindowsCvi.nativeCommandTransport": {
-          "type": "string",
-          "enum": [
-            "dde",
-            "auto",
-            "activex"
-          ],
-          "default": "dde",
-          "description": "Native C/C++ command transport. dde is the recommended default and avoids opening a second empty C/C++ instance. auto tries DDE first and ActiveX only as a fallback. activex is an experimental ActiveX-first compatibility mode."
-        },
-        "labwindowsCvi.allowActiveXAutoStart": {
-          "type": "boolean",
-          "default": false,
-          "description": "Experimental compatibility option. Allow the ActiveX bridge to create a CVI.Application COM instance when no running automation object is available. Keep disabled to avoid opening a second empty C/C++ workspace."
-        },
-        "labwindowsCvi.nativeDebuggerIdeWindowMode": {
-          "type": "string",
-          "enum": [
-            "minimized",
-            "normal"
-          ],
-          "default": "minimized",
-          "description": "Window mode used for the native C/C++ IDE backend when a VS Code debug session is launched. minimized keeps C/C++ in the background while VS Code owns the debug UI."
-        },
-        "labwindowsCvi.keepNativeIdeMinimizedDuringVsCodeDebug": {
-          "type": "boolean",
-          "default": true,
-          "description": "Keep the native C/C++ IDE minimized while VS Code controls the debug session through the inline DAP adapter."
-        },
-        "labwindowsCvi.nativeDapPollIntervalMs": {
-          "type": "number",
-          "default": 750,
-          "minimum": 300,
-          "description": "Polling interval used by the VS Code debug adapter to detect native C/C++ execution-state transitions such as breakpoint suspension."
-        },
-        "labwindowsCvi.nativeDapPollTimeoutMs": {
-          "type": "number",
-          "default": 1000,
-          "minimum": 500,
-          "description": "Timeout for one non-destructive execution-state polling request sent through the persistent DDE session. Poll failures do not close the session."
-        },
-        "labwindowsCvi.buildBeforeNativeDebug": {
-          "type": "boolean",
-          "default": true,
-          "description": "Legacy compatibility setting. Generic C/C++ debugging always runs a build before launching cppdbg/GDB."
-        },
-        "labwindowsCvi.nativeExecutionMonitorIntervalMs": {
-          "type": "number",
-          "default": 1500,
-          "minimum": 500,
-          "description": "Polling interval used after a native debug launch to detect natural program completion without altering the persistent DDE control session."
         },
         "labwindowsCvi.cCompilerPath": {
           "type": "string",

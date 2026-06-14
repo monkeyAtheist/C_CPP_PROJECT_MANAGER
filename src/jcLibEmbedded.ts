@@ -1418,36 +1418,6 @@ void OnEvent(int code, void *callbackData)
 
     printf("panel=%d scale=%f code=%d\n", ctx->panel, ctx->scale, code);
 }`, longDescription: 'Many C APIs, including GUI and instrumentation frameworks, pass a generic void * callbackData so the callback can recover caller-owned state. The normal pattern is to cast the opaque pointer back to the expected struct type at the start of the callback.' });
-    add({ category: 'Callbacks & Lambdas', name: 'CVI callbackData cast', description: 'Read custom context passed through a LabWindows/CVI callback.', insertText: `typedef struct
-{
-    int deviceId;
-    char label[32];
-} CallbackContext;
-
-int CVICALLBACK PanelCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2)
-{
-    CallbackContext *ctx = (CallbackContext *)callbackData;
-
-    switch (event)
-    {
-        case EVENT_COMMIT:
-            if (ctx)
-            {
-                printf("control=%d device=%d label=%s\n", control, ctx->deviceId, ctx->label);
-            }
-            break;
-    }
-    return 0;
-}`, longDescription: 'In CVI, callbackData is an opaque user pointer supplied when wiring the callback. Casting it back to a dedicated context struct is the clean way to avoid globals and still access per-panel or per-control state.' });
-
-    add({ category: 'Callbacks & Lambdas', name: 'InstallCtrlCallback with callback data', description: 'Register a CVI control callback and pass a typed user context.', insertText: `typedef struct
-{
-    int panel;
-    int deviceId;
-} PanelState;
-
-PanelState state = { panelHandle, 7 };
-InstallCtrlCallback(panelHandle, PANEL_RUN, PanelCallback, &state);` , longDescription: 'CVI callbacks become much easier to scale when the panel or control state lives in a context struct passed through callbackData. This avoids hidden globals and keeps multiple panels or devices independent.' });
     add({ category: 'Callbacks & API Design', name: 'Win32 WNDPROC with user data in C', description: 'Store a typed context pointer in GWLP_USERDATA and recover it in the window procedure.', insertText: `typedef struct AppContext
 {
     int counter;
@@ -2075,7 +2045,7 @@ return { libraryName, entries, label: 'C language pack' };
     add({ category: 'Keywords', name: '__declspec(dllimport)', description: 'Import a symbol from a Windows DLL.', insertText: '__declspec(dllimport)', longDescription: 'Place this in client code or headers used by applications linking against the DLL.' });
     add({ category: 'Keywords', name: '__stdcall', description: 'Windows stdcall calling convention.', insertText: '__stdcall', longDescription: 'Often required by older Win32 APIs and some callback-based DLL interfaces.' });
     add({ category: 'DLL Helpers', name: 'DLL export macro', description: 'Windows export/import macro pattern.', insertText: '#ifdef BUILDING_MY_DLL\n#define MY_API __declspec(dllexport)\n#else\n#define MY_API __declspec(dllimport)\n#endif', longDescription: 'Typical pattern for one header shared by both the DLL project and its consumers.' });
-    add({ category: 'DLL Helpers', name: 'DllMain', description: 'Minimal Windows DLL entry point.', insertText: '#include <windows.h>\n\nBOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)\n{\n    switch (ul_reason_for_call)\n    {\n        case DLL_PROCESS_ATTACH:\n        case DLL_THREAD_ATTACH:\n        case DLL_THREAD_DETACH:\n        case DLL_PROCESS_DETACH:\n            break;\n    }\n    return TRUE;\n}', longDescription: 'Keep DllMain very small. Avoid complex initialization, loader-lock sensitive code, or thread synchronization here.' });
+    add({ category: 'DLL Helpers', name: 'DllMain', description: 'Minimal Windows DLL entry point.', insertText: '#include <windows.h>\n\nBOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)\n{\n    (void)hinstDLL;\n    (void)lpvReserved;\n\n    switch(fdwReason)\n    {\n        case DLL_PROCESS_ATTACH:\n            // Code to run when the DLL is loaded\n            break;\n        case DLL_THREAD_ATTACH:\n            // Code to run when a thread is created\n            break;\n        case DLL_THREAD_DETACH:\n            // Code to run when a thread ends\n            break;\n        case DLL_PROCESS_DETACH:\n            // Code to run when the DLL is unloaded\n            break;\n    }\n    return TRUE;\n}', longDescription: 'Keep DllMain very small. Avoid complex initialization, loader-lock sensitive code, or thread synchronization here.' });
     add({ category: 'DLL Helpers', name: 'Exported function', description: 'Typical exported C function.', insertText: 'MY_API int MyFunction(int value);', signature: 'MY_API int MyFunction(int value);', longDescription: 'Simple export declaration suitable for a C-compatible DLL API.' });
     add({ category: 'DLL Helpers', name: 'Exported callback typedef', description: 'Callback typedef exported from a DLL.', insertText: 'typedef int (__stdcall *MyCallback)(int code);', signature: 'typedef int (__stdcall *MyCallback)(int code);', longDescription: 'Useful when the host application must register a function pointer back into the DLL.' });
     add({ category: 'DLL Helpers', name: 'Opaque handle API', description: 'C DLL API based on opaque handles.', insertText: 'typedef struct MyContextTag *MyContextHandle;\n\nMY_API MyContextHandle MyCreate(void);\nMY_API void MyDestroy(MyContextHandle handle);\nMY_API int MyProcess(MyContextHandle handle, const char *input);', longDescription: 'Good pattern to keep the ABI stable while hiding implementation details from client code.' });
@@ -2284,46 +2254,6 @@ void OnEvent(int code, void *userData)
 
     std::cout << "id=" << ctx->id << " scale=" << ctx->scale << " code=" << code << std::endl;
 }`, longDescription: 'Many C and GUI APIs pass a void * userData or callbackData so the callback can regain object or context state. In C++, static_cast back to the expected type is the normal, explicit pattern at the ABI boundary.' });
-    add({ category: 'Embedded & C Interop', name: 'CVI callbackData cast in C++', description: 'Use callbackData to recover a typed context inside a CVI callback compiled as C++.', insertText: `struct PanelContext
-{
-    int deviceId = 0;
-    std::string name;
-};
-
-int CVICALLBACK PanelCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2)
-{
-    auto *ctx = static_cast<PanelContext *>(callbackData);
-
-    switch (event)
-    {
-        case EVENT_COMMIT:
-            if (ctx)
-            {
-                std::cout << "panel=" << panel << " control=" << control << " device=" << ctx->deviceId << " name=" << ctx->name << std::endl;
-            }
-            break;
-    }
-    return 0;
-}`, longDescription: 'When a CVI project is built as C++, callbackData can still carry caller-owned context exactly as in C. Casting it once at the top of the callback keeps the handler clean and avoids hidden global dependencies.' });
-
-    add({ category: 'Embedded & C Interop', name: 'CVI callback dispatch to class instance', description: 'Recover a C++ object from callbackData and forward the event to a member function.', insertText: `class PanelController
-{
-public:
-    int HandleEvent(int panel, int control, int event)
-    {
-        if (event == EVENT_COMMIT)
-        {
-            std::cout << "commit on control " << control << std::endl;
-        }
-        return 0;
-    }
-
-    static int CVICALLBACK PanelThunk(int panel, int control, int event, void *callbackData, int eventData1, int eventData2)
-    {
-        auto *self = static_cast<PanelController *>(callbackData);
-        return self ? self->HandleEvent(panel, control, event) : 0;
-    }
-};`, longDescription: 'This is the standard way to bridge a C-style CVI callback toward a C++ instance method. The static thunk satisfies the required callback signature, and callbackData carries the object pointer.' });
     add({ category: 'Input & Events', name: 'Win32 WNDPROC to C++ object thunk', description: 'Route Win32 messages from a static window procedure into a class instance.', insertText: `class MainWindow
 {
 public:
@@ -7893,13 +7823,8 @@ return { libraryName, entries, label: 'Java language pack' };
     return { libraryName, entries, label: 'C# language pack' };
   }
 
-  libraryName = 'CVI Helpers';
-  add({ category: 'Keywords', name: 'CVICALLBACK', description: 'CVI callback specifier.', insertText: 'CVICALLBACK', longDescription: 'Used by LabWindows/CVI for callback signatures such as panel, timer, and control callbacks.' });
-  add({ category: 'Keywords', name: 'CVIFUNC', description: 'CVI exported function specifier.', insertText: 'CVIFUNC', longDescription: 'Commonly used in CVI headers to mark externally visible functions.' });
-  add({ category: 'DLL Helpers', name: 'CVI callback skeleton', description: 'Typical CVI callback function.', insertText: 'int CVICALLBACK PanelCallback (int panel, int control, int event, void *callbackData, int eventData1, int eventData2)\n{\n    switch (event)\n    {\n        case EVENT_COMMIT:\n            break;\n    }\n    return 0;\n}', longDescription: 'Typical event handler pattern for panels and controls in LabWindows/CVI.' });
-  add({ category: 'Snippets', name: 'LoadPanel pattern', description: 'Typical LoadPanel / DisplayPanel skeleton.', insertText: 'int panel = LoadPanel(0, "my_ui.uir", PANEL);\nDisplayPanel(panel);\nRunUserInterface();\nDiscardPanel(panel);', longDescription: 'Minimal skeleton for loading a UIR file and starting the CVI UI loop.' });
-  add({ category: 'Snippets', name: 'SetCtrlVal / GetCtrlVal pattern', description: 'Read and write CVI control values.', insertText: 'int value = 0;\nGetCtrlVal(panel, PANEL_NUMERIC, &value);\nvalue += 1;\nSetCtrlVal(panel, PANEL_NUMERIC, value);', longDescription: 'One of the most common patterns when wiring UI controls to internal logic.' });
-  return { libraryName, entries, label: 'CVI helpers' };
+  libraryName = 'C/C++ Compatibility Helpers';
+  return { libraryName, entries, label: 'C/C++ compatibility helpers' };
 }
 
 async function addContentIntoPackFile(pack: LoadedPack, target?: { environmentName?: string; libraryName?: string; categoryName?: string }): Promise<{ message: string } | undefined> {
@@ -8224,7 +8149,7 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
     case 'opencv_full':
       return combineSingleLibrary('opencv_full', 'OpenCV language pack', 'OpenCV Language', ['opencv_core', 'opencv_vision']);
     case 'c_all':
-      return combinePreservingLibraries('c_all', 'All C pack', ['c_core', 'c_dll', 'cvi_core']);
+      return combinePreservingLibraries('c_all', 'All C pack', ['c_core', 'c_dll']);
     case 'cpp_all':
       return combinePreservingLibraries('cpp_all', 'All C++ pack', ['cpp_core', 'cpp_dll']);
     case 'qt_all':
@@ -8311,7 +8236,7 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
 async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSelection | undefined> {
   const families = [
     { label: 'Add all packs', description: 'Insert every grouped pack plus the premium example packs in one operation', value: 'all' },
-    { label: 'C pack', description: 'C language pack with expert ABI, unions, function pointers, pointer patterns, callbackData casting, Win32/CVI callbacks, buses/protocols, plus C DLL helpers and CVI helpers', value: 'c' },
+    { label: 'C pack', description: 'C language pack with ISO C, systems programming patterns, callbacks, files, POSIX/Windows APIs, buses/protocols, plus C DLL helpers', value: 'c' },
     { label: 'C++ pack', description: 'Structured C++ pack loaded from cpp_language_pack.json: types, parametric API calls, STL, concurrency, files, interop, Qt helpers, and DLL patterns', value: 'cpp' },
     { label: 'Preprocessor pack', description: 'Shared C/C++ preprocessor content: macros, variadic macros, pragmas, #if, # and ##', value: 'preprocessor' },
     { label: 'Qt pack', description: 'Structured Qt C++ pack loaded from qt_pack.json, plus Qt for Python / PySide6, editable declarative QML templates, multimedia, SQL, and tests', value: 'qt' },
@@ -8347,10 +8272,9 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
 
   const groupedChoices: Record<string, { label: string; description: string; value: string }[]> = {
     c: [
-      { label: 'Add all C pack', description: 'Add C language pack, C DLL helpers, and CVI helpers at once', value: 'c_all' },
+      { label: 'Add all C pack', description: 'Add C language pack and C DLL helpers at once', value: 'c_all' },
       { label: 'C language pack', description: 'Unified structured ISO C and systems C pack: Standard Library, language basics, C23 keywords, preprocessor, pointers, callbacks, memory, files/configuration, POSIX and Windows APIs, threads, sockets, HTTP, serial, USB, buses, diagnostics, CMake, portability, and ABI patterns', value: 'c_core' },
-      { label: 'C DLL helpers', description: 'Windows DLL helpers and manual loading patterns for C', value: 'c_dll' },
-      { label: 'CVI helpers', description: 'Common CVI callback, UI, and thread-pool snippets', value: 'cvi_core' }
+      { label: 'C DLL helpers', description: 'Windows DLL helpers and manual loading patterns for C', value: 'c_dll' }
     ],
     cpp: [
       { label: 'Add all C++ pack', description: 'Add the complete C++ language pack and C++ DLL helpers together', value: 'cpp_all' },
@@ -11053,7 +10977,7 @@ async function chooseWritablePack(packs: LoadedPack[], title: string): Promise<L
 
 async function openPackFileInEditor(filePath: string): Promise<void> {
   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
-  await vscode.window.showTextDocument(doc, { preview: false });
+  await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
 }
 
 function buildFunctionSignature(name: string, returnType: string, parameters: CviParameter[]): string {
@@ -12015,7 +11939,7 @@ function buildGeneratedHeaderText(options: {
   const functions = collectFunctionsForHeader(options.packFile, options.environmentName, options.libraryName, options.categoryName);
   const language = String(options.packFile.language || 'c').toLowerCase();
   const lines: string[] = [];
-  lines.push(`/* Generated by CVI Libraries — ${options.title} */`);
+  lines.push(`/* Generated by C/C++ Libraries — ${options.title} */`);
   lines.push(`#ifndef ${options.guardName}`);
   lines.push(`#define ${options.guardName}`);
   lines.push('');
@@ -12767,7 +12691,7 @@ function loadCviUiAttributeCatalog(): any | undefined {
         return cachedCviUiAttributeCatalog;
       }
     } catch (error) {
-      console.error(`CVI Libraries: failed to load CVI UI attribute catalog from ${candidate}`, error);
+      console.error(`C/C++ Libraries: failed to load CVI UI attribute catalog from ${candidate}`, error);
     }
   }
   return undefined;
@@ -19243,12 +19167,12 @@ export function activate(context: vscode.ExtensionContext): void {
       ? context.workspaceState.get<StoredFunctionState>(currentDetailsStateKey)
       : undefined;
 
-    detailsPanel.title = `CVI Libraries: ${resolvedFunction?.name ?? 'Symbol'}`;
+    detailsPanel.title = `C/C++ Libraries: ${resolvedFunction?.name ?? 'Symbol'}`;
 
     try {
       detailsPanel.webview.html = buildDetailsHtml(resolvedFunction!, storedState);
     } catch (error) {
-      console.error('CVI Libraries: failed to render details panel', error);
+      console.error('C/C++ Libraries: failed to render details panel', error);
       detailsPanel.webview.html = buildDetailsErrorHtml(resolvedFunction, error);
     }
 
@@ -19274,7 +19198,13 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   const getPreferredDetailsColumn = (): vscode.ViewColumn => {
-    const activeColumn = vscode.window.activeTextEditor?.viewColumn ?? vscode.window.tabGroups.activeTabGroup?.viewColumn;
+    // When the user is editing a file, open JC Lib details beside that editor
+    // instead of replacing it. If there is no active editor, keep the panel in
+    // the active/full-width column.
+    if (vscode.window.activeTextEditor) {
+      return vscode.ViewColumn.Beside;
+    }
+    const activeColumn = vscode.window.tabGroups.activeTabGroup?.viewColumn;
     if (typeof activeColumn === 'number' && activeColumn >= 1) {
       return activeColumn as vscode.ViewColumn;
     }
@@ -19381,7 +19311,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const initialColumn = getPreferredDetailsColumn();
       detailsPanel = vscode.window.createWebviewPanel(
         'cviFunctionDetails',
-        `CVI Libraries: ${resolvedFunction.name}`,
+        `C/C++ Libraries: ${resolvedFunction.name}`,
         initialColumn,
         { enableScripts: true, retainContextWhenHidden: true }
       );
@@ -19453,7 +19383,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     const revealColumn = detailsPanel.viewColumn ?? getPreferredDetailsColumn();
-    detailsPanel.title = `CVI Libraries: ${resolvedFunction.name}`;
+    detailsPanel.title = `C/C++ Libraries: ${resolvedFunction.name}`;
     detailsPanel.webview.html = buildDetailsLoadingHtml(resolvedFunction);
     detailsPanel.reveal(revealColumn, options?.preserveFocus ?? false);
     renderCurrentDetailsPanel();
@@ -19642,7 +19572,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 const openChoice = await vscode.window.showInformationMessage(`Generated header: ${generatedPath}`, 'Open header');
                 if (openChoice === 'Open header') {
                   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(generatedPath));
-                  await vscode.window.showTextDocument(doc, { preview: false });
+                  await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
                 }
               }
             }
@@ -19655,7 +19585,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 const openChoice = await vscode.window.showInformationMessage(`Generated header: ${generatedPath}`, 'Open header');
                 if (openChoice === 'Open header') {
                   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(generatedPath));
-                  await vscode.window.showTextDocument(doc, { preview: false });
+                  await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
                 }
               }
             }
@@ -19682,7 +19612,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 : await vscode.window.showInformationMessage(result.message);
               if (result.openPath && openChoice === 'Open file') {
                 const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
-                await vscode.window.showTextDocument(doc, { preview: false });
+                await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
               }
             }
             return;
@@ -19712,7 +19642,7 @@ export function activate(context: vscode.ExtensionContext): void {
                   : await vscode.window.showInformationMessage(result.message);
                 if (result.openPath && openChoice === 'Open file') {
                   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
-                  await vscode.window.showTextDocument(doc, { preview: false });
+                  await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
                 }
               }
             }
@@ -19742,7 +19672,7 @@ export function activate(context: vscode.ExtensionContext): void {
                   : await vscode.window.showInformationMessage(result.message);
                 if (result.openPath && openChoice === 'Open file') {
                   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
-                  await vscode.window.showTextDocument(doc, { preview: false });
+                  await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
                 }
               }
             }
@@ -19772,7 +19702,7 @@ export function activate(context: vscode.ExtensionContext): void {
                   : await vscode.window.showInformationMessage(result.message);
                 if (result.openPath && openChoice === 'Open file') {
                   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
-                  await vscode.window.showTextDocument(doc, { preview: false });
+                  await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
                 }
               }
             }
@@ -19846,7 +19776,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     const readOnlyChoice = await vscode.window.showQuickPick([
-      { label: 'Editable', value: 'false', description: 'The pack can be edited directly from CVI Libraries' },
+      { label: 'Editable', value: 'false', description: 'The pack can be edited directly from C/C++ Libraries' },
       { label: 'Read-only', value: 'true', description: 'The pack opens in read-only mode unless you edit the JSON manually' }
     ], { title: 'Choose the initial edit mode for the pack' });
     if (!readOnlyChoice) {
@@ -19881,7 +19811,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     const readOnlyChoice = await vscode.window.showQuickPick([
-      { label: 'Editable', value: 'false', description: 'The pack can be edited directly from CVI Libraries' },
+      { label: 'Editable', value: 'false', description: 'The pack can be edited directly from C/C++ Libraries' },
       { label: 'Read-only', value: 'true', description: 'The pack opens in read-only mode unless you edit the JSON manually' }
     ], { title: 'Choose the initial edit mode for the imported pack' });
     if (!readOnlyChoice) {
@@ -19908,8 +19838,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.createPack', async () => {
     const modeChoice = await vscode.window.showQuickPick([
-      { label: 'Create new pack', value: 'create', description: 'Start from an empty CVI Libraries pack template' },
-      { label: 'Import existing pack', value: 'import', description: 'Copy an existing JSON library pack into CVI Libraries storage' }
+      { label: 'Create new pack', value: 'create', description: 'Start from an empty C/C++ Libraries pack template' },
+      { label: 'Import existing pack', value: 'import', description: 'Copy an existing JSON library pack into C/C++ Libraries storage' }
     ], {
       title: 'Add library pack'
     });
@@ -19954,7 +19884,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const openChoice = await vscode.window.showInformationMessage(`Generated header: ${generatedPath}`, 'Open header');
     if (openChoice === 'Open header') {
       const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(generatedPath));
-      await vscode.window.showTextDocument(doc, { preview: false });
+      await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
     }
   }));
 
@@ -20015,7 +19945,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const openChoice = await vscode.window.showInformationMessage(result.message, 'Open header');
       if (openChoice === 'Open header') {
         const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
-        await vscode.window.showTextDocument(doc, { preview: false });
+        await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
       }
     } else {
       void vscode.window.showInformationMessage(result.message);
@@ -20144,7 +20074,7 @@ export function activate(context: vscode.ExtensionContext): void {
           const openChoice = await vscode.window.showInformationMessage(result.message, 'Open header');
           if (openChoice === 'Open header') {
             const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
-            await vscode.window.showTextDocument(doc, { preview: false });
+            await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
           }
         } else {
           void vscode.window.showInformationMessage(result.message);
@@ -20359,7 +20289,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const matched = wanted ? searchEntries.find((entry) => entry.fn.name.toLowerCase() === wanted)?.fn : undefined;
     const resolved = matched ?? fallback;
     if (!resolved) {
-      void vscode.window.showInformationMessage(`No CVI library card was found for ${name ?? 'the selected function'}.`);
+      void vscode.window.showInformationMessage(`No C/C++ library card was found for ${name ?? 'the selected function'}.`);
       return;
     }
     await showFunctionDetailsPanel(resolved);

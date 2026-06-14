@@ -58,6 +58,17 @@ const FILE_TEMPLATE_STORE = 'file-templates.json';
 const SNIPPET_STORE = 'snippets.json';
 const TEXT_TEMPLATE_EXTENSIONS = new Set(['.c', '.h', '.cpp', '.hpp', '.txt', '.ini', '.json', '.xml', '.md', '.lua', '.js', '.ts', '.bat', '.cmd', '.ps1']);
 
+const BUNDLED_MY_UTIL_ROOT = path.join('data', 'templates', 'my_util', 'MY_Util');
+const BUNDLED_MY_UTIL_SKIP_EXTENSIONS = new Set(['.bak']);
+
+interface BundledModuleChoice {
+  label: string;
+  description: string;
+  detail: string;
+  defaultFolder: string;
+  entries: string[];
+}
+
 function normalizeExtension(extension: string): string {
   const trimmed = String(extension || '').trim();
   if (!trimmed) {
@@ -258,8 +269,23 @@ const DLL_SOURCE_TEMPLATE = `#include <windows.h>
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
     (void)hinstDLL;
-    (void)fdwReason;
     (void)lpvReserved;
+
+    switch(fdwReason)
+    {
+        case DLL_PROCESS_ATTACH:
+            // Code to run when the DLL is loaded
+            break;
+        case DLL_THREAD_ATTACH:
+            // Code to run when a thread is created
+            break;
+        case DLL_THREAD_DETACH:
+            // Code to run when a thread ends
+            break;
+        case DLL_PROCESS_DETACH:
+            // Code to run when the DLL is unloaded
+            break;
+    }
     return TRUE;
 }
 `;
@@ -330,41 +356,73 @@ extern "C" {
 
 #include <stddef.h>
 
-#define CVI_ERROR_LOG_PATH_SIZE 1024
-#define CVI_ERROR_MAX_LOG_LINES 1000
-
-extern int g_cviErrorCode;
-
-void CviError_SetLogFile (const char *filePath);
-void CviError_Log (const char *format, ...);
-void CviError_Report (int code, const char *message, const char *file,
-                      int line, const char *functionName);
-
-#if defined(_MSC_VER) || defined(__CVI__)
-#  define CVI_ERROR_FUNCTION __FUNCTION__
-#else
-#  define CVI_ERROR_FUNCTION __func__
+#ifndef CPM_ERROR_MESSAGE_SIZE
+#define CPM_ERROR_MESSAGE_SIZE 512
 #endif
 
-#define CVI_ERROR_GOTO(code, message, label) \\
+#ifndef CPM_ERROR_PATH_SIZE
+#define CPM_ERROR_PATH_SIZE 1024
+#endif
+
+#define ERROR_LABEL error
+
+typedef struct CpmErrorConfig
+{
+    int enabled;
+    int mirrorToStderr;
+    int maxLogLines;
+    char logPath[CPM_ERROR_PATH_SIZE];
+} CpmErrorConfig;
+
+extern int g_cpmErrorCode;
+extern CpmErrorConfig g_cpmErrorConfig;
+
+void CpmError_InitDefaults(void);
+int CpmError_LoadConfig(const char *iniPath);
+void CpmError_SetEnabled(int enabled);
+void CpmError_SetLogFile(const char *filePath);
+void CpmError_Log(const char *format, ...);
+void CpmError_Report(int code, const char *message, const char *file,
+                     int line, const char *functionName);
+
+#if defined(_MSC_VER)
+#  define CPM_ERROR_FUNCTION __FUNCTION__
+#else
+#  define CPM_ERROR_FUNCTION __func__
+#endif
+
+#define CPM_ERR_INFZ(code, message) \\
     do { \\
-        int cviErrorCodeLocal = (code); \\
-        if (cviErrorCodeLocal < 0) { \\
-            g_cviErrorCode = cviErrorCodeLocal; \\
-            CviError_Report (cviErrorCodeLocal, (message), __FILE__, __LINE__, CVI_ERROR_FUNCTION); \\
-            goto label; \\
+        int cpmErrorCodeLocal = (code); \\
+        if (cpmErrorCodeLocal < 0) { \\
+            g_cpmErrorCode = cpmErrorCodeLocal; \\
+            CpmError_Report(cpmErrorCodeLocal, (message), __FILE__, __LINE__, CPM_ERROR_FUNCTION); \\
+            goto ERROR_LABEL; \\
         } \\
     } while (0)
 
-#define CVI_CHECK_GOTO(expression, label) \\
-    CVI_ERROR_GOTO ((expression), #expression, label)
+#define CPM_ERR_INFEQZ(code, message) \\
+    do { \\
+        int cpmErrorCodeLocal = (code); \\
+        if (cpmErrorCodeLocal <= 0) { \\
+            g_cpmErrorCode = cpmErrorCodeLocal; \\
+            CpmError_Report(cpmErrorCodeLocal, (message), __FILE__, __LINE__, CPM_ERROR_FUNCTION); \\
+            goto ERROR_LABEL; \\
+        } \\
+    } while (0)
 
-#define CVI_CHECK_PTR_GOTO(pointer, label) \\
+#define CPM_ERR_CHCK_INFZ(expression) \\
+    CPM_ERR_INFZ((expression), #expression)
+
+#define CPM_ERR_CHCK_INFEQZ(expression) \\
+    CPM_ERR_INFEQZ((expression), #expression)
+
+#define CPM_ERR_PTR(pointer) \\
     do { \\
         if ((pointer) == NULL) { \\
-            g_cviErrorCode = -999; \\
-            CviError_Report (g_cviErrorCode, "NULL pointer: " #pointer, __FILE__, __LINE__, CVI_ERROR_FUNCTION); \\
-            goto label; \\
+            g_cpmErrorCode = -999; \\
+            CpmError_Report(g_cpmErrorCode, "NULL pointer: " #pointer, __FILE__, __LINE__, CPM_ERROR_FUNCTION); \\
+            goto ERROR_LABEL; \\
         } \\
     } while (0)
 
@@ -377,98 +435,264 @@ void CviError_Report (int code, const char *message, const char *file,
 
 const ERROR_SOURCE_TEMPLATE = `#include "{{headerFile}}"
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#if defined(_WIN32)
+#  define CPM_STRICMP _stricmp
+#else
+#  include <strings.h>
+#  define CPM_STRICMP strcasecmp
+#endif
 
-static char cviErrorLogPath[CVI_ERROR_LOG_PATH_SIZE] = "";
-int g_cviErrorCode = 0;
+int g_cpmErrorCode = 0;
+CpmErrorConfig g_cpmErrorConfig;
 
-static void CviError_TrimLogIfNeeded (void)
+static void CpmError_CopyString(char *dst, size_t dstSize, const char *src)
+{
+    if (dst == NULL || dstSize == 0)
+        return;
+    if (src == NULL)
+        src = "";
+    strncpy(dst, src, dstSize - 1);
+    dst[dstSize - 1] = '\\0';
+}
+
+static char *CpmError_Trim(char *text)
+{
+    char *end;
+    while (*text != '\\0' && isspace((unsigned char)*text))
+        ++text;
+    end = text + strlen(text);
+    while (end > text && isspace((unsigned char)*(end - 1)))
+        --end;
+    *end = '\\0';
+    return text;
+}
+
+static int CpmError_ParseBool(const char *text, int defaultValue)
+{
+    if (text == NULL)
+        return defaultValue;
+    if (CPM_STRICMP(text, "true") == 0 || CPM_STRICMP(text, "yes") == 0 || strcmp(text, "1") == 0 || CPM_STRICMP(text, "on") == 0)
+        return 1;
+    if (CPM_STRICMP(text, "false") == 0 || CPM_STRICMP(text, "no") == 0 || strcmp(text, "0") == 0 || CPM_STRICMP(text, "off") == 0)
+        return 0;
+    return defaultValue;
+}
+
+static void CpmError_TrimLogIfNeeded(void)
 {
     FILE *file;
     char line[512];
     int lineCount = 0;
 
-    if (cviErrorLogPath[0] == '\\0')
+    if (!g_cpmErrorConfig.enabled || g_cpmErrorConfig.maxLogLines <= 0 || g_cpmErrorConfig.logPath[0] == '\\0')
         return;
 
-    file = fopen (cviErrorLogPath, "r");
+    file = fopen(g_cpmErrorConfig.logPath, "r");
     if (file == NULL)
         return;
 
-    while (fgets (line, sizeof (line), file) != NULL)
+    while (fgets(line, sizeof(line), file) != NULL)
         ++lineCount;
-    fclose (file);
+    fclose(file);
 
-    if (lineCount > CVI_ERROR_MAX_LOG_LINES)
+    if (lineCount > g_cpmErrorConfig.maxLogLines)
     {
-        file = fopen (cviErrorLogPath, "w");
+        file = fopen(g_cpmErrorConfig.logPath, "w");
         if (file != NULL)
-            fclose (file);
+            fclose(file);
     }
 }
 
-void CviError_SetLogFile (const char *filePath)
+void CpmError_InitDefaults(void)
 {
-    if (filePath == NULL)
-    {
-        cviErrorLogPath[0] = '\\0';
-        return;
-    }
-
-    strncpy (cviErrorLogPath, filePath, sizeof (cviErrorLogPath) - 1);
-    cviErrorLogPath[sizeof (cviErrorLogPath) - 1] = '\\0';
+    g_cpmErrorConfig.enabled = 1;
+    g_cpmErrorConfig.mirrorToStderr = 1;
+    g_cpmErrorConfig.maxLogLines = 5000;
+    CpmError_CopyString(g_cpmErrorConfig.logPath, sizeof(g_cpmErrorConfig.logPath), "logs/error.log");
 }
 
-void CviError_Log (const char *format, ...)
+int CpmError_LoadConfig(const char *iniPath)
+{
+    FILE *file;
+    char line[1024];
+
+    CpmError_InitDefaults();
+    if (iniPath == NULL || iniPath[0] == '\\0')
+        return 0;
+
+    file = fopen(iniPath, "r");
+    if (file == NULL)
+        return -1;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        char *trimmed = CpmError_Trim(line);
+        char *equals;
+        char *key;
+        char *value;
+        if (trimmed[0] == '\\0' || trimmed[0] == '#' || trimmed[0] == ';' || trimmed[0] == '[')
+            continue;
+        equals = strchr(trimmed, '=');
+        if (equals == NULL)
+            continue;
+        *equals = '\\0';
+        key = CpmError_Trim(trimmed);
+        value = CpmError_Trim(equals + 1);
+
+        if (CPM_STRICMP(key, "enabled") == 0)
+            g_cpmErrorConfig.enabled = CpmError_ParseBool(value, g_cpmErrorConfig.enabled);
+        else if (CPM_STRICMP(key, "mirror_to_stderr") == 0)
+            g_cpmErrorConfig.mirrorToStderr = CpmError_ParseBool(value, g_cpmErrorConfig.mirrorToStderr);
+        else if (CPM_STRICMP(key, "max_log_lines") == 0)
+            g_cpmErrorConfig.maxLogLines = atoi(value);
+        else if (CPM_STRICMP(key, "log_path") == 0)
+            CpmError_CopyString(g_cpmErrorConfig.logPath, sizeof(g_cpmErrorConfig.logPath), value);
+    }
+
+    fclose(file);
+    return 0;
+}
+
+void CpmError_SetEnabled(int enabled)
+{
+    g_cpmErrorConfig.enabled = enabled ? 1 : 0;
+}
+
+void CpmError_SetLogFile(const char *filePath)
+{
+    CpmError_CopyString(g_cpmErrorConfig.logPath, sizeof(g_cpmErrorConfig.logPath), filePath);
+}
+
+void CpmError_Log(const char *format, ...)
 {
     char message[2048];
     FILE *file;
     va_list args;
 
-    va_start (args, format);
-    vsnprintf (message, sizeof (message), format, args);
-    va_end (args);
-    message[sizeof (message) - 1] = '\\0';
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+    message[sizeof(message) - 1] = '\\0';
 
-    if (cviErrorLogPath[0] != '\\0')
+    if (g_cpmErrorConfig.enabled && g_cpmErrorConfig.logPath[0] != '\\0')
     {
-        CviError_TrimLogIfNeeded ();
-        file = fopen (cviErrorLogPath, "a");
+        CpmError_TrimLogIfNeeded();
+        file = fopen(g_cpmErrorConfig.logPath, "a");
         if (file != NULL)
         {
-            fputs (message, file);
-            fflush (file);
-            fclose (file);
+            fputs(message, file);
+            fflush(file);
+            fclose(file);
         }
     }
 
-    fputs (message, stdout);
+    if (g_cpmErrorConfig.mirrorToStderr)
+        fputs(message, stderr);
 }
 
-void CviError_Report (int code, const char *message, const char *file,
-                      int line, const char *functionName)
+void CpmError_Report(int code, const char *message, const char *file,
+                     int line, const char *functionName)
 {
-    time_t now = time (NULL);
-    const char *timestamp = ctime (&now);
+    time_t now = time(NULL);
+    const char *timestamp = ctime(&now);
 
-    CviError_Log ("*** C/C++ ERROR ***\\n"
-                  "Code: %d\\n"
-                  "Message: %s\\n"
-                  "File: %s\\n"
-                  "Line: %d\\n"
-                  "Function: %s\\n"
-                  "Time: %s\\n",
-                  code,
-                  message != NULL ? message : "(none)",
-                  file != NULL ? file : "(unknown)",
-                  line,
-                  functionName != NULL ? functionName : "(unknown)",
-                  timestamp != NULL ? timestamp : "(unknown)\\n");
+    CpmError_Log("*** C/C++ ERROR ***\\n"
+                 "Code: %d\\n"
+                 "Message: %s\\n"
+                 "File: %s\\n"
+                 "Line: %d\\n"
+                 "Function: %s\\n"
+                 "Time: %s\\n",
+                 code,
+                 message != NULL ? message : "(none)",
+                 file != NULL ? file : "(unknown)",
+                 line,
+                 functionName != NULL ? functionName : "(unknown)",
+                 timestamp != NULL ? timestamp : "(unknown)\\n");
 }
 `;
+
+const ERROR_INI_TEMPLATE = `[error]
+enabled=true
+mirror_to_stderr=true
+log_path=logs/error.log
+max_log_lines=5000
+`;
+
+
+function getBuiltInMyUtilModules(): BundledModuleChoice[] {
+  return [
+    {
+      label: 'MY_Util / Core utilities',
+      description: 'Copy myUtil.cpp, myUtil.h and utility.ini.',
+      detail: 'INI reader, string helpers, timestamp and error-log helper functions from MY_Util.',
+      defaultFolder: 'MY_Util',
+      entries: ['myUtil.cpp', 'myUtil.h', 'utility.ini']
+    },
+    {
+      label: 'MY_Util / Error management C++',
+      description: 'Copy errorManagement.cpp/.h plus required core utility files.',
+      detail: 'check_negerror, check_zeroerror, set_error macros and a runtime utility.ini configuration file.',
+      defaultFolder: 'MY_Util',
+      entries: ['myUtil.cpp', 'myUtil.h', 'utility.ini', 'ErrorManagement/errorManagement.cpp', 'ErrorManagement/errorManagement.h']
+    },
+    {
+      label: 'MY_Util / UART communication',
+      description: 'Copy the cross-platform UART class.',
+      detail: 'Serial port wrapper with text, byte and packet helpers.',
+      defaultFolder: 'MY_Util',
+      entries: ['Communication/uart/uart.cpp', 'Communication/uart/uart.h']
+    },
+    {
+      label: 'MY_Util / IPC communication',
+      description: 'Copy the IPC pipe class.',
+      detail: 'Named-pipe, local-socket and anonymous-pipe helpers.',
+      defaultFolder: 'MY_Util',
+      entries: ['Communication/IPC/IPC.cpp', 'Communication/IPC/IPC.h']
+    },
+    {
+      label: 'MY_Util / Ethernet TCP-UDP communication',
+      description: 'Copy the TCP/UDP EthernetLink class.',
+      detail: 'Client/server TCP and UDP helpers with packet framing.',
+      defaultFolder: 'MY_Util',
+      entries: ['Communication/ethernet/ethernet.cpp', 'Communication/ethernet/ethernet.h']
+    },
+    {
+      label: 'MY_Util / Full communication stack',
+      description: 'Copy Communication/* modules.',
+      detail: 'UART, Bluetooth, Wi-Fi, Ethernet, I2C, SPI, IPC, CommsManager and listen service.',
+      defaultFolder: 'MY_Util',
+      entries: ['Communication']
+    },
+    {
+      label: 'MY_Util / Python execution bridge',
+      description: 'Copy PythonRunner/PythonSession and the companion Python scripts.',
+      detail: 'Launch scripts, maintain a session and exchange lines/JSON through pipes.',
+      defaultFolder: 'MY_Util',
+      entries: ['external/pythonExec', 'external/pythonScript']
+    },
+    {
+      label: 'MY_Util / Web UI server',
+      description: 'Copy the lightweight HTTP/Web UI server.',
+      detail: 'Embedded routes, static files, API handlers and queued UI events.',
+      defaultFolder: 'MY_Util',
+      entries: ['webui']
+    },
+    {
+      label: 'MY_Util / Complete bundle',
+      description: 'Copy all MY_Util modules.',
+      detail: 'Core utilities, error management, communication stack, Python bridge and Web UI server.',
+      defaultFolder: 'MY_Util',
+      entries: ['.']
+    }
+  ];
+}
 
 function buildBlankUirHeader(): string {
   return `/**************************************************************************/
@@ -545,6 +769,48 @@ export function getBuiltInSnippets(): BuiltInSnippet[] {
       label: 'extern "C" block',
       description: 'C ABI block usable from C++ headers.',
       body: '#ifdef __cplusplus\nextern "C" {\n#endif\n\n${0}\n\n#ifdef __cplusplus\n}\n#endif\n'
+    },
+    {
+      id: 'error-goto-cleanup',
+      label: 'Error handling / goto cleanup',
+      description: 'C-style error path with one cleanup label.',
+      body: 'int status = 0;\n\n${1:resource} = ${2:OpenResource()};\nif (${1:resource} == ${3:NULL})\n{\n    status = -1;\n    goto Cleanup;\n}\n\n${0}\n\nCleanup:\n    if (${1:resource} != ${3:NULL})\n    {\n        ${4:CloseResource}(${1:resource});\n    }\n    return status;\n'
+    },
+    {
+      id: 'error-check-macro',
+      label: 'Error handling / check macro',
+      description: 'Reusable macro that jumps to cleanup when an expression fails.',
+      body: '#define CHECK_STATUS(expr) \\\n    do { \\\n        status = (expr); \\\n        if (status < 0) { \\\n            goto Cleanup; \\\n        } \\\n    } while (0)\n\n${0}\n'
+    },
+    {
+      id: 'error-ini-load',
+      label: 'Error logging / load INI config',
+      description: 'Initialize the CPM error module and load runtime logging options.',
+      body: '#include "cpm_error.h"\n\nCpmError_InitDefaults();\nif (CpmError_LoadConfig("${1:error.ini}") < 0)\n{\n    CpmError_Log("Warning: error configuration file not found: %s\\n", "${1:error.ini}");\n}\n\n${0}\n'
+    },
+    {
+      id: 'file-read-loop',
+      label: 'File I/O / read lines',
+      description: 'Open a text file and read it line by line.',
+      body: '#include <stdio.h>\n\nFILE *file = fopen("${1:input.txt}", "r");\nif (file == NULL)\n{\n    return -1;\n}\n\nchar line[${2:512}];\nwhile (fgets(line, sizeof(line), file) != NULL)\n{\n    ${0:// process line}\n}\n\nfclose(file);\n'
+    },
+    {
+      id: 'win32-serial-open',
+      label: 'Communication / Win32 serial open',
+      description: 'Open and configure a COM port with the Windows API.',
+      body: '#ifdef _WIN32\n#include <windows.h>\n\nHANDLE serial = CreateFileA("\\\\.\\${1:COM3}", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);\nif (serial == INVALID_HANDLE_VALUE)\n{\n    return -1;\n}\n\nDCB dcb;\nSecureZeroMemory(&dcb, sizeof(dcb));\ndcb.DCBlength = sizeof(dcb);\nGetCommState(serial, &dcb);\ndcb.BaudRate = CBR_${2:115200};\ndcb.ByteSize = 8;\ndcb.Parity = NOPARITY;\ndcb.StopBits = ONESTOPBIT;\nSetCommState(serial, &dcb);\n${0}\nCloseHandle(serial);\n#endif\n'
+    },
+    {
+      id: 'tcp-client-socket',
+      label: 'Communication / TCP client socket',
+      description: 'Minimal cross-platform TCP client skeleton.',
+      body: '#if defined(_WIN32)\n#include <winsock2.h>\n#include <ws2tcpip.h>\n#pragma comment(lib, "ws2_32.lib")\n#else\n#include <arpa/inet.h>\n#include <sys/socket.h>\n#include <unistd.h>\n#define closesocket close\n#endif\n\n${0:// create socket, connect, send and receive}\n'
+    },
+    {
+      id: 'state-machine-switch',
+      label: 'Architecture / finite state machine',
+      description: 'Simple switch-based state machine skeleton.',
+      body: 'typedef enum\n{\n    STATE_INIT,\n    STATE_IDLE,\n    STATE_RUN,\n    STATE_ERROR\n} ${1:AppState};\n\nvoid ${2:RunStateMachine}(${1:AppState} *state)\n{\n    switch (*state)\n    {\n        case STATE_INIT:\n            *state = STATE_IDLE;\n            break;\n        case STATE_IDLE:\n            break;\n        case STATE_RUN:\n            break;\n        case STATE_ERROR:\n            break;\n        default:\n            *state = STATE_ERROR;\n            break;\n    }\n}\n'
     }
   ];
 }
@@ -565,6 +831,9 @@ export class CviTemplateService {
       { label: 'C module (.c + .h)', description: 'Create a paired C implementation file and guarded header', value: 'c-module' },
       { label: 'C++ class (.cpp + .hpp)', description: 'Create a minimal C++ class declaration and implementation', value: 'cpp-class' },
       { label: 'Windows DLL starter (.c + .h)', description: 'Create a minimal DllMain and export header', value: 'dll' },
+      { label: 'Error/logging module (.c + .h + .ini)', description: 'Create configurable C error handling with INI-controlled logging', value: 'error-module' },
+      { label: 'Error/logging configuration (.ini)', description: 'Create only the runtime error logging configuration file', value: 'error-ini' },
+      { label: 'MY_Util module bundle...', description: 'Copy selected C++ utility modules from the bundled MY_Util archive', value: 'my-util-module' },
       { label: 'Text file', description: 'Create an empty .txt file', value: 'text' }
     ];
     if (userTemplates.length > 0) {
@@ -583,6 +852,9 @@ export class CviTemplateService {
       case 'c-module': return this.generateModulePair(projectDirectory);
       case 'cpp-class': return this.generateCppClass(projectDirectory);
       case 'dll': return this.generateDll(projectDirectory);
+      case 'error-module': return this.generateErrorModule(projectDirectory);
+      case 'error-ini': return this.generateSingleTextFile(projectDirectory, '.ini', 'error', ERROR_INI_TEMPLATE, 'Error logging configuration');
+      case 'my-util-module': return this.generateBundledMyUtilModule(projectDirectory);
       case 'text': return this.generateSingleTextFile(projectDirectory, '.txt', 'new_file', '', 'Text file');
       case 'user-template': return this.generateUserTemplate(projectDirectory, userTemplates);
       default: return undefined;
@@ -603,7 +875,7 @@ export class CviTemplateService {
       ...userSnippets.map((snippet) => ({ label: snippet.label, description: snippet.description || '', detail: 'Saved user snippet', body: snippet.body }))
     ];
     const selected = await vscode.window.showQuickPick(items, {
-      title: 'Insert C/C++ snippet',
+      title: 'CPM: Insert snippet',
       placeHolder: 'Select a reusable code fragment to insert at the current cursor position',
       matchOnDescription: true,
       matchOnDetail: true
@@ -835,17 +1107,113 @@ export class CviTemplateService {
   }
 
   private async generateErrorModule(projectDirectory: string): Promise<NewFileGenerationResult | undefined> {
-    const sourcePath = await this.askTargetPath(projectDirectory, '.c', 'cvi_error', 'C/C++ error-management source file');
+    const sourcePath = await this.askTargetPath(projectDirectory, '.c', 'cpm_error', 'C/C++ error-management source file');
     if (!sourcePath) {
       return undefined;
     }
     const base = sourcePath.slice(0, -path.extname(sourcePath).length);
     const headerPath = `${base}.h`;
     const variables = this.createVariables(sourcePath, headerPath, undefined);
+    const iniPath = `${base}.ini`;
     return this.writeFiles([
       { absolutePath: sourcePath, contents: toCrlf(renderTemplateText(ERROR_SOURCE_TEMPLATE, variables)) },
-      { absolutePath: headerPath, contents: toCrlf(renderTemplateText(ERROR_HEADER_TEMPLATE, variables)) }
+      { absolutePath: headerPath, contents: toCrlf(renderTemplateText(ERROR_HEADER_TEMPLATE, variables)) },
+      { absolutePath: iniPath, contents: toCrlf(renderTemplateText(ERROR_INI_TEMPLATE, variables)) }
     ], sourcePath);
+  }
+
+
+  private async generateBundledMyUtilModule(projectDirectory: string): Promise<NewFileGenerationResult | undefined> {
+    const modules = getBuiltInMyUtilModules();
+    const selected = await vscode.window.showQuickPick(modules.map((module) => ({
+      label: module.label,
+      description: module.description,
+      detail: module.detail,
+      module
+    })), {
+      title: 'Copy a bundled MY_Util module',
+      matchOnDescription: true,
+      matchOnDetail: true
+    });
+    if (!selected) {
+      return undefined;
+    }
+
+    const relativeFolder = await vscode.window.showInputBox({
+      title: 'MY_Util target folder',
+      prompt: 'Folder where the selected utility files will be copied, relative to the active project directory.',
+      value: selected.module.defaultFolder,
+      validateInput: (value) => {
+        const normalized = normalizeRelativeTemplateFolder(value);
+        if (!normalized) {
+          return 'A target folder is required.';
+        }
+        if (path.isAbsolute(value)) {
+          return 'Use a relative folder inside the project directory.';
+        }
+        if (normalized.split(/[\/]+/).includes('..')) {
+          return 'Parent directory segments are not allowed.';
+        }
+        return undefined;
+      }
+    });
+    if (relativeFolder === undefined) {
+      return undefined;
+    }
+
+    const bundleRoot = path.join(this.context.extensionPath, BUNDLED_MY_UTIL_ROOT);
+    const files = this.collectBundledMyUtilFiles(bundleRoot, selected.module.entries, projectDirectory, normalizeRelativeTemplateFolder(relativeFolder));
+    if (files.length === 0) {
+      vscode.window.showErrorMessage(`No bundled files were found for ${selected.module.label}.`);
+      return undefined;
+    }
+
+    const primary = files.find((file) => /\.(?:c|cc|cpp|cxx)$/i.test(file.absolutePath))?.absolutePath ?? files[0].absolutePath;
+    return this.writeFiles(files, primary);
+  }
+
+  private collectBundledMyUtilFiles(bundleRoot: string, entries: string[], projectDirectory: string, targetFolder: string): PendingFile[] {
+    const files: PendingFile[] = [];
+    const rootPath = path.resolve(bundleRoot);
+    const pushFile = (absoluteSource: string, relativeSource: string) => {
+      const ext = path.extname(absoluteSource).toLowerCase();
+      if (BUNDLED_MY_UTIL_SKIP_EXTENSIONS.has(ext)) {
+        return;
+      }
+      const relative = normalizeRelativeTemplateFolder(relativeSource);
+      if (!relative) {
+        return;
+      }
+      const target = path.join(projectDirectory, targetFolder, relative);
+      files.push({ absolutePath: target, contents: fs.readFileSync(absoluteSource) });
+    };
+
+    for (const entry of entries) {
+      const source = path.resolve(rootPath, entry);
+      if (!source.startsWith(rootPath) || !fs.existsSync(source)) {
+        continue;
+      }
+      const stat = fs.statSync(source);
+      if (stat.isFile()) {
+        pushFile(source, path.relative(rootPath, source));
+        continue;
+      }
+      if (stat.isDirectory()) {
+        for (const filePath of walkDirectory(source)) {
+          pushFile(filePath, path.relative(rootPath, filePath));
+        }
+      }
+    }
+
+    const seen = new Set<string>();
+    return files.filter((file) => {
+      const key = path.resolve(file.absolutePath).toLowerCase();
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
   }
 
   private async generateSingleTextFile(projectDirectory: string, extension: string, suggestedBaseName: string, template: string, title: string): Promise<NewFileGenerationResult | undefined> {
@@ -1036,6 +1404,27 @@ export class CviTemplateService {
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
     await vscode.window.showTextDocument(document, { preview: false });
   }
+}
+
+
+function normalizeRelativeTemplateFolder(value: string): string {
+  return String(value || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').replace(/\/{2,}/g, '/').trim();
+}
+
+function walkDirectory(directory: string): string[] {
+  const result: string[] = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === '.vscode' || entry.name === '.git') {
+        continue;
+      }
+      result.push(...walkDirectory(absolute));
+    } else if (entry.isFile()) {
+      result.push(absolute);
+    }
+  }
+  return result;
 }
 
 function validateRequiredName(value: string): string | undefined {

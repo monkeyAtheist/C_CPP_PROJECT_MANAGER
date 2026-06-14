@@ -479,6 +479,67 @@ export class CviWorkspaceService implements vscode.Disposable {
     this.refresh();
   }
 
+  async renameFile(projectRef: CviWorkspaceProjectRef, file: CviProjectFile): Promise<void> {
+    const currentPath = file.absolutePath;
+    const currentName = path.basename(currentPath);
+    const targetName = await vscode.window.showInputBox({
+      title: 'Rename File in Project',
+      prompt: `Rename ${currentName}. The file is renamed on disk and the project reference is updated.`,
+      value: currentName,
+      validateInput: (value) => {
+        const trimmed = value.trim();
+        if (!trimmed) {
+          return 'A file name is required.';
+        }
+        if (trimmed !== value) {
+          return 'Leading or trailing spaces are not allowed.';
+        }
+        if (/[<>:"/\|?* -]/.test(trimmed)) {
+          return 'The file name contains a character that is not valid on Windows.';
+        }
+        if (trimmed === '.' || trimmed === '..') {
+          return 'This file name is reserved.';
+        }
+        return undefined;
+      }
+    });
+    if (!targetName) {
+      return;
+    }
+
+    const targetPath = path.join(path.dirname(currentPath), targetName);
+    if (path.normalize(targetPath).toLowerCase() === path.normalize(currentPath).toLowerCase()) {
+      vscode.window.showInformationMessage('The file name is unchanged.');
+      return;
+    }
+    if (fs.existsSync(targetPath)) {
+      vscode.window.showErrorMessage(`Cannot rename ${currentName}: ${targetName} already exists.`);
+      return;
+    }
+
+    const openDocument = vscode.workspace.textDocuments.find((candidate) => path.normalize(candidate.uri.fsPath).toLowerCase() === path.normalize(currentPath).toLowerCase());
+    if (openDocument?.isDirty) {
+      const answer = await vscode.window.showWarningMessage(
+        `${currentName} has unsaved changes. Save it before renaming?`,
+        { modal: true },
+        'Save and rename'
+      );
+      if (answer !== 'Save and rename') {
+        return;
+      }
+      await openDocument.save();
+    }
+
+    try {
+      await vscode.workspace.fs.rename(vscode.Uri.file(currentPath), vscode.Uri.file(targetPath), { overwrite: false });
+      this.parser.replaceFileInProject(projectRef.absolutePath, file.sectionName, targetPath);
+      this.refresh();
+      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(targetPath), { preview: false });
+    } catch (error) {
+      vscode.window.showErrorMessage(`Cannot rename ${currentName}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   async saveFile(filePath: string): Promise<void> {
     const document = vscode.workspace.textDocuments.find((candidate) => path.normalize(candidate.uri.fsPath) === path.normalize(filePath));
     if (document?.isDirty) {

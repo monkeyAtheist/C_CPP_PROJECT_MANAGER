@@ -9,16 +9,16 @@ import { CviInstallationService } from './services/cviInstallationService';
 import { CviWorkspaceService } from './services/cviWorkspaceService';
 import { HomePanel } from './views/homePanel';
 import { activate as activateCviLibraryExplorer } from './jcLibEmbedded';
-import { ensureBundledCviLibraryPack } from './services/cviLibraryPackService';
+import { ensureBundledCppLibraryPack } from './services/cviLibraryPackService';
 import { CviTemplateService } from './services/cviTemplateService';
 import { CviProjectSettingsService } from './services/cviProjectSettingsService';
 import { BuildSettingsPanel } from './views/buildSettingsPanel';
 import { QuickActionsView } from './views/quickActionsView';
-import { CviDebugView } from './views/cviDebugView';
 import { CviCompletionProvider, CviSourceSymbol, CviSymbolService, isSourceOrHeader } from './services/cviSymbolService';
 import { CviFunctionPanelService } from './services/cviFunctionPanelService';
 import { CviBreakpointSyncService } from './services/cviBreakpointSyncService';
 import { CviNativeCommandService } from './services/cviNativeCommandService';
+import { CviWorkspace } from './model/types';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
@@ -47,8 +47,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const buildSettings = new BuildSettingsPanel(workspaces, parser, projectSettings);
   const quickActions = new QuickActionsView(workspaces, builds, projectSettings);
   const quickActionsRegistration = vscode.window.registerTreeDataProvider('labwindowsCvi.quickActions', quickActions);
-  const debugView = new CviDebugView(nativeCommands, workspaces);
-  const debugViewRegistration = vscode.window.registerTreeDataProvider('labwindowsCvi.debugControls', debugView);
 
   const statusBarItems = [
     createStatusBarAction('$(home)', 'C/C++ Project Manager home', 'labwindowsCvi.openHome', 99),
@@ -115,8 +113,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     buildSettings,
     quickActions,
     quickActionsRegistration,
-    debugView,
-    debugViewRegistration,
     cppTools,
     treeView,
     fileSymbolsView,
@@ -137,9 +133,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       symbols.invalidateProjectCache();
       fileSymbolsProvider.refresh();
       updateStatusBar();
-      void cppTools.ensureConfigurationRootInWorkspace(workspaces.currentWorkspace).finally(() => {
-        cppTools.requestSync(workspaces.currentWorkspace);
-      });
+      void scheduleOptionalCppToolsSync(cppTools, workspaces.currentWorkspace);
     }),
     nativeCommands.onDidChange(() => updateStatusBar()),
     vscode.workspace.onDidChangeConfiguration((event) => {
@@ -149,9 +143,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         quickActions.update();
       }
       if (event.affectsConfiguration('labwindowsCvi.activeInstallation') || event.affectsConfiguration('labwindowsCvi.autoConfigureCppTools') || event.affectsConfiguration('labwindowsCvi.autoAddCviFolderToWorkspace') || event.affectsConfiguration('labwindowsCvi.useCppToolsConfigurationProvider') || event.affectsConfiguration('labwindowsCvi.intelliSenseCompilerPath') || event.affectsConfiguration('labwindowsCvi.additionalIncludePaths')) {
-        void cppTools.ensureConfigurationRootInWorkspace(workspaces.currentWorkspace).finally(() => {
-          cppTools.requestSync(workspaces.currentWorkspace);
-        });
+        void scheduleOptionalCppToolsSync(cppTools, workspaces.currentWorkspace);
       }
     }),
     register('labwindowsCvi.openHome', () => home.show()),
@@ -168,6 +160,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('labwindowsCvi.syncCppTools', () => cppTools.sync(workspaces.currentWorkspace, true)),
     register('labwindowsCvi.diagnoseCppTools', () => cppTools.diagnose(workspaces.currentWorkspace)),
     register('labwindowsCvi.repairCppToolsProvider', () => cppTools.repairCppToolsProviderSelection(workspaces.currentWorkspace)),
+    register('labwindowsCvi.enableAutomaticSuggestions', () => cppTools.enableAutomaticSuggestions(workspaces.currentWorkspace)),
     register('labwindowsCvi.repairNativeWorkspaceCompatibility', () => workspaces.repairNativeWorkspaceCompatibility()),
     register('labwindowsCvi.synchronizeBreakpoints', (node?: ProjectNode) => breakpointSync.synchronize(node?.ref)),
     register('labwindowsCvi.clearSynchronizedBreakpoints', (node?: ProjectNode) => breakpointSync.clear(node?.ref)),
@@ -238,6 +231,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('labwindowsCvi.includeFile', (node?: FileNode) => node ? workspaces.setFileExcluded(node.ref, node.file, false) : undefined),
     register('labwindowsCvi.toggleObjOption', (node?: FileNode) => node ? workspaces.toggleCompileIntoObjectFile(node.ref, node.file) : undefined),
     register('labwindowsCvi.replaceFile', (node?: FileNode) => node ? workspaces.replaceFile(node.ref, node.file) : undefined),
+    register('labwindowsCvi.renameFile', (node?: FileNode) => node ? workspaces.renameFile(node.ref, node.file) : undefined),
     register('labwindowsCvi.compileFile', (node?: FileNode) => node ? builds.compileFile(node.file.absolutePath, node.ref) : undefined),
     register('labwindowsCvi.generatePrototypes', (node?: FileNode) => node ? workspaces.generatePrototypes(node.ref, node.file) : undefined),
     register('labwindowsCvi.prepareDllImportLibraryGeneration', (node?: FileNode) => node ? builds.prepareDllImportLibraryGeneration(node.file.absolutePath) : undefined),
@@ -272,24 +266,57 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('labwindowsCvi.collapseAll', () => focusTreeThen('list.collapseAll'))
   );
 
-  ensureBundledCviLibraryPack(context, output);
+  ensureBundledCppLibraryPack(context, output);
   activateCviLibraryExplorer(context);
 
   await workspaces.restoreOrAutoLoad();
-  const repairedProvider = await cppTools.autoRepairStaleProviderSelection(workspaces.currentWorkspace);
-  await cppTools.ensureConfigurationRootInWorkspace(workspaces.currentWorkspace);
-  await cppTools.sync(workspaces.currentWorkspace);
-  if (repairedProvider) {
-    void vscode.window.showWarningMessage(
-      'C/C++ Project Manager removed an obsolete C/C++ configuration provider reference that could disable normal completion outside managed projects. Reload VS Code, then run C/C++: Reset IntelliSense Database once.',
-      'Reload Window'
-    ).then((action) => action === 'Reload Window' ? vscode.commands.executeCommand('workbench.action.reloadWindow') : undefined);
-  }
+
+  // Keep activation deterministic and short. Toolchain discovery and C/C++
+  // IntelliSense synchronization can touch many PATH entries on Windows; running
+  // it inline keeps VS Code in the "Activating Extensions..." state for too
+  // long when no compiler has been selected yet.
+  void runPostActivationSetup(cppTools, workspaces, output);
+
   const activeEditor = vscode.window.activeTextEditor;
   if (activeEditor?.document.uri.scheme === 'file' && isSourceOrHeader(activeEditor.document.uri.fsPath)) {
     fileSymbolsProvider.setSelectedFile(activeEditor.document.uri.fsPath);
   }
   updateStatusBar();
+}
+
+
+
+async function scheduleOptionalCppToolsSync(cppTools: CviCppToolsService, workspace: CviWorkspace | undefined): Promise<void> {
+  const config = vscode.workspace.getConfiguration('labwindowsCvi');
+  const shouldAddFolder = config.get<boolean>('autoAddCviFolderToWorkspace', false);
+  const shouldSync = config.get<boolean>('autoConfigureCppTools', false);
+  if (!shouldAddFolder && !shouldSync) {
+    return;
+  }
+  if (shouldAddFolder) {
+    await cppTools.ensureConfigurationRootInWorkspace(workspace);
+  }
+  if (shouldSync) {
+    cppTools.requestSync(workspace);
+  }
+}
+
+async function runPostActivationSetup(cppTools: CviCppToolsService, workspaces: CviWorkspaceService, output: vscode.OutputChannel): Promise<void> {
+  try {
+    const repairedProvider = await cppTools.autoRepairStaleProviderSelection(workspaces.currentWorkspace);
+    // Do not force an immediate IntelliSense regeneration during activation.
+    // The workspace change event already schedules a lightweight, debounced sync.
+    // Keeping this path passive prevents VS Code/cpptools from staying in a
+    // long "Loading..." state when a project is opened.
+    if (repairedProvider) {
+      void vscode.window.showWarningMessage(
+        'C/C++ Project Manager removed an obsolete C/C++ configuration provider reference that could disable normal completion outside managed projects. Reload VS Code, then run C/C++: Reset IntelliSense Database once.',
+        'Reload Window'
+      ).then((action) => action === 'Reload Window' ? vscode.commands.executeCommand('workbench.action.reloadWindow') : undefined);
+    }
+  } catch (error) {
+    output.appendLine(`[C/C++] Post-activation setup failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function createStatusBarAction(text: string, tooltip: string, command: string, priority: number): vscode.StatusBarItem {

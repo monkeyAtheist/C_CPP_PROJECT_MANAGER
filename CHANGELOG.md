@@ -1,3 +1,10 @@
+
+## 0.2.2
+
+- Fixed generated error/logging module C string escaping.
+- The generated `cpm_error.c` no longer emits NUL bytes from `\0` escapes.
+- Multi-line `CpmError_Log` format strings now keep escaped `\n` sequences instead of breaking C string literals.
+
 ## 0.6.23
 
 - Treat transient `DMLERR_BUSY` and unavailable DDE responses as silent polling states while CVI is starting and loading the requested workspace.

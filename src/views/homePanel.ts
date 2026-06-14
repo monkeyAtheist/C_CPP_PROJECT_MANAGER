@@ -56,8 +56,8 @@ export class HomePanel implements vscode.Disposable {
     const workspace = this.workspaces.currentWorkspace;
     const activeProject = this.workspaces.activeProjectRef;
     const project = activeProject ? this.workspaces.getProject(activeProject) : undefined;
-    const toolchain = this.installations.getActiveInstallation(workspace?.cviDir);
-    const detectedToolchainCount = this.installations.getKnownInstallations(workspace?.cviDir).length;
+    const toolchain = this.installations.getActiveInstallation(workspace?.cviDir, false);
+    const detectedToolchainCount = this.installations.getConfiguredInstallations().length;
     const mode = this.builds.buildMode;
     this.panel.webview.html = renderHtml({
       workspace: workspace?.path,
@@ -113,7 +113,9 @@ function renderHtml(state: HomeState): string {
     state.archiver ? `AR: ${compactPath(state.archiver)}` : 'AR: not configured',
     state.debuggerPath ? `DBG: ${compactPath(state.debuggerPath)}` : 'DBG: not configured'
   ].join(' · '));
-  const detectedLabel = `${state.detectedToolchainCount} detected toolchain${state.detectedToolchainCount === 1 ? '' : 's'}`;
+  const detectedLabel = state.detectedToolchainCount > 0
+    ? `${state.detectedToolchainCount} configured toolchain${state.detectedToolchainCount === 1 ? '' : 's'}`
+    : 'toolchains detected on demand';
   const sourceLabel = escapeHtml(state.toolchainSource ?? 'auto');
 
   const emptyState = !hasProject ? `
