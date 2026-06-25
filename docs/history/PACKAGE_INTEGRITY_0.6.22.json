@@ -1,0 +1,24 @@
+{
+  "version": "0.6.22",
+  "vsix": "/mnt/data/labwindows-cvi-project-manager-0.6.22.vsix",
+  "sha256": "68e43b356aabf7ea6487b0b17c9377afeb284cf267a1826dbce59351d842e530",
+  "sizeBytes": 5660740,
+  "zipEntryCount": 240,
+  "zipIntegrity": "ok",
+  "requiredEntries": {
+    "extension/package.json": true,
+    "extension/out/extension.js": true,
+    "extension/out/views/cviDebugView.js": true,
+    "extension/out/services/cviNativeCommandService.js": true,
+    "extension/native/cvi-dde-command.ps1": true,
+    "extension/native/cvi-activex-command.ps1": true,
+    "extension/native/cvi-activex-discovery.ps1": true,
+    "extension/VALIDATION_0.6.22.md": true,
+    "extension/MANUAL_TEST_CHECKLIST_0.6.22.md": true,
+    "extension/NATIVE_DEBUG_DASHBOARD_0.6.22_VALIDATION.json": true,
+    "extension/NATIVE_COMMAND_BRIDGE_0.6.22_VALIDATION.json": true,
+    "extension/REGRESSION_0.6.22_VALIDATION.json": true,
+    "extension/PACKAGE_INTEGRITY_0.6.22.json": true
+  },
+  "missingEntries": []
+}

@@ -1,0 +1,15 @@
+{
+  "version": "0.6.22",
+  "persistentDdeSession": true,
+  "sessionOpenedBeforeRun": true,
+  "runControlsUseExistingConversation": [
+    "Suspend Execution",
+    "Continue Execution",
+    "Terminate Execution"
+  ],
+  "synchronousStateProbeRemovedFromActiveControls": true,
+  "cachedStateUsedWhileProgramActive": true,
+  "sessionClosedOnExtensionDispose": true,
+  "packagedPersistentPowerShellBridge": true,
+  "packagedCompiledService": true
+}

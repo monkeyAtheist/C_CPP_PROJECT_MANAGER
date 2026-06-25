@@ -1,0 +1,35 @@
+{
+  "status": "ok",
+  "version": "0.5.5",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "extensionId": "JerryCrozet-ElectronicEngineer.labwindows-cvi-project-manager",
+  "marketplaceIcon": "media/cvi-marketplace.png",
+  "vsix": "labwindows-cvi-project-manager-0.5.5.vsix",
+  "vsixSizeBytes": 5487210,
+  "vsixSha256": "34e4ab7592086b4d00ffbb85ed539c4e12c3d70b4cb875f02656ab3399a08d20",
+  "extensionFiles": 113,
+  "requiredCommands": {
+    "labwindowsCvi.chooseBuildAction": true,
+    "labwindowsCvi.clean": true,
+    "labwindowsCvi.cleanProject": true,
+    "labwindowsCvi.selectTargetType": true,
+    "labwindowsCvi.editBuildSettings": true,
+    "labwindowsCvi.generatePrototypes": true,
+    "labwindowsCvi.openWorkspaceInCvi": true
+  },
+  "requiredRuntimeFiles": {
+    "out/services/cviBuildService.js": true,
+    "out/services/cviProjectSettingsService.js": true,
+    "out/views/buildSettingsPanel.js": true,
+    "out/views/homePanel.js": true,
+    "media/cvi-marketplace.png": true
+  },
+  "workspaceTitleCommands": [
+    "labwindowsCvi.openHome",
+    "labwindowsCvi.chooseBuildAction",
+    "labwindowsCvi.run",
+    "labwindowsCvi.refresh",
+    "labwindowsCvi.debugInCvi"
+  ],
+  "workspaceContextOpenInCvi": true
+}

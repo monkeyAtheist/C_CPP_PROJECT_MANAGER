@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "checks": {
+    "version": "0.5.7",
+    "dashboardLabelsPresent": true,
+    "emptyWorkspaceStatePresent": true,
+    "emptyProjectStatePresent": true,
+    "projectSettingsLinkPresent": true,
+    "missingFilesSummaryPresent": true,
+    "quickActionsInjectedWithSettings": true
+  }
+}

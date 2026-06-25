@@ -1,0 +1,34 @@
+{
+  "status": "ok",
+  "vsix": "labwindows-cvi-project-manager-0.5.0.vsix",
+  "sha256": "6631a1b3be31e4abfbd47d31a15fe8dcb8814898fc413b1be306780b0f4d6b01",
+  "bytes": 5423059,
+  "zipEntries": 88,
+  "manifestVersion": "0.5.0",
+  "cviPackVersion": "1.5.0",
+  "defaultPackVersion": "2.30.0",
+  "requiredFiles": [
+    "extension/package.json",
+    "extension/out/extension.js",
+    "extension/out/jcLibEmbedded.js",
+    "extension/out/services/cviTemplateService.js",
+    "extension/data/cvi_pack.json",
+    "extension/data/default_pack.json",
+    "extension/data/metadata/cvi_ui_attribute_catalog.json",
+    "extension/data/metadata/cvi_callback_event_catalog.json",
+    "extension/data/templates/blank-cvi2012.uir",
+    "extension/data/templates/blank-cvi2020.uir"
+  ],
+  "missingFiles": [],
+  "forbiddenPackagedFiles": [],
+  "uirTemplates": {
+    "extension/data/templates/blank-cvi2012.uir": {
+      "bytes": 1112,
+      "signature": "RSRC"
+    },
+    "extension/data/templates/blank-cvi2020.uir": {
+      "bytes": 1112,
+      "signature": "RSRC"
+    }
+  }
+}

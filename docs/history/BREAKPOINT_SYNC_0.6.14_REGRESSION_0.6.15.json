@@ -1,0 +1,21 @@
+{
+  "version": "0.6.14",
+  "firstSync": {
+    "applied": 2,
+    "preservedNative": 1,
+    "ignoredOutsideProject": 1,
+    "createdWorkspaceFileSections": 1
+  },
+  "resync": {
+    "applied": 1,
+    "removedTracked": 2,
+    "preservedNative": 1
+  },
+  "clear": {
+    "removedTracked": 1,
+    "preservedNative": 1
+  },
+  "tracepointPreserved": true,
+  "nativeOverlapPreserved": true,
+  "nativeBackupCreated": true
+}

@@ -1,0 +1,17 @@
+{
+  "status": "ok",
+  "detectedIssuesBeforeRepair": 5,
+  "detectedIssuesAfterRepair": 0,
+  "repairChanges": [
+    "[Default Build Config 0001 Debug] External Process Path: c:/PROG_CVI/EXE/MATRIX/MATRIX.exe -> /c/PROG_CVI/EXE/MATRIX/MATRIX.exe",
+    "[DLL Debugging Support 0001] External Process Path: c:/PROG_CVI/EXE/MATRIX/MATRIX.exe -> /c/PROG_CVI/EXE/MATRIX/MATRIX.exe",
+    "[DLL Debugging Support 0001] cleared duplicated legacy External Process Path.",
+    "[Command Line Args 0001] removed unexpected External Process Path compatibility key.",
+    "[Command Line Args 0001] cleared duplicated legacy Command Line Args."
+  ],
+  "persistedDebugExternalProcessPath": "\"/c/tools/runner.exe\"",
+  "persistedDebugWorkingDirectory": "\"/d/runtime/folder\"",
+  "legacyCommandLineArgsExternalProcessPath": null,
+  "legacyDllDebuggingExternalProcessPath": "\"\"",
+  "nativeBackupCount": 2
+}

@@ -1,0 +1,56 @@
+{
+  "version": "0.5.9",
+  "viewOrder": [
+    "labwindowsCvi.workspaceExplorer",
+    "labwindowsCvi.quickActions",
+    "labwindowsCvi.fileSymbols",
+    "labwindowsCvi.libraryExplorer"
+  ],
+  "workspaceToolbarCommands": [
+    "labwindowsCvi.openHome",
+    "labwindowsCvi.openWorkspace",
+    "labwindowsCvi.chooseBuildAction",
+    "labwindowsCvi.run",
+    "labwindowsCvi.chooseRunAction",
+    "labwindowsCvi.selectBuildModeD32",
+    "labwindowsCvi.selectBuildModeR32",
+    "labwindowsCvi.selectBuildModeD64",
+    "labwindowsCvi.selectBuildModeR64",
+    "labwindowsCvi.selectTargetTypeEXE",
+    "labwindowsCvi.selectTargetTypeDLL",
+    "labwindowsCvi.selectTargetTypeLIB",
+    "labwindowsCvi.editBuildSettings",
+    "labwindowsCvi.refresh"
+  ],
+  "quickActionsToolbarCommands": [],
+  "hasDuplicatedWorkspaceInCviToolbar": false,
+  "runCommands": [
+    {
+      "command": "labwindowsCvi.run",
+      "title": "LabWindows/CVI: Build and Run Active Target",
+      "icon": "$(play)"
+    },
+    {
+      "command": "labwindowsCvi.chooseRunAction",
+      "title": "LabWindows/CVI: Run Options...",
+      "icon": "$(list-selection)",
+      "category": "LabWindows/CVI"
+    },
+    {
+      "command": "labwindowsCvi.runWithoutBuild",
+      "title": "LabWindows/CVI: Run Active Target Without Build",
+      "category": "LabWindows/CVI"
+    }
+  ],
+  "modeCommands": [
+    "D32",
+    "R32",
+    "D64",
+    "R64"
+  ],
+  "targetCommands": [
+    "EXE",
+    "DLL",
+    "LIB"
+  ]
+}

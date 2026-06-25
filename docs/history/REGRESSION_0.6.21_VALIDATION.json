@@ -1,0 +1,23 @@
+{
+  "version": "0.6.21",
+  "persistentDdeSessionStaticValidation": "ok",
+  "breakpointSynchronizationRegression": {
+    "status": "ok",
+    "preExistingNativeBreakpointsPreserved": [
+      39,
+      43
+    ],
+    "tracepointsPreserved": [
+      41,
+      44
+    ],
+    "synchronizedBreakpointAddedThenRemoved": 45
+  },
+  "workspaceCompatibilityRegression": {
+    "status": "ok",
+    "historicalMissingSectionsDetected": 22,
+    "issuesAfterRepair": 0,
+    "newProjectInitialization": "ok",
+    "freshWorkspaceInitialization": "ok"
+  }
+}

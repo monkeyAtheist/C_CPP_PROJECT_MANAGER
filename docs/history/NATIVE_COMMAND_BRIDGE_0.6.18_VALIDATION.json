@@ -1,0 +1,24 @@
+{
+  "version": "0.6.18",
+  "commandsDeclaredAndRegistered": 8,
+  "ddeCompatibilityModes": [
+    "ansi",
+    "unicode"
+  ],
+  "ddeContract": {
+    "service": "cvi",
+    "topic": "system",
+    "item": "status"
+  },
+  "localCachedHelper": "CviDdeBridge.0.6.18.dll",
+  "firstInvocationHostTimeoutMs": 90000,
+  "ddeTransactionTimeoutMs": 3000,
+  "targetedActiveXDiscovery": true,
+  "activeXRegistryViews": [
+    "Registry64",
+    "Registry32"
+  ],
+  "activeXRegistryDiscoveryTimeoutMs": 10000,
+  "packagedBridgeScripts": 2,
+  "packagedCompiledService": true
+}

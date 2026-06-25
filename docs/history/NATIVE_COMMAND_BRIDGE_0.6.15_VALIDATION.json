@@ -1,0 +1,21 @@
+{
+  "version": "0.6.15",
+  "commandsDeclared": 8,
+  "commandsRegistered": 8,
+  "activationEvents": 8,
+  "packagedBridgeScript": true,
+  "packagedCompiledService": true,
+  "ddeService": "cvi",
+  "ddeTopic": "system",
+  "ddeStatusItem": "status",
+  "commands": {
+    "build": "Build Project",
+    "run": "Run Project",
+    "pause": "Suspend Execution",
+    "continue": "Continue Execution",
+    "stop": "Terminate Execution",
+    "state": "Get CVI State"
+  },
+  "breakpointsSynchronizedBeforeNativeRun": true,
+  "automaticIdeStartup": true
+}

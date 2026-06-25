@@ -1,0 +1,12 @@
+{
+  "version": "0.6.23",
+  "nativeDebugTreeView": true,
+  "contextualActionRows": true,
+  "visuallyDisabledUnavailableActions": true,
+  "buildAndRunDisabledDuringExecution": true,
+  "pauseEnabledForCachedRunningState": true,
+  "continueAndStopRemainAvailableForActivePersistentSession": true,
+  "asynchronousBreakpointSuspensionCovered": true,
+  "noDashboardWebview": true,
+  "packagedCompiledDashboard": true
+}

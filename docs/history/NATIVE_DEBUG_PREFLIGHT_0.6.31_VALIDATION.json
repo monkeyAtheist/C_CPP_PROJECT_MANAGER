@@ -1,0 +1,14 @@
+{
+  "version": "0.6.31",
+  "dapRemoved": true,
+  "localCompileExePreflightBeforeNativeDebug": true,
+  "nativeTimeoutDefaults": {
+    "commandMs": 10000,
+    "startupMs": 25000,
+    "sessionMs": 30000,
+    "postIdeDelayMs": 2000
+  },
+  "debugActionRenamed": "Build & Run Debug",
+  "continueActionVisibleDuringNativeSession": true,
+  "standaloneBuildActionRemovedFromCviDebugView": true
+}

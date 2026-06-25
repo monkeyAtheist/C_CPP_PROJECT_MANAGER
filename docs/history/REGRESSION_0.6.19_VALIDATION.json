@@ -1,0 +1,22 @@
+{
+  "version": "0.6.19",
+  "typescriptCompilation": "ok",
+  "nativeCommandBridge": "ok",
+  "workspaceProjectScaffold": {
+    "missingSectionsDetectedBeforeMigration": 22,
+    "compatibilityIssuesAfterRepair": 0,
+    "newProjectsInitializedImmediately": true,
+    "nativeBackupsCreated": true
+  },
+  "breakpointSynchronization": {
+    "nativeBreakpointsPreserved": [39, 43],
+    "tracepointsPreserved": [41, 44],
+    "synchronizedBreakpointAddedThenRemoved": 45,
+    "nativeBackupCreated": true
+  },
+  "activeXPrimaryTransport": {
+    "progId": "CVI.Application",
+    "methods": ["GetCVIState", "BuildProject", "RunProject", "SuspendExecution", "ContinueExecution", "TerminateExecution"],
+    "ddeFallbackPreserved": true
+  }
+}

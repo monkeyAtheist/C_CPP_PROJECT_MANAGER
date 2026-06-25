@@ -1,0 +1,15 @@
+{
+  "version": "0.5.5",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "commands": {
+    "labwindowsCvi.chooseBuildAction": true,
+    "labwindowsCvi.clean": true,
+    "labwindowsCvi.cleanProject": true,
+    "labwindowsCvi.selectTargetType": true,
+    "labwindowsCvi.editBuildSettings": true,
+    "labwindowsCvi.generatePrototypes": true,
+    "labwindowsCvi.openWorkspaceInCvi": true
+  },
+  "intelliSenseIconsInWorkspaceTitle": [],
+  "workspaceOpenContext": true
+}

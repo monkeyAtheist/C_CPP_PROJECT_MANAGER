@@ -1,0 +1,36 @@
+{
+  "status": "ok",
+  "vsix": "labwindows-cvi-project-manager-0.5.6.vsix",
+  "sizeBytes": 5497245,
+  "sha256": "8eef9a579cfa9e0ae47003d412899d0fb8350357471874f2acc85db8c691b9a4",
+  "fileCount": 122,
+  "package": {
+    "name": "labwindows-cvi-project-manager",
+    "displayName": "LabWindows/CVI Project Manager",
+    "version": "0.5.6",
+    "publisher": "JerryCrozet-ElectronicEngineer",
+    "icon": "media/cvi-marketplace.png"
+  },
+  "quickActionsView": {
+    "id": "labwindowsCvi.quickActions",
+    "name": "CVI Actions",
+    "type": "webview",
+    "contextualTitle": "CVI Actions",
+    "visibility": "visible"
+  },
+  "workspaceViewTitleActionCount": 0,
+  "requiredFiles": [
+    "extension/out/views/quickActionsView.js",
+    "extension/out/model/cviParser.js",
+    "extension/out/services/cviProjectSettingsService.js",
+    "extension/out/services/cviBuildService.js",
+    "extension/VALIDATION_0.5.6.md",
+    "extension/MANUAL_TEST_CHECKLIST_0.5.6.md",
+    "extension/NATIVE_CVI_BUILD_SETTINGS_0.5.6.md",
+    "extension/NATIVE_CVI_BUILD_SETTINGS_0.5.6_VALIDATION.json",
+    "extension/QUICK_ACTIONS_0.5.6_VALIDATION.json",
+    "extension/media/cvi-marketplace.png"
+  ],
+  "missingFiles": [],
+  "publisherInVsixManifest": true
+}

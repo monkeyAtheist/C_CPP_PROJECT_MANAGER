@@ -1,0 +1,18 @@
+{
+  "version": "0.6.4",
+  "status": "ok",
+  "scope": "all",
+  "modes": ["debug", "release", "debug64", "release64"],
+  "runSettings": {
+    "arguments": "--all-scope",
+    "workingDirectoryStored": "/d/runtime/folder",
+    "environmentOptions": "MODE=test",
+    "externalProcessPathStored": "/c/host/runner.exe"
+  },
+  "checks": {
+    "allModesWritten": true,
+    "workingDirectoryStoredInCviNotation": true,
+    "externalProcessPathStoredInCviNotation": true,
+    "legacyCompatibilitySectionsNotRequired": true
+  }
+}

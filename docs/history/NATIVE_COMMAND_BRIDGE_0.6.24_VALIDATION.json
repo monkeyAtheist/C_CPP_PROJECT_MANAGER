@@ -1,0 +1,13 @@
+{
+  "version": "0.6.24",
+  "silentTransientDdeStartupPolling": true,
+  "explicitPersistentSessionHandshakeLog": true,
+  "actionCommandsAcceptOnlyZeroStatus": true,
+  "unexpectedPositiveStatusesRejectedConservatively": true,
+  "cachedStateNotAdvancedAfterRejectedCommand": true,
+  "persistentDdeSessionPreserved": true,
+  "dapMonitoringUsesPersistentSession": true,
+  "nonDestructiveDapPollTimeout": true,
+  "backgroundNativeIdeHelpersPackaged": true,
+  "packagedCompiledService": true
+}

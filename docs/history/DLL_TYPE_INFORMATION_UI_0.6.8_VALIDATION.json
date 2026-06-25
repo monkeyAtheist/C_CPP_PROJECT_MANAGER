@@ -1,0 +1,21 @@
+{
+  "version": "0.6.8",
+  "vsix": "labwindows-cvi-project-manager-0.6.8.vsix",
+  "size_bytes": 5563418,
+  "sha256": "efd54a65e6e27e6104e59440b14f05fae37ff50e8a7b92185bff35a5e6e7c61f",
+  "file_count": 164,
+  "checks": {
+    "manifest_version_0_6_8": true,
+    "publisher": true,
+    "type_library_sub_block": true,
+    "ni_type_information_sub_block": true,
+    "tlb_help_hlp_chm_options": true,
+    "conditional_type_library_controls": true,
+    "conditional_help_format": true,
+    "conditional_ni_type_controls": true,
+    "single_header_row_hidden_conditionally": true,
+    "single_header_boolean_saved_from_radio": true,
+    "marketplace_icon": true
+  },
+  "all_checks_passed": true
+}

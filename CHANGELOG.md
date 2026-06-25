@@ -1,3 +1,91 @@
+# Changelog
+
+## 0.2.23
+
+- Fixed local publishing/build failures caused by obsolete legacy `cvi*.ts` sources left in an existing source folder after copying a newer CPM archive over an older CVI-derived tree.
+- Added a safe pre-compile cleanup step, `npm run clean:legacy-cvi`, which removes known obsolete LabWindows/CVI TypeScript files before `tsc`.
+- Added `tsconfig.json` exclusions for legacy `cvi*.ts`, DDE and ActiveX bridge sources so stale files no longer participate in TypeScript compilation.
+
+## 0.2.22
+
+- Shortened the labels displayed inside the editor context-menu submenus.
+- The root menu remains `CPM`, while nested actions now display as `Insert file description header`, `Insert header change line`, `Insert comment section`, `Insert snippet`, `Save selection as snippet` and `Manage snippets...` without repeating the `CPM:` prefix.
+
+## 0.2.21
+
+- Removed generated `(void)parameter;` and `static_cast<void>(parameter);` lines from the C, C++, WinMain, DLL and CPM error-handling starters.
+- Added basic command-line argument handling blocks to generated `main()` starters.
+- Added an `lpCmdLine` handling block to the generated WinMain starter so Windows command-line arguments are visible in the template.
+- Updated the bundled DllMain snippets and JC Lib entry to avoid obsolete unused-parameter casts while still referencing `hinstDLL` and `lpvReserved`.
+
+## 0.2.20
+
+- Centralized editor context-menu actions under a single `CPM` submenu to avoid overloading the native VS Code right-click menu.
+- Added `CPM > Documentation / comments` with commands to insert a file description header, append a CHANGES/EVOLUTIONS line and insert reusable comment-section separators.
+- Added a creation starter `C main with CPM error handling` that can generate `main.c`, optional `main.h`, and optional `cpm_error.c/.h/.ini` support files.
+- Added documentation/comment snippets for file headers, change lines and section separators.
+
+
+
+## 0.2.19
+
+- Added MinGW runtime DLL cleanup before runtime deployment.
+- CPM now removes stale MinGW runtime DLLs and architecture-mismatched runtime DLLs from the target directory before copying the active toolchain runtime.
+- This prevents keeping 32-bit runtime DLLs beside an executable after switching to a 64-bit build mode, and vice versa.
+
+## 0.2.18
+
+- Adds runtime deployment for MinGW DLL dependencies such as `libgcc_s_*.dll`, `libstdc++-6.dll` and `libwinpthread-1.dll` beside generated executable/DLL targets.
+- The Run and Debug commands now prepend the selected toolchain `bin` directory and the target directory to the process `PATH`, preventing missing-runtime-DLL dialogs when launching from CPM.
+- Adds a local object-directory fallback for projects located under OneDrive when Windows returns `EPERM`, `EACCES` or `EBUSY` while creating the normal build object directory.
+- Adds the settings `cpm.deployRuntimeDlls` and `cpm.useLocalBuildCacheForOneDrive`.
+
+## 0.2.17
+
+- Added a more robust Windows launch path strategy for GCC/MinGW installed under directories containing spaces, such as `C:\Program Files`.
+- The build service now tries, in order: DOS 8.3 short path, NTFS junction alias, then basename launch with the selected toolchain `bin` directory prepended to `PATH`.
+- Added explicit output diagnostics for the selected fallback path so toolchain path issues are easier to identify.
+
+## 0.2.9
+
+
+## 0.2.15
+
+- Fixes toolchain selection persistence: selecting a toolchain now updates workspace settings as well as user/global settings, so old workspace-local `gcc`/`g++` values no longer silently override the selected toolchain.
+- Makes `Debug x64` and `Release x64` force `-m64` when architecture mode is left on Auto, matching the visible build mode and preventing accidental 32-bit objects.
+- Uses the compiled object architecture as the primary source for linked-library compatibility diagnostics; compiler-path heuristics are used only as fallback.
+
+## 0.2.14
+
+- Added an automatic no-space junction alias fallback for GCC/MinGW toolchains installed under paths containing spaces, such as `C:\Program Files\mingw64`.
+- The build output now reports `Windows no-space tool path` when a short path or CPM alias is used for `gcc`, `g++`, `clang` or compatible tools.
+- This avoids MinGW linker failures where internal paths are split as `C:/Program` and `Files/.../default-manifest.o`.
+
+## 0.2.11
+
+- Renamed the context-menu command used to save the current editor selection as a snippet.
+- The command is now displayed as `CPM: Save selection as snippet` instead of the previous long C/C++ Project Manager label.
+
+
+## 0.2.10
+
+- Adapted the C/C++ build settings panel to the selected target type.
+- Static library targets now expose archiver-related options and hide run/debug/linker-only fields.
+- Executable targets expose debugger and run command-line options.
+- DLL targets expose linker settings and external-host run options while hiding direct debugger fields.
+- Added target-specific explanatory notes in the build settings webview.
+
+- Added predefined build-option lists for architecture, warning level, optimization level and debug-information generation in the C/C++ build-settings editor.
+- Wired those predefined options into the generic GCC/MinGW build command generation, while keeping advanced free-form flags available for project-specific cases.
+- Added file/folder browser buttons to path-oriented build fields: compiler executables, archiver, debugger, output directory, include directories and library directories.
+
+
+## 0.2.8
+
+- Cleaned the build-settings editor for the generic C/C++ workflow. CVI-only target creation options, LoadExternalModule controls, NI type information, version-resource editing and signing blocks are no longer displayed in the CPM build settings page.
+- Added a generic compiler/linker section to the build-settings page for compiler paths, language standards, defines, include paths, library paths, libraries and flags.
+- Migrated project build metadata from `.vscode/labwindows-cvi-build.json` to `.vscode/cpm-build.json` while retaining read compatibility with the legacy file.
+- Moved historical validation and manual-test documents to `docs/history/`; the root now keeps only active documentation.
 
 ## 0.2.2
 
@@ -33,7 +121,7 @@
 - Advertise standard source breakpoints to VS Code and keep the existing conservative `.cws` synchronization before native launch.
 - Add non-destructive polling over the persistent DDE session to detect asynchronous native breakpoint suspensions when CVI accepts state queries during execution.
 - Keep polling failures non-fatal: the persistent control session remains usable even if native CVI temporarily refuses `Get CVI State`.
-- Add `labwindowsCvi.nativeDebuggerIdeWindowMode`, `labwindowsCvi.keepNativeIdeMinimizedDuringVsCodeDebug`, `labwindowsCvi.nativeDapPollIntervalMs`, and `labwindowsCvi.nativeDapPollTimeoutMs`.
+- Add `cpm.nativeDebuggerIdeWindowMode`, `cpm.keepNativeIdeMinimizedDuringVsCodeDebug`, `cpm.nativeDapPollIntervalMs`, and `cpm.nativeDapPollTimeoutMs`.
 - Preserve the legacy direct native CVI-window launch as a compatibility fallback.
 - Explicitly report the phase-one limitations: native call stack, variable evaluation, and step-over/step-in/step-out are not exposed until a stable CVI automation primitive is identified.
 
@@ -44,7 +132,7 @@
 - Remove synchronous `Get CVI State` probes from active Pause, Continue, and Stop controls because CVI 2020 can stop servicing new DDE conversations while the debugged program is running.
 - Track an optimistic cached execution state during the persistent session and expose it in diagnostics without blocking the control channel.
 - Close the persistent DDE session when the extension is disposed or the selected workspace changes.
-- Add `labwindowsCvi.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
+- Add `cpm.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
 
 ## 0.6.20
 
@@ -54,7 +142,7 @@
 - Poll the DDE server directly after launching CVI with the workspace path, ensuring one deterministic native IDE instance.
 - Add state-aware guards for Build, Run, Pause, Continue and Stop so incompatible commands are not sent to CVI.
 - Decode CVI ActiveX HRESULT-style values in the `0x800400xx` range back to readable CVI command statuses.
-- Add `labwindowsCvi.nativeCommandTransport` (`dde`, `auto`, `activex`) and `labwindowsCvi.allowActiveXAutoStart` (disabled by default).
+- Add `cpm.nativeCommandTransport` (`dde`, `auto`, `activex`) and `cpm.allowActiveXAutoStart` (disabled by default).
 
 ## 0.6.19
 
@@ -62,7 +150,7 @@
 - Detect the active CVI automation object through the Running Object Table first, then create or attach `CVI.Application` only when the command explicitly permits it.
 - Map the existing native controls to the ActiveX methods `GetCVIState`, `BuildProject`, `RunProject`, `SuspendExecution`, `ContinueExecution` and `TerminateExecution`.
 - Keep the historical ANSI/Unicode DDE implementation only as a compatibility fallback for older CVI installations.
-- Add the embedded `native/cvi-activex-command.ps1` script and `labwindowsCvi.nativeActiveXProcessTimeoutMs`.
+- Add the embedded `native/cvi-activex-command.ps1` script and `cpm.nativeActiveXProcessTimeoutMs`.
 - Extend the output-channel diagnostic with the ActiveX ProgID, connection mode, invoked method and per-connection attempt details.
 
 ## 0.6.18
@@ -72,7 +160,7 @@
 - Cache the managed DDE helper under `%LOCALAPPDATA%\LabWindowsCviProjectManager\NativeBridge\CviDdeBridge.0.6.18.dll`; later invocations load the cached assembly instead of recompiling inline C# source.
 - Replace the slow full CLSID PowerShell-provider traversal with a targeted .NET registry scan of plausible CVI ProgIDs, both 32-bit and 64-bit registry views, plus `cvi.exe` App Paths.
 - Add cache-bootstrap details to the `LabWindows/CVI` output channel.
-- Add `labwindowsCvi.nativeBridgeProcessTimeoutMs` and `labwindowsCvi.activeXDiscoveryTimeoutMs`.
+- Add `cpm.nativeBridgeProcessTimeoutMs` and `cpm.activeXDiscoveryTimeoutMs`.
 
 ## 0.6.14
 
@@ -152,7 +240,7 @@
 - Remove synchronous `Get CVI State` probes from active Pause, Continue, and Stop controls because CVI 2020 can stop servicing new DDE conversations while the debugged program is running.
 - Track an optimistic cached execution state during the persistent session and expose it in diagnostics without blocking the control channel.
 - Close the persistent DDE session when the extension is disposed or the selected workspace changes.
-- Add `labwindowsCvi.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
+- Add `cpm.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
 
 ## 0.6.4
 
@@ -185,7 +273,7 @@
 - Remove synchronous `Get CVI State` probes from active Pause, Continue, and Stop controls because CVI 2020 can stop servicing new DDE conversations while the debugged program is running.
 - Track an optimistic cached execution state during the persistent session and expose it in diagnostics without blocking the control channel.
 - Close the persistent DDE session when the extension is disposed or the selected workspace changes.
-- Add `labwindowsCvi.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
+- Add `cpm.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
 
 ## 0.6.1
 
@@ -213,7 +301,7 @@
 - Remove synchronous `Get CVI State` probes from active Pause, Continue, and Stop controls because CVI 2020 can stop servicing new DDE conversations while the debugged program is running.
 - Track an optimistic cached execution state during the persistent session and expose it in diagnostics without blocking the control channel.
 - Close the persistent DDE session when the extension is disposed or the selected workspace changes.
-- Add `labwindowsCvi.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
+- Add `cpm.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
 
 ## 0.5.8
 
@@ -260,7 +348,7 @@
 - Remove synchronous `Get CVI State` probes from active Pause, Continue, and Stop controls because CVI 2020 can stop servicing new DDE conversations while the debugged program is running.
 - Track an optimistic cached execution state during the persistent session and expose it in diagnostics without blocking the control channel.
 - Close the persistent DDE session when the extension is disposed or the selected workspace changes.
-- Add `labwindowsCvi.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
+- Add `cpm.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
 
 ## 0.5.3
 
@@ -279,12 +367,12 @@
 - Remove synchronous `Get CVI State` probes from active Pause, Continue, and Stop controls because CVI 2020 can stop servicing new DDE conversations while the debugged program is running.
 - Track an optimistic cached execution state during the persistent session and expose it in diagnostics without blocking the control channel.
 - Close the persistent DDE session when the extension is disposed or the selected workspace changes.
-- Add `labwindowsCvi.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
+- Add `cpm.nativeDdeSessionStartupTimeoutMs` for the initial persistent-session handshake.
 
 ## 0.5.2
 
 - Automatically adds the directory containing an opened CVI workspace or project to the standard VS Code Explorer.
-- Adds `labwindowsCvi.autoAddCviFolderToWorkspace` to disable this behavior when a manual multi-root workspace is preferred.
+- Adds `cpm.autoAddCviFolderToWorkspace` to disable this behavior when a manual multi-root workspace is preferred.
 - Extends Windows SDK discovery to Windows Kits 10, Windows Kits 8.1 and the historical Windows v7.1A SDK.
 - Adds explicit versioned Windows SDK include directories, including `um`, `shared`, `ucrt`, `winrt` and `cppwinrt`, so `windows.h` is resolved reliably.
 - Adds targeted CVI ANSI header discovery and diagnostic output for `ansi.h` / `ansi_c.h`.
@@ -297,9 +385,9 @@
 - Added concrete recursive header-directory enumeration in the dynamic provider to improve `toolbox.h` and nested Toolslib resolution.
 - Added project source and header directories to generated and dynamic IntelliSense configurations.
 - Extended CVI compiler detection to nested `bin/clang/<version>` directories and to `clang-cc.exe`, `clang.exe` and `clang-cl.exe`.
-- Added `labwindowsCvi.intelliSenseCompilerPath` for manual compiler override.
-- Added `labwindowsCvi.additionalIncludePaths` for project-specific external headers.
-- Added `labwindowsCvi.useCppToolsConfigurationProvider` to disable the dynamic provider when required.
+- Added `cpm.intelliSenseCompilerPath` for manual compiler override.
+- Added `cpm.additionalIncludePaths` for project-specific external headers.
+- Added `cpm.useCppToolsConfigurationProvider` to disable the dynamic provider when required.
 - Added **LabWindows/CVI: Diagnose C/C++ IntelliSense Configuration**.
 - Added **LabWindows/CVI: Add CVI Folder to VS Code Workspace for IntelliSense**.
 
@@ -321,7 +409,7 @@
 - Added configurable snippet shortcut `Ctrl+Alt+I` / `Cmd+Alt+I`.
 - Added editor contextual actions for inserting and saving snippets.
 - Added a project-tree contextual action for saving a source or header as a creation template.
-- Added `labwindowsCvi.uirTemplateVersion` with `auto`, `cvi2012` and `cvi2020` modes.
+- Added `cpm.uirTemplateVersion` with `auto`, `cvi2012` and `cvi2020` modes.
 
 ## 0.4.2
 
@@ -370,7 +458,7 @@
 - Disable the legacy Microsoft C/C++ custom configuration-provider registration permanently. The extension now relies on its generated `.vscode/c_cpp_properties.json` entry.
 - Automatically remove stale LabWindows/CVI provider references from user, workspace, folder and managed `c_cpp_properties.json` settings during activation.
 - Scope the supplemental CVI completion provider to files belonging to the loaded CVI workspace. Unrelated C and C++ folders no longer receive CVI completion candidates.
-- Add `labwindowsCvi.showPersistentStatusBarActions` to hide the persistent status-bar controls when a minimal layout is preferred.
+- Add `cpm.showPersistentStatusBarActions` to hide the persistent status-bar controls when a minimal layout is preferred.
 
 ## 0.6.11
 
@@ -388,3 +476,9 @@
 - Routed the CVI Debug build action to the local `compile.exe` workflow.
 - Kept the compact grouped CVI Debug dashboard and exact VS Code breakpoint mirror.
 - Added conservative natural-completion detection through independent short-lived DDE probes without modifying the persistent control session.
+## 0.2.12
+
+- Added pre-link diagnostics for COFF/PE library architecture mismatches.
+- Detects 32-bit vs 64-bit object/import-library conflicts before invoking the linker when possible.
+- Adds clearer guidance for MinGW/MSVC `.lib` import-library issues, including the common case of linking a 32-bit object with a 64-bit DLL import library.
+

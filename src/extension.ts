@@ -1,44 +1,41 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CviParser } from './model/cviParser';
-import { CviTreeProvider, FileNode, FolderNode, ProjectNode } from './providers/cviTreeProvider';
-import { CviFileSymbolsProvider } from './providers/cviFileSymbolsProvider';
-import { CviBuildService } from './services/cviBuildService';
-import { CviCppToolsService } from './services/cviCppToolsService';
-import { CviInstallationService } from './services/cviInstallationService';
-import { CviWorkspaceService } from './services/cviWorkspaceService';
+import { CpmParser } from './model/cpmParser';
+import { CpmTreeProvider, FileNode, FolderNode, ProjectNode } from './providers/cpmTreeProvider';
+import { CpmFileSymbolsProvider } from './providers/cpmFileSymbolsProvider';
+import { CpmBuildService } from './services/cpmBuildService';
+import { CpmCppToolsService } from './services/cpmCppToolsService';
+import { CpmInstallationService } from './services/cpmInstallationService';
+import { CpmWorkspaceService } from './services/cpmWorkspaceService';
 import { HomePanel } from './views/homePanel';
-import { activate as activateCviLibraryExplorer } from './jcLibEmbedded';
-import { ensureBundledCppLibraryPack } from './services/cviLibraryPackService';
-import { CviTemplateService } from './services/cviTemplateService';
-import { CviProjectSettingsService } from './services/cviProjectSettingsService';
+import { activate as activateCpmLibraryExplorer } from './jcLibEmbedded';
+import { ensureBundledCppLibraryPack } from './services/cpmLibraryPackService';
+import { CpmTemplateService } from './services/cpmTemplateService';
+import { CpmProjectSettingsService } from './services/cpmProjectSettingsService';
 import { BuildSettingsPanel } from './views/buildSettingsPanel';
 import { QuickActionsView } from './views/quickActionsView';
-import { CviCompletionProvider, CviSourceSymbol, CviSymbolService, isSourceOrHeader } from './services/cviSymbolService';
-import { CviFunctionPanelService } from './services/cviFunctionPanelService';
-import { CviBreakpointSyncService } from './services/cviBreakpointSyncService';
-import { CviNativeCommandService } from './services/cviNativeCommandService';
-import { CviWorkspace } from './model/types';
+import { CpmCompletionProvider, CpmSourceSymbol, CpmSymbolService, isSourceOrHeader } from './services/cpmSymbolService';
+import { CpmFunctionPanelService } from './services/cpmFunctionPanelService';
+import { CpmWorkspace } from './model/types';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
-  const parser = new CviParser();
-  const installations = new CviInstallationService(output);
-  const cppTools = new CviCppToolsService(installations, parser, output);
-  const templates = new CviTemplateService(context, installations, output);
-  const workspaces = new CviWorkspaceService(context, parser, installations, templates, output);
-  const projectSettings = new CviProjectSettingsService(workspaces, parser, output);
-  const breakpointSync = new CviBreakpointSyncService(context, parser, workspaces, output);
-  const nativeCommands = new CviNativeCommandService(context, workspaces, installations, breakpointSync, output);
-  const builds = new CviBuildService(parser, workspaces, installations, projectSettings, breakpointSync, output);
-  const treeProvider = new CviTreeProvider(workspaces);
-  const treeView = vscode.window.createTreeView('labwindowsCvi.workspaceExplorer', { treeDataProvider: treeProvider, showCollapseAll: true });
-  const symbols = new CviSymbolService(context.extensionPath, workspaces);
-  const fileSymbolsProvider = new CviFileSymbolsProvider(symbols);
-  const fileSymbolsView = vscode.window.createTreeView('labwindowsCvi.fileSymbols', { treeDataProvider: fileSymbolsProvider });
+  await migrateLegacyConfiguration(output);
+  const parser = new CpmParser();
+  const installations = new CpmInstallationService(output);
+  const cppTools = new CpmCppToolsService(installations, parser, output);
+  const templates = new CpmTemplateService(context, installations, output);
+  const workspaces = new CpmWorkspaceService(context, parser, installations, templates, output);
+  const projectSettings = new CpmProjectSettingsService(workspaces, parser, output);
+  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output);
+  const treeProvider = new CpmTreeProvider(workspaces);
+  const treeView = vscode.window.createTreeView('cpm.workspaceExplorer', { treeDataProvider: treeProvider, showCollapseAll: true });
+  const symbols = new CpmSymbolService(context.extensionPath, workspaces);
+  const fileSymbolsProvider = new CpmFileSymbolsProvider(symbols);
+  const fileSymbolsView = vscode.window.createTreeView('cpm.fileSymbols', { treeDataProvider: fileSymbolsProvider });
   fileSymbolsProvider.attachView(fileSymbolsView);
-  const completionProvider = new CviCompletionProvider(symbols);
-  const functionPanels = new CviFunctionPanelService();
+  const completionProvider = new CpmCompletionProvider(symbols);
+  const functionPanels = new CpmFunctionPanelService();
   const completionRegistration = vscode.languages.registerCompletionItemProvider(
     [{ language: 'c', scheme: 'file' }, { language: 'cpp', scheme: 'file' }],
     completionProvider
@@ -46,28 +43,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const home = new HomePanel(context, workspaces, builds, installations);
   const buildSettings = new BuildSettingsPanel(workspaces, parser, projectSettings);
   const quickActions = new QuickActionsView(workspaces, builds, projectSettings);
-  const quickActionsRegistration = vscode.window.registerTreeDataProvider('labwindowsCvi.quickActions', quickActions);
+  const quickActionsRegistration = vscode.window.registerTreeDataProvider('cpm.quickActions', quickActions);
 
   const statusBarItems = [
-    createStatusBarAction('$(home)', 'C/C++ Project Manager home', 'labwindowsCvi.openHome', 99),
-    createStatusBarAction('$(folder-opened)', 'Open a C/C++ workspace or project', 'labwindowsCvi.openWorkspace', 98),
-    createStatusBarAction('$(tools)', 'Build / rebuild / clean the active C/C++ project', 'labwindowsCvi.chooseBuildAction', 97),
-    createStatusBarAction('$(play)', 'Build and run the active C/C++ target', 'labwindowsCvi.run', 96),
-    createStatusBarAction('$(list-selection)', 'Advanced C/C++ run options', 'labwindowsCvi.chooseRunAction', 95),
-    createStatusBarAction('$(debug-alt-small)', 'Build and debug with GDB/cppdbg', 'labwindowsCvi.debugInCvi', 94.5),
-    createStatusBarAction('D32', 'Select the C/C++ build mode', 'labwindowsCvi.selectBuildMode', 94),
-    createStatusBarAction('EXE', 'Select the C/C++ target type', 'labwindowsCvi.selectTargetType', 93)
+    createStatusBarAction('$(home)', 'C/C++ Project Manager home', 'cpm.openHome', 99),
+    createStatusBarAction('$(folder-opened)', 'Open a C/C++ workspace or project', 'cpm.openWorkspace', 98),
+    createStatusBarAction('$(tools)', 'Build / rebuild / clean the active C/C++ project', 'cpm.chooseBuildAction', 97),
+    createStatusBarAction('$(play)', 'Build and run the active C/C++ target', 'cpm.run', 96),
+    createStatusBarAction('$(list-selection)', 'Advanced C/C++ run options', 'cpm.chooseRunAction', 95),
+    createStatusBarAction('$(debug-alt-small)', 'Build and debug with GDB/cppdbg', 'cpm.debugWithGdb', 94.5),
+    createStatusBarAction('D32', 'Select the C/C++ build mode', 'cpm.selectBuildMode', 94),
+    createStatusBarAction('EXE', 'Select the C/C++ target type', 'cpm.selectTargetType', 93)
   ];
 
   const updateToolbarContexts = (): void => {
     const activeRef = workspaces.activeProjectRef;
     const targetType = activeRef?.exists ? workspaces.getProject(activeRef)?.targetType : undefined;
     const targetKey = targetType === 'Dynamic Link Library' ? 'dll' : targetType === 'Static Library' ? 'lib' : targetType === 'Executable' ? 'exe' : 'none';
-    const nativeSnapshot = nativeCommands.getDebugSnapshot();
-    void vscode.commands.executeCommand('setContext', 'labwindowsCvi.buildMode', builds.buildMode);
-    void vscode.commands.executeCommand('setContext', 'labwindowsCvi.targetType', targetKey);
-    void vscode.commands.executeCommand('setContext', 'labwindowsCvi.nativeExecution', nativeSnapshot.execution);
-    void vscode.commands.executeCommand('setContext', 'labwindowsCvi.nativeSessionConnected', nativeSnapshot.sessionConnected);
+    void vscode.commands.executeCommand('setContext', 'cpm.buildMode', builds.buildMode);
+    void vscode.commands.executeCommand('setContext', 'cpm.targetType', targetKey);
   };
 
   const updateStatusBar = (): void => {
@@ -80,7 +74,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     statusBarItems[6].tooltip = `C/C++ build mode: ${modeText}. Click to change.`;
     statusBarItems[7].text = targetText;
     statusBarItems[7].tooltip = `C/C++ target type: ${targetText}. Click to change.`;
-    const show = vscode.workspace.getConfiguration('labwindowsCvi').get<boolean>('showPersistentStatusBarActions', true);
+    const show = vscode.workspace.getConfiguration('cpm').get<boolean>('showPersistentStatusBarActions', true);
     for (const item of statusBarItems) {
       if (show) item.show(); else item.hide();
     }
@@ -99,15 +93,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   const focusTreeThen = async (command: string): Promise<void> => {
-    await vscode.commands.executeCommand('labwindowsCvi.workspaceExplorer.focus');
+    await vscode.commands.executeCommand('cpm.workspaceExplorer.focus');
     await vscode.commands.executeCommand(command);
   };
 
-  const runNativeDebug = async (): Promise<boolean> => builds.debugInCvi();
+  const runGdbDebug = async (): Promise<boolean> => builds.debugWithGdb();
 
   context.subscriptions.push(
     output,
-    nativeCommands,
     workspaces,
     home,
     buildSettings,
@@ -135,139 +128,128 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       updateStatusBar();
       void scheduleOptionalCppToolsSync(cppTools, workspaces.currentWorkspace);
     }),
-    nativeCommands.onDidChange(() => updateStatusBar()),
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration('labwindowsCvi')) {
+      if (event.affectsConfiguration('cpm')) {
         updateStatusBar();
         home.update();
         quickActions.update();
       }
-      if (event.affectsConfiguration('labwindowsCvi.activeInstallation') || event.affectsConfiguration('labwindowsCvi.autoConfigureCppTools') || event.affectsConfiguration('labwindowsCvi.autoAddCviFolderToWorkspace') || event.affectsConfiguration('labwindowsCvi.useCppToolsConfigurationProvider') || event.affectsConfiguration('labwindowsCvi.intelliSenseCompilerPath') || event.affectsConfiguration('labwindowsCvi.additionalIncludePaths')) {
+      if (event.affectsConfiguration('cpm.activeInstallation') || event.affectsConfiguration('cpm.autoConfigureCppTools') || event.affectsConfiguration('cpm.autoAddCpmFolderToWorkspace') || event.affectsConfiguration('cpm.useCppToolsConfigurationProvider') || event.affectsConfiguration('cpm.intelliSenseCompilerPath') || event.affectsConfiguration('cpm.additionalIncludePaths')) {
         void scheduleOptionalCppToolsSync(cppTools, workspaces.currentWorkspace);
       }
     }),
-    register('labwindowsCvi.openHome', () => home.show()),
-    register('labwindowsCvi.openWorkspace', () => workspaces.openWorkspace()),
-    register('labwindowsCvi.createWorkspaceProject', () => workspaces.createWorkspaceProject()),
-    register('labwindowsCvi.refresh', () => workspaces.refresh()),
-    register('labwindowsCvi.configureInstallation', async () => {
-      const installation = await installations.selectInstallation(workspaces.currentWorkspace?.cviDir);
+    register('cpm.openHome', () => home.show()),
+    register('cpm.openWorkspace', () => workspaces.openWorkspace()),
+    register('cpm.createWorkspaceProject', () => workspaces.createWorkspaceProject()),
+    register('cpm.refresh', () => workspaces.refresh()),
+    register('cpm.configureInstallation', async () => {
+      const installation = await installations.selectInstallation(workspaces.currentWorkspace?.cpmDir);
       if (installation) {
         await cppTools.sync(workspaces.currentWorkspace);
         home.update();
       }
     }),
-    register('labwindowsCvi.syncCppTools', () => cppTools.sync(workspaces.currentWorkspace, true)),
-    register('labwindowsCvi.diagnoseCppTools', () => cppTools.diagnose(workspaces.currentWorkspace)),
-    register('labwindowsCvi.repairCppToolsProvider', () => cppTools.repairCppToolsProviderSelection(workspaces.currentWorkspace)),
-    register('labwindowsCvi.enableAutomaticSuggestions', () => cppTools.enableAutomaticSuggestions(workspaces.currentWorkspace)),
-    register('labwindowsCvi.repairNativeWorkspaceCompatibility', () => workspaces.repairNativeWorkspaceCompatibility()),
-    register('labwindowsCvi.synchronizeBreakpoints', (node?: ProjectNode) => breakpointSync.synchronize(node?.ref)),
-    register('labwindowsCvi.clearSynchronizedBreakpoints', (node?: ProjectNode) => breakpointSync.clear(node?.ref)),
-    register('labwindowsCvi.diagnoseBreakpointBridge', (node?: ProjectNode) => breakpointSync.diagnose(node?.ref)),
-    register('labwindowsCvi.chooseNativeDebugAction', () => nativeCommands.chooseAction()),
-    register('labwindowsCvi.nativeBuild', () => builds.build(false)),
-    register('labwindowsCvi.nativeRun', async () => runNativeDebug()),
-    register('labwindowsCvi.nativePause', () => nativeCommands.pause()),
-    register('labwindowsCvi.nativeContinue', () => nativeCommands.continueExecution()),
-    register('labwindowsCvi.nativeStop', () => nativeCommands.stop()),
-    register('labwindowsCvi.nativeState', () => nativeCommands.showState()),
-    register('labwindowsCvi.refreshNativeDebugView', () => nativeCommands.refreshDebugSnapshot()),
-    register('labwindowsCvi.diagnoseNativeCommandBridge', () => nativeCommands.diagnose()),
-    register('labwindowsCvi.addWorkspaceFolderForIntelliSense', () => cppTools.addConfigurationRootToWorkspace(workspaces.currentWorkspace)),
-    register('labwindowsCvi.selectBuildMode', () => builds.selectBuildMode()),
-    register('labwindowsCvi.selectBuildModeD32', () => builds.selectBuildMode()),
-    register('labwindowsCvi.selectBuildModeR32', () => builds.selectBuildMode()),
-    register('labwindowsCvi.selectBuildModeD64', () => builds.selectBuildMode()),
-    register('labwindowsCvi.selectBuildModeR64', () => builds.selectBuildMode()),
-    register('labwindowsCvi.chooseBuildAction', () => builds.chooseBuildAction()),
-    register('labwindowsCvi.build', () => builds.build(false)),
-    register('labwindowsCvi.rebuild', () => builds.build(true)),
-    register('labwindowsCvi.clean', () => builds.clean()),
-    register('labwindowsCvi.run', () => builds.buildAndRun()),
-    register('labwindowsCvi.chooseRunAction', () => builds.chooseRunAction()),
-    register('labwindowsCvi.runWithoutBuild', () => builds.runWithoutBuild()),
-    register('labwindowsCvi.debugInCvi', () => runNativeDebug()),
-    register('labwindowsCvi.openWorkspaceInCvi', () => builds.openWorkspaceInCvi()),
-    register('labwindowsCvi.setActiveProject', (node?: ProjectNode) => workspaces.setActiveProject(node?.ref)),
-    register('labwindowsCvi.buildProject', (node?: ProjectNode) => node ? builds.build(false, node.ref) : undefined),
-    register('labwindowsCvi.rebuildProject', (node?: ProjectNode) => node ? builds.build(true, node.ref) : undefined),
-    register('labwindowsCvi.cleanProject', (node?: ProjectNode) => node ? builds.clean(node.ref) : undefined),
-    register('labwindowsCvi.selectTargetType', (node?: ProjectNode) => workspaces.selectTargetType(node?.ref)),
-    register('labwindowsCvi.selectTargetTypeEXE', () => workspaces.selectTargetType()),
-    register('labwindowsCvi.selectTargetTypeDLL', () => workspaces.selectTargetType()),
-    register('labwindowsCvi.selectTargetTypeLIB', () => workspaces.selectTargetType()),
-    register('labwindowsCvi.editBuildSettings', (node?: ProjectNode) => buildSettings.show(node?.ref)),
-    register('labwindowsCvi.editBuildSettingsSafeMode', (node?: ProjectNode) => buildSettings.showSafeMode(node?.ref)),
-    register('labwindowsCvi.executeProject', (node?: ProjectNode) => node ? builds.buildAndRun(node.ref) : undefined),
-    register('labwindowsCvi.debugProjectInCvi', async (node?: ProjectNode) => { if (node?.ref) await workspaces.setActiveProject(node.ref); return await runNativeDebug(); }),
-    register('labwindowsCvi.editProjectInCvi', (node?: ProjectNode) => node ? builds.openProjectInCvi(node.ref.absolutePath) : undefined),
-    register('labwindowsCvi.openProjectFile', (node?: ProjectNode) => node ? workspaces.openPath(node.ref.absolutePath) : undefined),
-    register('labwindowsCvi.createProjectInWorkspace', () => workspaces.createProjectInWorkspace()),
-    register('labwindowsCvi.addExistingProject', () => workspaces.addExistingProject()),
-    register('labwindowsCvi.removeProject', (node?: ProjectNode) => node ? workspaces.removeProject(node.ref) : undefined),
-    register('labwindowsCvi.addFiles', (node?: ProjectNode | FolderNode) => {
+    register('cpm.syncCppTools', () => cppTools.sync(workspaces.currentWorkspace, true)),
+    register('cpm.diagnoseCppTools', () => cppTools.diagnose(workspaces.currentWorkspace)),
+    register('cpm.repairCppToolsProvider', () => cppTools.repairCppToolsProviderSelection(workspaces.currentWorkspace)),
+    register('cpm.enableAutomaticSuggestions', () => cppTools.enableAutomaticSuggestions(workspaces.currentWorkspace)),
+    register('cpm.addWorkspaceFolderForIntelliSense', () => cppTools.addConfigurationRootToWorkspace(workspaces.currentWorkspace)),
+    register('cpm.selectBuildMode', () => builds.selectBuildMode()),
+    register('cpm.selectBuildModeD32', () => builds.selectBuildMode()),
+    register('cpm.selectBuildModeR32', () => builds.selectBuildMode()),
+    register('cpm.selectBuildModeD64', () => builds.selectBuildMode()),
+    register('cpm.selectBuildModeR64', () => builds.selectBuildMode()),
+    register('cpm.chooseBuildAction', () => builds.chooseBuildAction()),
+    register('cpm.build', () => builds.build(false)),
+    register('cpm.rebuild', () => builds.build(true)),
+    register('cpm.clean', () => builds.clean()),
+    register('cpm.run', () => builds.buildAndRun()),
+    register('cpm.chooseRunAction', () => builds.chooseRunAction()),
+    register('cpm.runWithoutBuild', () => builds.runWithoutBuild()),
+    register('cpm.debugWithGdb', () => runGdbDebug()),
+    register('cpm.openWorkspaceFile', () => builds.openWorkspaceFile()),
+    register('cpm.setActiveProject', (node?: ProjectNode) => workspaces.setActiveProject(node?.ref)),
+    register('cpm.buildProject', (node?: ProjectNode) => node ? builds.build(false, node.ref) : undefined),
+    register('cpm.rebuildProject', (node?: ProjectNode) => node ? builds.build(true, node.ref) : undefined),
+    register('cpm.cleanProject', (node?: ProjectNode) => node ? builds.clean(node.ref) : undefined),
+    register('cpm.selectTargetType', (node?: ProjectNode) => workspaces.selectTargetType(node?.ref)),
+    register('cpm.selectTargetTypeEXE', () => workspaces.selectTargetType()),
+    register('cpm.selectTargetTypeDLL', () => workspaces.selectTargetType()),
+    register('cpm.selectTargetTypeLIB', () => workspaces.selectTargetType()),
+    register('cpm.editBuildSettings', (node?: ProjectNode) => buildSettings.show(node?.ref)),
+    register('cpm.editBuildSettingsSafeMode', (node?: ProjectNode) => buildSettings.showSafeMode(node?.ref)),
+    register('cpm.executeProject', (node?: ProjectNode) => node ? builds.buildAndRun(node.ref) : undefined),
+    register('cpm.debugProjectWithGdb', async (node?: ProjectNode) => { if (node?.ref) await workspaces.setActiveProject(node.ref); return await runGdbDebug(); }),
+    register('cpm.editProjectFile', (node?: ProjectNode) => node ? builds.openProjectFile(node.ref.absolutePath) : undefined),
+    register('cpm.openProjectFile', (node?: ProjectNode) => node ? workspaces.openPath(node.ref.absolutePath) : undefined),
+    register('cpm.createProjectInWorkspace', () => workspaces.createProjectInWorkspace()),
+    register('cpm.addExistingProject', () => workspaces.addExistingProject()),
+    register('cpm.removeProject', (node?: ProjectNode) => node ? workspaces.removeProject(node.ref) : undefined),
+    register('cpm.addFiles', (node?: ProjectNode | FolderNode) => {
       if (node?.kind === 'folder') {
         return workspaces.addFiles(node.ref, node.folderPath);
       }
       return workspaces.addFiles(node?.ref);
     }),
-    register('labwindowsCvi.createNewFile', (node?: ProjectNode | FolderNode) => {
+    register('cpm.createNewFile', (node?: ProjectNode | FolderNode) => {
       if (node?.kind === 'folder') {
         return workspaces.createNewFile(node.ref, node.folderPath);
       }
       return workspaces.createNewFile(node?.ref);
     }),
-    register('labwindowsCvi.addFolder', (node?: ProjectNode | FolderNode) => {
+    register('cpm.addFolder', (node?: ProjectNode | FolderNode) => {
       if (node?.kind === 'folder') {
         return workspaces.addFolder(node.ref, node.folderPath);
       }
       return workspaces.addFolder(node?.ref);
     }),
-    register('labwindowsCvi.renameFolder', (node?: FolderNode) => node ? workspaces.renameFolder(node.ref, node.folderPath) : undefined),
-    register('labwindowsCvi.removeFolder', (node?: FolderNode) => node ? workspaces.removeFolder(node.ref, node.folderPath) : undefined),
-    register('labwindowsCvi.removeFile', (node?: FileNode) => node ? workspaces.removeFile(node.ref, node.file.sectionName, node.file.absolutePath) : undefined),
-    register('labwindowsCvi.excludeFile', (node?: FileNode) => node ? workspaces.setFileExcluded(node.ref, node.file, true) : undefined),
-    register('labwindowsCvi.includeFile', (node?: FileNode) => node ? workspaces.setFileExcluded(node.ref, node.file, false) : undefined),
-    register('labwindowsCvi.toggleObjOption', (node?: FileNode) => node ? workspaces.toggleCompileIntoObjectFile(node.ref, node.file) : undefined),
-    register('labwindowsCvi.replaceFile', (node?: FileNode) => node ? workspaces.replaceFile(node.ref, node.file) : undefined),
-    register('labwindowsCvi.renameFile', (node?: FileNode) => node ? workspaces.renameFile(node.ref, node.file) : undefined),
-    register('labwindowsCvi.compileFile', (node?: FileNode) => node ? builds.compileFile(node.file.absolutePath, node.ref) : undefined),
-    register('labwindowsCvi.generatePrototypes', (node?: FileNode) => node ? workspaces.generatePrototypes(node.ref, node.file) : undefined),
-    register('labwindowsCvi.prepareDllImportLibraryGeneration', (node?: FileNode) => node ? builds.prepareDllImportLibraryGeneration(node.file.absolutePath) : undefined),
-    register('labwindowsCvi.refreshFileSymbols', () => fileSymbolsProvider.refresh()),
-    register('labwindowsCvi.revealFileSymbol', (symbol?: CviSourceSymbol) => symbol ? fileSymbolsProvider.reveal(symbol) : undefined),
-    register('labwindowsCvi.saveFile', (node?: FileNode) => node ? workspaces.saveFile(node.file.absolutePath) : undefined),
-    register('labwindowsCvi.openPanelInCvi', (node?: FileNode) => node ? builds.openPanelInCvi(node.file.absolutePath) : undefined),
-    register('labwindowsCvi.openPanelPathInCvi', (filePath?: string) => filePath ? builds.openPanelInCvi(filePath) : undefined),
-    register('labwindowsCvi.openFunctionPanel', (node?: FileNode) => node ? functionPanels.open(node.file.absolutePath) : undefined),
-    register('labwindowsCvi.insertSnippet', () => templates.insertSnippet()),
-    register('labwindowsCvi.saveSelectionAsSnippet', () => templates.saveSelectionAsSnippet()),
-    register('labwindowsCvi.manageSnippets', () => templates.manageSnippets()),
-    register('labwindowsCvi.saveFileAsTemplate', (node?: FileNode) => templates.saveCurrentFileAsTemplate(node?.file.absolutePath)),
-    register('labwindowsCvi.importFileTemplate', () => templates.importFileTemplate()),
-    register('labwindowsCvi.manageFileTemplates', () => templates.manageFileTemplates()),
-    register('labwindowsCvi.openFile', (node?: FileNode) => node ? workspaces.openPath(node.file.absolutePath) : undefined),
-    register('labwindowsCvi.revealProjectFile', (node?: ProjectNode) => node ? workspaces.revealInExplorer(node.ref.absolutePath) : undefined),
-    register('labwindowsCvi.revealFile', (node?: FileNode) => node ? workspaces.revealInExplorer(node.file.absolutePath) : undefined),
-    register('labwindowsCvi.copyFilePath', (node?: FileNode) => node ? workspaces.copyFilePath(node.file.absolutePath) : undefined),
-    register('labwindowsCvi.copyRelativeFilePath', (node?: FileNode) => node ? workspaces.copyRelativeFilePath(node.ref, node.file.absolutePath) : undefined),
-    register('labwindowsCvi.convertSelectedIntegerToDecimal', () => convertSelectedIntegerLiteral('decimal')),
-    register('labwindowsCvi.convertSelectedIntegerToHexadecimal', () => convertSelectedIntegerLiteral('hexadecimal')),
-    register('labwindowsCvi.convertSelectedIntegerToBinary', () => convertSelectedIntegerLiteral('binary')),
-    register('labwindowsCvi.exploreProjectDirectory', (node?: ProjectNode) => node ? workspaces.revealInExplorer(path.dirname(node.ref.absolutePath)) : undefined),
-    register('labwindowsCvi.exploreFolderDirectory', (node?: FolderNode) => node ? workspaces.revealInExplorer(workspaces.directoryForLogicalFolder(node.ref, node.folderPath)) : undefined),
-    register('labwindowsCvi.exploreFileDirectory', (node?: FileNode) => node ? workspaces.revealInExplorer(path.dirname(node.file.absolutePath)) : undefined),
-    register('labwindowsCvi.findProject', (node?: ProjectNode) => node ? workspaces.findInDirectory(path.dirname(node.ref.absolutePath)) : undefined),
-    register('labwindowsCvi.findFolder', (node?: FolderNode) => node ? workspaces.findInDirectory(workspaces.directoryForLogicalFolder(node.ref, node.folderPath)) : undefined),
-    register('labwindowsCvi.findFile', (node?: FileNode) => node ? workspaces.findInDirectory(path.dirname(node.file.absolutePath)) : undefined),
-    register('labwindowsCvi.saveAll', () => vscode.commands.executeCommand('workbench.action.files.saveAll')),
-    register('labwindowsCvi.expandAll', () => focusTreeThen('list.expandAll')),
-    register('labwindowsCvi.collapseAll', () => focusTreeThen('list.collapseAll'))
+    register('cpm.renameFolder', (node?: FolderNode) => node ? workspaces.renameFolder(node.ref, node.folderPath) : undefined),
+    register('cpm.removeFolder', (node?: FolderNode) => node ? workspaces.removeFolder(node.ref, node.folderPath) : undefined),
+    register('cpm.removeFile', (node?: FileNode) => node ? workspaces.removeFile(node.ref, node.file.sectionName, node.file.absolutePath) : undefined),
+    register('cpm.excludeFile', (node?: FileNode) => node ? workspaces.setFileExcluded(node.ref, node.file, true) : undefined),
+    register('cpm.includeFile', (node?: FileNode) => node ? workspaces.setFileExcluded(node.ref, node.file, false) : undefined),
+    register('cpm.toggleObjOption', (node?: FileNode) => node ? workspaces.toggleCompileIntoObjectFile(node.ref, node.file) : undefined),
+    register('cpm.replaceFile', (node?: FileNode) => node ? workspaces.replaceFile(node.ref, node.file) : undefined),
+    register('cpm.renameFile', (node?: FileNode) => node ? workspaces.renameFile(node.ref, node.file) : undefined),
+    register('cpm.compileFile', (node?: FileNode) => node ? builds.compileFile(node.file.absolutePath, node.ref) : undefined),
+    register('cpm.generatePrototypes', (node?: FileNode) => node ? workspaces.generatePrototypes(node.ref, node.file) : undefined),
+    register('cpm.prepareDllImportLibraryGeneration', (node?: FileNode) => node ? builds.prepareDllImportLibraryGeneration(node.file.absolutePath) : undefined),
+    register('cpm.refreshFileSymbols', () => fileSymbolsProvider.refresh()),
+    register('cpm.revealFileSymbol', (symbol?: CpmSourceSymbol) => symbol ? fileSymbolsProvider.reveal(symbol) : undefined),
+    register('cpm.saveFile', (node?: FileNode) => node ? workspaces.saveFile(node.file.absolutePath) : undefined),
+    register('cpm.openPanelFile', (node?: FileNode) => node ? builds.openPanelFile(node.file.absolutePath) : undefined),
+    register('cpm.openPanelPathFile', (filePath?: string) => filePath ? builds.openPanelFile(filePath) : undefined),
+    register('cpm.openFunctionPanel', (node?: FileNode) => node ? functionPanels.open(node.file.absolutePath) : undefined),
+    register('cpm.insertSnippet', () => templates.insertSnippet()),
+    register('cpm.insertFileHeader', () => templates.insertFileDescriptionHeader()),
+    register('cpm.insertHeaderChangeEntry', () => templates.insertHeaderChangeEntry()),
+    register('cpm.insertCommentSection', () => templates.insertCommentSection()),
+    register('cpm.saveSelectionAsSnippet', () => templates.saveSelectionAsSnippet()),
+    register('cpm.manageSnippets', () => templates.manageSnippets()),
+    register('cpm.saveFileAsTemplate', (node?: FileNode) => templates.saveCurrentFileAsTemplate(node?.file.absolutePath)),
+    register('cpm.importFileTemplate', () => templates.importFileTemplate()),
+    register('cpm.manageFileTemplates', () => templates.manageFileTemplates()),
+    register('cpm.openFile', (node?: FileNode) => node ? workspaces.openPath(node.file.absolutePath) : undefined),
+    register('cpm.revealProjectFile', (node?: ProjectNode) => node ? workspaces.revealInExplorer(node.ref.absolutePath) : undefined),
+    register('cpm.revealFile', (node?: FileNode) => node ? workspaces.revealInExplorer(node.file.absolutePath) : undefined),
+    register('cpm.copyFilePath', (node?: FileNode) => node ? workspaces.copyFilePath(node.file.absolutePath) : undefined),
+    register('cpm.copyRelativeFilePath', (node?: FileNode) => node ? workspaces.copyRelativeFilePath(node.ref, node.file.absolutePath) : undefined),
+    register('cpm.convertSelectedIntegerToDecimal', () => convertSelectedIntegerLiteral('decimal')),
+    register('cpm.convertSelectedIntegerToHexadecimal', () => convertSelectedIntegerLiteral('hexadecimal')),
+    register('cpm.convertSelectedIntegerToBinary', () => convertSelectedIntegerLiteral('binary')),
+    register('cpm.exploreProjectDirectory', (node?: ProjectNode) => node ? workspaces.revealInExplorer(path.dirname(node.ref.absolutePath)) : undefined),
+    register('cpm.exploreFolderDirectory', (node?: FolderNode) => node ? workspaces.revealInExplorer(workspaces.directoryForLogicalFolder(node.ref, node.folderPath)) : undefined),
+    register('cpm.exploreFileDirectory', (node?: FileNode) => node ? workspaces.revealInExplorer(path.dirname(node.file.absolutePath)) : undefined),
+    register('cpm.findProject', (node?: ProjectNode) => node ? workspaces.findInDirectory(path.dirname(node.ref.absolutePath)) : undefined),
+    register('cpm.findFolder', (node?: FolderNode) => node ? workspaces.findInDirectory(workspaces.directoryForLogicalFolder(node.ref, node.folderPath)) : undefined),
+    register('cpm.findFile', (node?: FileNode) => node ? workspaces.findInDirectory(path.dirname(node.file.absolutePath)) : undefined),
+    register('cpm.saveAll', () => vscode.commands.executeCommand('workbench.action.files.saveAll')),
+    register('cpm.expandAll', () => focusTreeThen('list.expandAll')),
+    register('cpm.collapseAll', () => focusTreeThen('list.collapseAll'))
   );
 
   ensureBundledCppLibraryPack(context, output);
-  activateCviLibraryExplorer(context);
+  activateCpmLibraryExplorer(context);
 
   await workspaces.restoreOrAutoLoad();
 
@@ -286,9 +268,86 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 
 
-async function scheduleOptionalCppToolsSync(cppTools: CviCppToolsService, workspace: CviWorkspace | undefined): Promise<void> {
-  const config = vscode.workspace.getConfiguration('labwindowsCvi');
-  const shouldAddFolder = config.get<boolean>('autoAddCviFolderToWorkspace', false);
+const LEGACY_CONFIGURATION_SECTION = 'labwindowsCvi';
+
+const CPM_CONFIGURATION_KEYS = [
+  'installations',
+  'activeInstallation',
+  'buildMode',
+  'runArguments',
+  'projectFormatVersion',
+  'autoLoadWorkspace',
+  'autoConfigureCppTools',
+  'autoAddCpmFolderToWorkspace',
+  'intelliSenseCompilerPath',
+  'additionalIncludePaths',
+  'enableSupplementalCompletionProvider',
+  'enableStandardLibraryCompletionProvider',
+  'standardLibraryCompletionAutoInclude',
+  'showPersistentStatusBarActions',
+  'cCompilerPath',
+  'cppCompilerPath',
+  'archiverPath',
+  'debuggerPath',
+  'outputDirectory',
+  'cStandard',
+  'cppStandard',
+  'warningLevel',
+  'optimizationLevel',
+  'debugInformation',
+  'architectureMode',
+  'compilerFlags',
+  'cCompilerFlags',
+  'cppCompilerFlags',
+  'linkerFlags',
+  'includePaths',
+  'libraryPaths',
+  'libraries',
+  'defineSymbols',
+  'useBuildModeArchitectureFlags',
+  'deployRuntimeDlls',
+  'useLocalBuildCacheForOneDrive'
+];
+
+async function migrateLegacyConfiguration(output: vscode.OutputChannel): Promise<void> {
+  const legacy = vscode.workspace.getConfiguration(LEGACY_CONFIGURATION_SECTION);
+  const current = vscode.workspace.getConfiguration('cpm');
+  const aliases = new Map<string, string>([['autoAddCpmFolderToWorkspace', 'autoAddCviFolderToWorkspace']]);
+  let migrated = 0;
+
+  for (const key of CPM_CONFIGURATION_KEYS) {
+    const legacyKey = aliases.get(key) ?? key;
+    const legacyInspect = legacy.inspect<unknown>(legacyKey);
+    const currentInspect = current.inspect<unknown>(key);
+    if (!legacyInspect) {
+      continue;
+    }
+
+    const legacyWorkspaceValue = legacyInspect.workspaceValue;
+    if (legacyWorkspaceValue !== undefined && currentInspect?.workspaceValue === undefined) {
+      await current.update(key, legacyWorkspaceValue, vscode.ConfigurationTarget.Workspace);
+      migrated++;
+    }
+
+    const legacyGlobalValue = legacyInspect.globalValue;
+    if (legacyGlobalValue !== undefined && currentInspect?.globalValue === undefined && currentInspect?.workspaceValue === undefined) {
+      await current.update(key, legacyGlobalValue, vscode.ConfigurationTarget.Global);
+      migrated++;
+    }
+
+    if (legacyWorkspaceValue !== undefined) {
+      await legacy.update(legacyKey, undefined, vscode.ConfigurationTarget.Workspace);
+    }
+  }
+
+  if (migrated > 0) {
+    output.appendLine(`[C/C++] Migrated ${migrated} legacy setting(s) to cpm.*.`);
+  }
+}
+
+async function scheduleOptionalCppToolsSync(cppTools: CpmCppToolsService, workspace: CpmWorkspace | undefined): Promise<void> {
+  const config = vscode.workspace.getConfiguration('cpm');
+  const shouldAddFolder = config.get<boolean>('autoAddCpmFolderToWorkspace', false);
   const shouldSync = config.get<boolean>('autoConfigureCppTools', false);
   if (!shouldAddFolder && !shouldSync) {
     return;
@@ -301,7 +360,7 @@ async function scheduleOptionalCppToolsSync(cppTools: CviCppToolsService, worksp
   }
 }
 
-async function runPostActivationSetup(cppTools: CviCppToolsService, workspaces: CviWorkspaceService, output: vscode.OutputChannel): Promise<void> {
+async function runPostActivationSetup(cppTools: CpmCppToolsService, workspaces: CpmWorkspaceService, output: vscode.OutputChannel): Promise<void> {
   try {
     const repairedProvider = await cppTools.autoRepairStaleProviderSelection(workspaces.currentWorkspace);
     // Do not force an immediate IntelliSense regeneration during activation.

@@ -24,11 +24,11 @@ interface StructuredPickerItem {
   detail?: string;
   defaultValue?: string;
   sourceTypes?: string[];
-  /** Contextual data type expected by a CVI Set*Attribute value argument. */
+  /** Contextual data type expected by a CPM Set*Attribute value argument. */
   valueKind?: string;
   /** Suggested values shown after an attribute constant has been selected. */
   valueOptions?: StructuredPickerItem[];
-  /** Editable placeholder for a CVI Set*Attribute value argument. */
+  /** Editable placeholder for a CPM Set*Attribute value argument. */
   valuePlaceholder?: string;
 }
 
@@ -62,7 +62,7 @@ interface StructuredPickerConfig {
   emptyValue?: string;
 }
 
-interface CviParameter {
+interface CpmParameter {
   name: string;
   type: string;
   description?: string;
@@ -78,7 +78,7 @@ interface CviParameter {
   pickerConfig?: StructuredPickerConfig;
 }
 
-interface CviStructField {
+interface CpmStructField {
   name: string;
   type: string;
   description?: string;
@@ -86,7 +86,7 @@ interface CviStructField {
   access?: 'public' | 'private' | 'protected';
 }
 
-interface CviEnumValue {
+interface CpmEnumValue {
   name: string;
   value?: string;
   description?: string;
@@ -104,7 +104,7 @@ interface CppMethod {
   methodKind?: 'method' | 'constructor' | 'destructor' | 'operator';
 }
 
-interface CviFunction {
+interface CpmFunction {
   name: string;
   returnType: string;
   signature: string;
@@ -118,41 +118,41 @@ interface CviFunction {
   returnDescription?: string;
   notes?: string[];
   warnings?: string[];
-  parameters?: CviParameter[];
-  fields?: CviStructField[];
-  enumValues?: CviEnumValue[];
+  parameters?: CpmParameter[];
+  fields?: CpmStructField[];
+  enumValues?: CpmEnumValue[];
   methods?: CppMethod[];
   symbolKind?: SymbolKind;
   declaration?: string;
   isStatic?: boolean;
 }
 
-interface CviGroup {
+interface CpmGroup {
   name: string;
   description?: string;
-  functions?: CviFunction[];
-  groups?: CviGroup[];
+  functions?: CpmFunction[];
+  groups?: CpmGroup[];
 }
 
-interface CviCategory {
+interface CpmCategory {
   name: string;
-  functions: CviFunction[];
-  groups?: CviGroup[];
+  functions: CpmFunction[];
+  groups?: CpmGroup[];
 }
 
-interface CviLibrary {
+interface CpmLibrary {
   name: string;
-  categories: CviCategory[];
+  categories: CpmCategory[];
 }
 
-interface CviEnvironment {
+interface CpmEnvironment {
   name: string;
-  libraries: CviLibrary[];
+  libraries: CpmLibrary[];
 }
 
-interface CviDatabase {
-  environments: CviEnvironment[];
-  libraries: CviLibrary[];
+interface CpmDatabase {
+  environments: CpmEnvironment[];
+  libraries: CpmLibrary[];
 }
 
 interface LibraryPackFile {
@@ -161,8 +161,8 @@ interface LibraryPackFile {
   language?: string;
   version?: string;
   readOnly?: boolean;
-  environments: CviEnvironment[];
-  libraries?: CviLibrary[];
+  environments: CpmEnvironment[];
+  libraries?: CpmLibrary[];
 }
 
 type PackSource = 'workspace' | 'global';
@@ -173,15 +173,15 @@ interface LoadedPack {
   language?: string;
   version?: string;
   readOnly?: boolean;
-  environments: CviEnvironment[];
-  libraries: CviLibrary[];
+  environments: CpmEnvironment[];
+  libraries: CpmLibrary[];
   filePath: string;
   source: PackSource;
   writable: boolean;
 }
 
 interface ExtensionData {
-  db: CviDatabase;
+  db: CpmDatabase;
   packs: LoadedPack[];
 }
 
@@ -223,18 +223,18 @@ interface PickItemSpec {
 }
 
 interface FunctionSearchEntry {
-  fn: CviFunction;
+  fn: CpmFunction;
   environment?: string;
   library: string;
   category: string;
 }
 
 interface FunctionQuickPickItem extends vscode.QuickPickItem {
-  fn: CviFunction;
+  fn: CpmFunction;
   entry: FunctionSearchEntry;
 }
 
-interface ResolvedParameter extends Omit<CviParameter, 'presets' | 'options'> {
+interface ResolvedParameter extends Omit<CpmParameter, 'presets' | 'options'> {
   index: number;
   editorType: ParamEditorType;
   defaultValue: string;
@@ -262,14 +262,14 @@ interface ParsedImportedSymbol {
   name: string;
   declaration: string;
   returnType?: string;
-  parameters?: CviParameter[];
+  parameters?: CpmParameter[];
   description?: string;
   longDescription?: string;
   returnDescription?: string;
   notes?: string[];
   warnings?: string[];
-  fields?: CviStructField[];
-  enumValues?: CviEnumValue[];
+  fields?: CpmStructField[];
+  enumValues?: CpmEnumValue[];
   methods?: CppMethod[];
   isStatic?: boolean;
 }
@@ -488,7 +488,7 @@ function findNearestDocBlock(sourceText: string, index: number): string | undefi
   return candidates[candidates.length - 1].text;
 }
 
-function makeImportedEntry(symbol: ParsedImportedSymbol, libraryName: string, headerHint?: string): CviFunction {
+function makeImportedEntry(symbol: ParsedImportedSymbol, libraryName: string, headerHint?: string): CpmFunction {
   const category = getImportedCategoryName(symbol);
   const parameters = Array.isArray(symbol.parameters) ? symbol.parameters.map((param) => ({ ...param })) : undefined;
   const fields = Array.isArray(symbol.fields) ? symbol.fields.map((field) => ({ ...field })) : undefined;
@@ -676,11 +676,11 @@ function extractTopLevelBody(block: string): string {
   return block.slice(start + 1, end);
 }
 
-function parseStructLikeFields(block: string): CviStructField[] {
+function parseStructLikeFields(block: string): CpmStructField[] {
   const body = extractTopLevelBody(block);
   if (!body.trim()) return [];
   const statements = splitTopLevel(body, ';');
-  const fields: CviStructField[] = [];
+  const fields: CpmStructField[] = [];
   for (const rawStatement of statements) {
     const statement = String(rawStatement || '').trim();
     if (!statement) continue;
@@ -707,10 +707,10 @@ function parseStructLikeFields(block: string): CviStructField[] {
   return fields;
 }
 
-function parseEnumValuesFromBlock(block: string): CviEnumValue[] {
+function parseEnumValuesFromBlock(block: string): CpmEnumValue[] {
   const body = extractTopLevelBody(block);
   if (!body.trim()) return [];
-  const values: CviEnumValue[] = [];
+  const values: CpmEnumValue[] = [];
   for (const rawItem of splitTopLevel(body, ',')) {
     const item = String(rawItem || '').trim();
     if (!item) continue;
@@ -857,11 +857,11 @@ function parseCppMethod(statement: string, className: string, access: 'public' |
   };
 }
 
-function parseCppClassDetails(block: string, className: string): { fields: CviStructField[]; methods: CppMethod[] } {
+function parseCppClassDetails(block: string, className: string): { fields: CpmStructField[]; methods: CppMethod[] } {
   const body = extractTopLevelBody(block);
   if (!body.trim()) return { fields: [], methods: [] };
   const statements = splitTopLevel(body, ';');
-  const fields: CviStructField[] = [];
+  const fields: CpmStructField[] = [];
   const methods: CppMethod[] = [];
   let access: 'public' | 'private' | 'protected' = 'private';
   for (const rawStatement of statements) {
@@ -1251,7 +1251,7 @@ function inferStarterSymbolKind(category: string, explicit?: SymbolKind): Symbol
   return STARTER_SNIPPET_CATEGORIES.has(category) ? 'snippet' : 'keyword';
 }
 
-function makeStarterEntry(libraryName: string, entry: StarterEntryDefinition): CviFunction {
+function makeStarterEntry(libraryName: string, entry: StarterEntryDefinition): CpmFunction {
   const targetLibraryName = entry.library || libraryName;
   const kind = inferStarterSymbolKind(entry.category, entry.symbolKind);
   const signature = entry.signature || entry.insertText;
@@ -1306,8 +1306,8 @@ function loadEmbeddedStarterPackFile(fileName: string): EmbeddedStarterPackFile 
   return undefined;
 }
 
-function createLanguagePackEntries(mode: LanguagePackMode): { libraryName: string; entries: CviFunction[]; label: string } {
-  const entries: CviFunction[] = [];
+function createLanguagePackEntries(mode: LanguagePackMode): { libraryName: string; entries: CpmFunction[]; label: string } {
+  const entries: CpmFunction[] = [];
   let libraryName = '';
   const add = (entry: StarterEntryDefinition) => {
     entries.push(makeStarterEntry(libraryName, entry));
@@ -2045,7 +2045,7 @@ return { libraryName, entries, label: 'C language pack' };
     add({ category: 'Keywords', name: '__declspec(dllimport)', description: 'Import a symbol from a Windows DLL.', insertText: '__declspec(dllimport)', longDescription: 'Place this in client code or headers used by applications linking against the DLL.' });
     add({ category: 'Keywords', name: '__stdcall', description: 'Windows stdcall calling convention.', insertText: '__stdcall', longDescription: 'Often required by older Win32 APIs and some callback-based DLL interfaces.' });
     add({ category: 'DLL Helpers', name: 'DLL export macro', description: 'Windows export/import macro pattern.', insertText: '#ifdef BUILDING_MY_DLL\n#define MY_API __declspec(dllexport)\n#else\n#define MY_API __declspec(dllimport)\n#endif', longDescription: 'Typical pattern for one header shared by both the DLL project and its consumers.' });
-    add({ category: 'DLL Helpers', name: 'DllMain', description: 'Minimal Windows DLL entry point.', insertText: '#include <windows.h>\n\nBOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)\n{\n    (void)hinstDLL;\n    (void)lpvReserved;\n\n    switch(fdwReason)\n    {\n        case DLL_PROCESS_ATTACH:\n            // Code to run when the DLL is loaded\n            break;\n        case DLL_THREAD_ATTACH:\n            // Code to run when a thread is created\n            break;\n        case DLL_THREAD_DETACH:\n            // Code to run when a thread ends\n            break;\n        case DLL_PROCESS_DETACH:\n            // Code to run when the DLL is unloaded\n            break;\n    }\n    return TRUE;\n}', longDescription: 'Keep DllMain very small. Avoid complex initialization, loader-lock sensitive code, or thread synchronization here.' });
+    add({ category: 'DLL Helpers', name: 'DllMain', description: 'Minimal Windows DLL entry point.', insertText: '#include <windows.h>\n\nBOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)\n{\n    if (hinstDLL == NULL)\n    {\n        return FALSE;\n    }\n\n    switch(fdwReason)\n    {\n        case DLL_PROCESS_ATTACH:\n            // Code to run when the DLL is loaded\n            break;\n        case DLL_THREAD_ATTACH:\n            // Code to run when a thread is created\n            break;\n        case DLL_THREAD_DETACH:\n            // Code to run when a thread ends\n            break;\n        case DLL_PROCESS_DETACH:\n            if (lpvReserved != NULL)\n            {\n                // The process is terminating.\n            }\n            // Code to run when the DLL is unloaded\n            break;\n    }\n    return TRUE;\n}', longDescription: 'Keep DllMain very small. Avoid complex initialization, loader-lock sensitive code, or thread synchronization here.' });
     add({ category: 'DLL Helpers', name: 'Exported function', description: 'Typical exported C function.', insertText: 'MY_API int MyFunction(int value);', signature: 'MY_API int MyFunction(int value);', longDescription: 'Simple export declaration suitable for a C-compatible DLL API.' });
     add({ category: 'DLL Helpers', name: 'Exported callback typedef', description: 'Callback typedef exported from a DLL.', insertText: 'typedef int (__stdcall *MyCallback)(int code);', signature: 'typedef int (__stdcall *MyCallback)(int code);', longDescription: 'Useful when the host application must register a function pointer back into the DLL.' });
     add({ category: 'DLL Helpers', name: 'Opaque handle API', description: 'C DLL API based on opaque handles.', insertText: 'typedef struct MyContextTag *MyContextHandle;\n\nMY_API MyContextHandle MyCreate(void);\nMY_API void MyDestroy(MyContextHandle handle);\nMY_API int MyProcess(MyContextHandle handle, const char *input);', longDescription: 'Good pattern to keep the ABI stable while hiding implementation details from client code.' });
@@ -7921,7 +7921,7 @@ interface StarterPackSelection {
   preserveEnvironments?: boolean;
 }
 
-interface StarterPackEntry extends CviFunction {
+interface StarterPackEntry extends CpmFunction {
   /** Internal import-only path. Removed before writing the destination pack. */
   __jcGroupPath?: string[];
 }
@@ -8522,12 +8522,12 @@ async function importSnippetFileIntoPackFile(pack: LoadedPack, target?: { enviro
   return { added: 1, environmentName, libraryName: libraryName!, categoryName: categoryName!, filePath: sourceUri.fsPath };
 }
 
-class CviItem extends vscode.TreeItem {
+class CpmItem extends vscode.TreeItem {
   constructor(
     public readonly kind: NodeKind,
     public readonly labelText: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly functionData?: CviFunction,
+    public readonly functionData?: CpmFunction,
     public readonly parentLabel?: string,
     public readonly descriptionText?: string,
     public readonly stableId?: string,
@@ -8539,45 +8539,45 @@ class CviItem extends vscode.TreeItem {
     this.tooltip = labelText;
 
     if (kind === 'environment') {
-      this.contextValue = 'cviEnvironment';
+      this.contextValue = 'cpmEnvironment';
       this.iconPath = getCustomTreeIcon('environment');
       this.description = descriptionText ?? 'Environment';
     } else if (kind === 'library') {
-      this.contextValue = 'cviLibrary';
+      this.contextValue = 'cpmLibrary';
       this.iconPath = getCustomTreeIcon('library');
       this.description = descriptionText ?? 'Library';
     } else if (kind === 'category') {
-      this.contextValue = 'cviCategory';
+      this.contextValue = 'cpmCategory';
       this.iconPath = getCustomTreeIcon('category');
       this.description = descriptionText ?? parentLabel;
     } else if (kind === 'group') {
-      this.contextValue = 'cviGroup';
+      this.contextValue = 'cpmGroup';
       this.iconPath = getCustomTreeIcon('group');
       this.description = descriptionText ?? 'Group';
     } else {
-      this.contextValue = 'cviFunction';
+      this.contextValue = 'cpmFunction';
       this.iconPath = new vscode.ThemeIcon('symbol-function');
       this.description = descriptionText ?? functionData?.returnType;
     }
   }
 }
 
-class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
-  private readonly _onDidChangeTreeData = new vscode.EventEmitter<CviItem | undefined | void>();
+class CpmTreeProvider implements vscode.TreeDataProvider<CpmItem> {
+  private readonly _onDidChangeTreeData = new vscode.EventEmitter<CpmItem | undefined | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private filterTerm = '';
-  private filteredItems: CviItem[] = [];
+  private filteredItems: CpmItem[] = [];
 
-  constructor(private db: CviDatabase) {
+  constructor(private db: CpmDatabase) {
     this.rebuildFilter();
   }
 
-  setDatabase(db: CviDatabase): void {
+  setDatabase(db: CpmDatabase): void {
     this.db = db;
     this.refresh();
   }
 
-  getDatabase(): CviDatabase {
+  getDatabase(): CpmDatabase {
     return this.db;
   }
 
@@ -8605,7 +8605,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
     return this.filteredItems.length;
   }
 
-  getTreeItem(element: CviItem): vscode.TreeItem {
+  getTreeItem(element: CpmItem): vscode.TreeItem {
     return element;
   }
 
@@ -8613,16 +8613,16 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
   // reveals a top-level environment, whose parent is intentionally undefined.
   // Keeping the method explicit makes the public reveal API available without
   // changing the existing environment-first hierarchy.
-  getParent(_element: CviItem): CviItem | undefined {
+  getParent(_element: CpmItem): CpmItem | undefined {
     return undefined;
   }
 
-  getChildren(element?: CviItem): Promise<CviItem[]> {
+  getChildren(element?: CpmItem): Promise<CpmItem[]> {
     if (!element) {
       if (this.filterTerm) {
         return Promise.resolve(this.filteredItems);
       }
-      return Promise.resolve((this.db.environments || []).map((env) => new CviItem(
+      return Promise.resolve((this.db.environments || []).map((env) => new CpmItem(
         'environment',
         env.name,
         vscode.TreeItemCollapsibleState.Collapsed,
@@ -8635,7 +8635,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
     if (element.kind === 'environment') {
       const environment = (this.db.environments || []).find((env) => env.name === element.labelText);
       if (!environment) return Promise.resolve([]);
-      return Promise.resolve((environment.libraries || []).map((lib) => new CviItem(
+      return Promise.resolve((environment.libraries || []).map((lib) => new CpmItem(
         'library',
         lib.name,
         vscode.TreeItemCollapsibleState.Collapsed,
@@ -8650,7 +8650,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
       const environment = (this.db.environments || []).find((env) => env.name === element.parentLabel);
       const library = environment?.libraries.find((lib) => lib.name === element.labelText);
       if (!library) return Promise.resolve([]);
-      return Promise.resolve((library.categories || []).map((cat) => new CviItem(
+      return Promise.resolve((library.categories || []).map((cat) => new CpmItem(
         'category',
         cat.name,
         vscode.TreeItemCollapsibleState.Collapsed,
@@ -8671,7 +8671,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
       const category = library?.categories.find((cat) => cat.name === categoryName);
       if (!category) return Promise.resolve([]);
 
-      const groupItems = (Array.isArray(category.groups) ? category.groups : []).map((group, index) => new CviItem(
+      const groupItems = (Array.isArray(category.groups) ? category.groups : []).map((group, index) => new CpmItem(
         'group',
         group.name,
         vscode.TreeItemCollapsibleState.Collapsed,
@@ -8683,7 +8683,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
         { environmentName, libraryName, categoryName, groupPath: [index] }
       ));
 
-      const rootFunctions = (Array.isArray(category.functions) ? category.functions : []).map((fn) => new CviItem(
+      const rootFunctions = (Array.isArray(category.functions) ? category.functions : []).map((fn) => new CpmItem(
         'function',
         fn.name,
         vscode.TreeItemCollapsibleState.None,
@@ -8710,7 +8710,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
 
       const subgroupItems = (Array.isArray(group.groups) ? group.groups : []).map((child, index) => {
         const path = [...groupPath, index];
-        return new CviItem(
+        return new CpmItem(
           'group',
           child.name,
           vscode.TreeItemCollapsibleState.Collapsed,
@@ -8723,7 +8723,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
         );
       });
 
-      const functionItems = (Array.isArray(group.functions) ? group.functions : []).map((fn) => new CviItem(
+      const functionItems = (Array.isArray(group.functions) ? group.functions : []).map((fn) => new CpmItem(
         'function',
         fn.name,
         vscode.TreeItemCollapsibleState.None,
@@ -8746,7 +8746,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
       return;
     }
     const query = this.filterTerm.toLowerCase();
-    const matches: { score: number; item: CviItem }[] = [];
+    const matches: { score: number; item: CpmItem }[] = [];
     for (const environment of this.db.environments || []) {
       for (const lib of environment.libraries || []) {
         for (const cat of lib.categories || []) {
@@ -8773,7 +8773,7 @@ class CviTreeProvider implements vscode.TreeDataProvider<CviItem> {
             if (lowerName.includes(query)) score += 20;
             if ((fn.description ?? '').toLowerCase().includes(query)) score += 5;
             if (fn.signature.toLowerCase().includes(query)) score += 3;
-            const item = new CviItem(
+            const item = new CpmItem(
               'function',
               fn.name,
               vscode.TreeItemCollapsibleState.None,
@@ -8831,7 +8831,7 @@ function uniqueName(baseName: string, existingNames: string[]): string {
 }
 
 
-function normalizeGroup(group: CviGroup, environmentName: string, libraryName: string, categoryName: string): CviGroup {
+function normalizeGroup(group: CpmGroup, environmentName: string, libraryName: string, categoryName: string): CpmGroup {
   return {
     name: group?.name,
     description: (group as any)?.description,
@@ -8840,7 +8840,7 @@ function normalizeGroup(group: CviGroup, environmentName: string, libraryName: s
   };
 }
 
-function cloneGroup(group: CviGroup): CviGroup {
+function cloneGroup(group: CpmGroup): CpmGroup {
   return {
     name: group?.name,
     description: (group as any)?.description,
@@ -8849,7 +8849,7 @@ function cloneGroup(group: CviGroup): CviGroup {
   };
 }
 
-function collectGroupFunctions(groups: CviGroup[] | undefined, acc: CviFunction[] = []): CviFunction[] {
+function collectGroupFunctions(groups: CpmGroup[] | undefined, acc: CpmFunction[] = []): CpmFunction[] {
   for (const group of Array.isArray(groups) ? groups : []) {
     for (const fn of Array.isArray(group?.functions) ? group.functions : []) {
       acc.push(fn);
@@ -8859,20 +8859,20 @@ function collectGroupFunctions(groups: CviGroup[] | undefined, acc: CviFunction[
   return acc;
 }
 
-function getCategoryAllFunctions(category: CviCategory | undefined): CviFunction[] {
+function getCategoryAllFunctions(category: CpmCategory | undefined): CpmFunction[] {
   if (!category) return [];
   return [...(Array.isArray(category.functions) ? category.functions : []), ...collectGroupFunctions(Array.isArray(category.groups) ? category.groups : [])];
 }
 
-function countCategoryGroups(category: CviCategory | undefined): number {
+function countCategoryGroups(category: CpmCategory | undefined): number {
   if (!category) return 0;
-  const visit = (groups: CviGroup[] | undefined): number => (Array.isArray(groups) ? groups.reduce((sum, group) => sum + 1 + visit(group.groups), 0) : 0);
+  const visit = (groups: CpmGroup[] | undefined): number => (Array.isArray(groups) ? groups.reduce((sum, group) => sum + 1 + visit(group.groups), 0) : 0);
   return visit(category.groups);
 }
 
-function mapCategoryGroups<T>(category: CviCategory | undefined, mapper: (group: CviGroup, path: number[]) => T, prefix: number[] = []): T[] {
+function mapCategoryGroups<T>(category: CpmCategory | undefined, mapper: (group: CpmGroup, path: number[]) => T, prefix: number[] = []): T[] {
   const results: T[] = [];
-  const walk = (groups: CviGroup[] | undefined, pathPrefix: number[]) => {
+  const walk = (groups: CpmGroup[] | undefined, pathPrefix: number[]) => {
     (Array.isArray(groups) ? groups : []).forEach((group, index) => {
       const path = [...pathPrefix, index];
       results.push(mapper(group, path));
@@ -8883,10 +8883,10 @@ function mapCategoryGroups<T>(category: CviCategory | undefined, mapper: (group:
   return results;
 }
 
-function getGroupAtPath(category: CviCategory | undefined, pathIndices: number[] | undefined): CviGroup | undefined {
+function getGroupAtPath(category: CpmCategory | undefined, pathIndices: number[] | undefined): CpmGroup | undefined {
   if (!category || !Array.isArray(pathIndices) || pathIndices.length === 0) return undefined;
   let groups = Array.isArray(category.groups) ? category.groups : [];
-  let current: CviGroup | undefined;
+  let current: CpmGroup | undefined;
   for (const index of pathIndices) {
     if (index < 0 || index >= groups.length) return undefined;
     current = groups[index];
@@ -8895,7 +8895,7 @@ function getGroupAtPath(category: CviCategory | undefined, pathIndices: number[]
   return current;
 }
 
-function countGroupSymbols(group: CviGroup | undefined): number {
+function countGroupSymbols(group: CpmGroup | undefined): number {
   if (!group) return 0;
   const own = Array.isArray(group.functions) ? group.functions.length : 0;
   const nested = (Array.isArray(group.groups) ? group.groups : []).reduce((sum, child) => sum + countGroupSymbols(child), 0);
@@ -8911,7 +8911,7 @@ function getWorkspacePacksDirectory(): string | undefined {
   if (!workspaceRoot) {
     return undefined;
   }
-  return path.join(workspaceRoot, '.vscode', 'labwindows-cvi', 'libraries', 'packs');
+  return path.join(workspaceRoot, '.vscode', 'cpm', 'libraries', 'packs');
 }
 
 function getGlobalPacksDirectory(context: vscode.ExtensionContext): string {
@@ -8947,7 +8947,7 @@ function cleanSnippetTextObject<T extends Record<string, any>>(obj: T): T {
   return copy as T;
 }
 
-function normalizeFunction(fn: CviFunction, environmentName: string, libraryName: string, categoryName: string): CviFunction {
+function normalizeFunction(fn: CpmFunction, environmentName: string, libraryName: string, categoryName: string): CpmFunction {
   const parameters = Array.isArray(fn.parameters) ? fn.parameters.map((param) => cleanSnippetTextObject({ ...param })) : undefined;
   return {
     ...fn,
@@ -8975,7 +8975,7 @@ const CPP_POINTER_SOURCE_CATEGORY_NAMES = new Set([
   CPP_LEGACY_POINTER_REFERENCE_CATEGORY_NAME
 ]);
 
-function ensureNamedGroup(groups: CviGroup[], name: string, description: string): CviGroup {
+function ensureNamedGroup(groups: CpmGroup[], name: string, description: string): CpmGroup {
   let group = groups.find((entry) => entry.name === name);
   if (!group) {
     group = { name, description, functions: [], groups: [] };
@@ -8987,12 +8987,12 @@ function ensureNamedGroup(groups: CviGroup[], name: string, description: string)
   return group;
 }
 
-function rewriteGroupCategory(group: CviGroup, categoryName: string): void {
+function rewriteGroupCategory(group: CpmGroup, categoryName: string): void {
   group.functions = (Array.isArray(group.functions) ? group.functions : []).map((fn) => ({ ...fn, category: categoryName }));
   (Array.isArray(group.groups) ? group.groups : []).forEach((child) => rewriteGroupCategory(child, categoryName));
 }
 
-function cppPointerGroupForFunction(fn: CviFunction): string {
+function cppPointerGroupForFunction(fn: CpmFunction): string {
   const name = String(fn?.name || '').toLowerCase();
   if (name.includes('member')) return 'Pointers to members';
   if (name.includes('unique_ptr') || name.includes('shared_ptr') || name.includes('weak_ptr') || name.includes('smart pointer')) return 'Smart pointers & ownership';
@@ -9000,14 +9000,14 @@ function cppPointerGroupForFunction(fn: CviFunction): string {
   return 'Raw pointers & const qualifiers';
 }
 
-function organizeCppPointerCategories(categories: CviCategory[]): CviCategory[] {
+function organizeCppPointerCategories(categories: CpmCategory[]): CpmCategory[] {
   const list = Array.isArray(categories) ? categories : [];
   const pointerCategories = list.filter((category) => CPP_POINTER_SOURCE_CATEGORY_NAMES.has(category.name));
   if (!pointerCategories.length) return list;
 
   const insertionIndex = list.findIndex((category) => CPP_POINTER_SOURCE_CATEGORY_NAMES.has(category.name));
-  const unified: CviCategory = { name: CPP_POINTER_CATEGORY_NAME, functions: [], groups: [] };
-  const groups = unified.groups as CviGroup[];
+  const unified: CpmCategory = { name: CPP_POINTER_CATEGORY_NAME, functions: [], groups: [] };
+  const groups = unified.groups as CpmGroup[];
   const knownNames = new Set<string>();
 
   const descriptions: Record<string, string> = {
@@ -9017,7 +9017,7 @@ function organizeCppPointerCategories(categories: CviCategory[]): CviCategory[] 
     'Pointers to members': 'Pointers to class data members and member functions.'
   };
 
-  const addFunction = (fn: CviFunction, forcedGroup?: string) => {
+  const addFunction = (fn: CpmFunction, forcedGroup?: string) => {
     const name = String(fn?.name || '');
     if (!name || knownNames.has(name)) return;
     const groupName = forcedGroup || cppPointerGroupForFunction(fn);
@@ -9103,7 +9103,7 @@ const CPP_BASIC_GROUP_DESCRIPTIONS: Record<string, string> = {
   'Operator Overloading': 'Operator overload syntax, scope rules, member versus non-member design, friend declarations, and practical examples.'
 };
 
-function mergeCppBasicGroupTree(targetCategory: CviCategory, prefix: string[], sourceGroup: CviGroup): void {
+function mergeCppBasicGroupTree(targetCategory: CpmCategory, prefix: string[], sourceGroup: CpmGroup): void {
   const path = [...prefix, sourceGroup.name];
   for (const fn of Array.isArray(sourceGroup.functions) ? sourceGroup.functions : []) {
     mergeFunctionIntoNestedCategory(targetCategory, fn, {
@@ -9117,7 +9117,7 @@ function mergeCppBasicGroupTree(targetCategory: CviCategory, prefix: string[], s
   }
 }
 
-function organizeCppBasicCategories(cppLibrary: CviLibrary): void {
+function organizeCppBasicCategories(cppLibrary: CpmLibrary): void {
   const categories = Array.isArray(cppLibrary.categories) ? cppLibrary.categories : [];
   const sources = categories.filter((category) => CPP_BASIC_SOURCE_CATEGORY_NAMES.has(category.name));
   if (!sources.length) return;
@@ -9168,10 +9168,10 @@ const CPP_BASIC_FOUNDATION_RELOCATIONS: CppBasicFoundationRelocation[] = [
   }
 ];
 
-function takeCppFunctionsByName(groups: CviGroup[] | undefined, names: Set<string>): CviFunction[] {
-  const found: CviFunction[] = [];
+function takeCppFunctionsByName(groups: CpmGroup[] | undefined, names: Set<string>): CpmFunction[] {
+  const found: CpmFunction[] = [];
   for (const group of Array.isArray(groups) ? groups : []) {
-    const retained: CviFunction[] = [];
+    const retained: CpmFunction[] = [];
     for (const fn of Array.isArray(group.functions) ? group.functions : []) {
       if (names.has(fn.name)) found.push(fn);
       else retained.push(fn);
@@ -9184,15 +9184,15 @@ function takeCppFunctionsByName(groups: CviGroup[] | undefined, names: Set<strin
   return found;
 }
 
-function organizeCppBasicFoundationEntries(cppLibrary: CviLibrary): void {
+function organizeCppBasicFoundationEntries(cppLibrary: CpmLibrary): void {
   const basicCategory = ensureNamedCategory(cppLibrary, CPP_BASIC_CATEGORY_NAME);
   for (const relocation of CPP_BASIC_FOUNDATION_RELOCATIONS) {
     const sourceCategory = (Array.isArray(cppLibrary.categories) ? cppLibrary.categories : [])
       .find((category) => category.name === relocation.sourceCategoryName);
     if (!sourceCategory) continue;
 
-    const moved: CviFunction[] = [];
-    const retained: CviFunction[] = [];
+    const moved: CpmFunction[] = [];
+    const retained: CpmFunction[] = [];
     for (const fn of Array.isArray(sourceCategory.functions) ? sourceCategory.functions : []) {
       if (relocation.entryNames.has(fn.name)) moved.push(fn);
       else retained.push(fn);
@@ -9223,7 +9223,7 @@ interface CppNestedDestination {
   groupPath: string[];
 }
 
-function ensureNamedLibrary(libraries: CviLibrary[], name: string): CviLibrary {
+function ensureNamedLibrary(libraries: CpmLibrary[], name: string): CpmLibrary {
   let library = libraries.find((entry) => entry.name === name);
   if (!library) {
     library = { name, categories: [] };
@@ -9233,7 +9233,7 @@ function ensureNamedLibrary(libraries: CviLibrary[], name: string): CviLibrary {
   return library;
 }
 
-function ensureNamedCategory(library: CviLibrary, name: string): CviCategory {
+function ensureNamedCategory(library: CpmLibrary, name: string): CpmCategory {
   let category = library.categories.find((entry) => entry.name === name);
   if (!category) {
     category = { name, functions: [], groups: [] };
@@ -9244,10 +9244,10 @@ function ensureNamedCategory(library: CviLibrary, name: string): CviCategory {
   return category;
 }
 
-function ensureNestedGroup(category: CviCategory, path: string[]): CviGroup | undefined {
+function ensureNestedGroup(category: CpmCategory, path: string[]): CpmGroup | undefined {
   let groups = Array.isArray(category.groups) ? category.groups : [];
   category.groups = groups;
-  let current: CviGroup | undefined;
+  let current: CpmGroup | undefined;
   for (const name of path.filter((item) => !!item)) {
     current = ensureNamedGroup(groups, name, 'Related C++ helpers.');
     current.functions = Array.isArray(current.functions) ? current.functions : [];
@@ -9258,7 +9258,7 @@ function ensureNestedGroup(category: CviCategory, path: string[]): CviGroup | un
 }
 
 
-function cppCallbackNestedPathForFunction(fn: CviFunction): string[] {
+function cppCallbackNestedPathForFunction(fn: CpmFunction): string[] {
   const name = String(fn?.name || '').toLowerCase();
   if (name.includes('capture') || name.includes('lambda syntax')) return ['Callbacks & Lambdas', 'Lambda syntax and captures'];
   if (name.includes('signature') || name.includes('noexcept') || name.includes('return type')) return ['Callbacks & Lambdas', 'Lambda signatures'];
@@ -9267,7 +9267,7 @@ function cppCallbackNestedPathForFunction(fn: CviFunction): string[] {
   return ['Callbacks & Lambdas', 'Callback storage and invocation'];
 }
 
-function cppCallableNestedPathForFunction(fn: CviFunction): string[] {
+function cppCallableNestedPathForFunction(fn: CpmFunction): string[] {
   const name = String(fn?.name || '').toLowerCase();
   if (name.includes('variadic') || name.includes('parameter pack') || name.includes('fold expression')) return ['Functions & Callables', 'Variadic & generic callables'];
   if (name.includes('invoke') || name.includes('mem_fn') || name.includes('bind_front') || name.includes('bind ')) return ['Functions & Callables', 'Invocation adapters'];
@@ -9275,7 +9275,7 @@ function cppCallableNestedPathForFunction(fn: CviFunction): string[] {
   return ['Functions & Callables', 'Declarations & overloads'];
 }
 
-function mergeGroupTreeIntoNestedCategory(targetCategory: CviCategory, prefixPath: string[], sourceGroup: CviGroup): void {
+function mergeGroupTreeIntoNestedCategory(targetCategory: CpmCategory, prefixPath: string[], sourceGroup: CpmGroup): void {
   const path = [...prefixPath, sourceGroup.name].filter((item) => !!item);
   for (const fn of Array.isArray(sourceGroup.functions) ? sourceGroup.functions : []) {
     mergeFunctionIntoNestedCategory(targetCategory, fn, {
@@ -9289,7 +9289,7 @@ function mergeGroupTreeIntoNestedCategory(targetCategory: CviCategory, prefixPat
   }
 }
 
-function pruneIndustrialCppGroups(groups: CviGroup[] | undefined): CviGroup[] {
+function pruneIndustrialCppGroups(groups: CpmGroup[] | undefined): CpmGroup[] {
   return (Array.isArray(groups) ? groups : [])
     .filter((group) => !CPP_REMOVED_INDUSTRIAL_NAME_PATTERN.test(String(group?.name || '')))
     .map((group) => ({
@@ -9298,7 +9298,7 @@ function pruneIndustrialCppGroups(groups: CviGroup[] | undefined): CviGroup[] {
     }));
 }
 
-function pruneIndustrialCppCategories(categories: CviCategory[] | undefined): CviCategory[] {
+function pruneIndustrialCppCategories(categories: CpmCategory[] | undefined): CpmCategory[] {
   return (Array.isArray(categories) ? categories : [])
     .filter((category) => !CPP_REMOVED_INDUSTRIAL_NAME_PATTERN.test(String(category?.name || '')))
     .map((category) => ({
@@ -9307,7 +9307,7 @@ function pruneIndustrialCppCategories(categories: CviCategory[] | undefined): Cv
     }));
 }
 
-function organizeCppFunctionCategories(cppLibrary: CviLibrary): void {
+function organizeCppFunctionCategories(cppLibrary: CpmLibrary): void {
   const categories = Array.isArray(cppLibrary.categories) ? cppLibrary.categories : [];
   const sourceCategories = categories.filter((category) => CPP_FUNCTION_SOURCE_CATEGORY_NAMES.has(category.name));
   if (!sourceCategories.length) return;
@@ -9346,7 +9346,7 @@ function organizeCppFunctionCategories(cppLibrary: CviLibrary): void {
 }
 
 
-function cppConcurrencyGroupPathForFunction(fn: CviFunction): string[] {
+function cppConcurrencyGroupPathForFunction(fn: CpmFunction): string[] {
   const haystack = `${String(fn?.name || '')} ${String(fn?.description || '')} ${String(fn?.longDescription || '')}`.toLowerCase();
   if (['atomic', 'compare_exchange', 'memory order', 'memory_order', 'release / acquire', 'atomic_ref'].some((token) => haystack.includes(token))) {
     return ['Atomics & memory ordering'];
@@ -9366,7 +9366,7 @@ function cppConcurrencyGroupPathForFunction(fn: CviFunction): string[] {
   return ['Threads & lifecycle'];
 }
 
-function organizeCppConcurrencyCategories(cppLibrary: CviLibrary): void {
+function organizeCppConcurrencyCategories(cppLibrary: CpmLibrary): void {
   const categories = Array.isArray(cppLibrary.categories) ? cppLibrary.categories : [];
   const sourceCategories = categories.filter((category) => CPP_CONCURRENCY_SOURCE_CATEGORY_NAMES.has(category.name));
   if (!sourceCategories.length) return;
@@ -9386,7 +9386,7 @@ function organizeCppConcurrencyCategories(cppLibrary: CviLibrary): void {
     .filter((category) => !CPP_CONCURRENCY_SOURCE_CATEGORY_NAMES.has(category.name));
 }
 
-function cppLegacyContentRoute(fn: CviFunction, legacyCategoryName: string): CppNestedDestination {
+function cppLegacyContentRoute(fn: CpmFunction, legacyCategoryName: string): CppNestedDestination {
   const name = String(fn?.name || '').toLowerCase();
   if (legacyCategoryName === 'Callbacks & Lambdas' || legacyCategoryName === 'Callbacks & Invocation') {
     return { libraryName: 'C++ Language', categoryName: CPP_FUNCTION_CATEGORY_NAME, groupPath: cppCallbackNestedPathForFunction(fn) };
@@ -9405,7 +9405,7 @@ function cppLegacyContentRoute(fn: CviFunction, legacyCategoryName: string): Cpp
   return { libraryName: 'C++ Language', categoryName: 'Iterators & Traversal', groupPath: ['Legacy traversal patterns'] };
 }
 
-function cppNestedDestinationForEntry(libraryName: string | undefined, categoryName: string, fn?: CviFunction): CppNestedDestination | undefined {
+function cppNestedDestinationForEntry(libraryName: string | undefined, categoryName: string, fn?: CpmFunction): CppNestedDestination | undefined {
   const sourceLibrary = String(libraryName || '');
   if (sourceLibrary === 'C++ Files & Configuration') {
     return { libraryName: 'C++ Language', categoryName: 'Files & Streams', groupPath: [categoryName] };
@@ -9443,7 +9443,7 @@ function cppNestedDestinationForEntry(libraryName: string | undefined, categoryN
   return undefined;
 }
 
-function mergeFunctionIntoNestedCategory(category: CviCategory, fn: CviFunction, destination: CppNestedDestination): void {
+function mergeFunctionIntoNestedCategory(category: CpmCategory, fn: CpmFunction, destination: CppNestedDestination): void {
   if (getCategoryAllFunctions(category).some((entry) => entry.name === fn.name)) return;
   const normalized = { ...fn, library: destination.libraryName, category: destination.categoryName };
   const group = ensureNestedGroup(category, destination.groupPath);
@@ -9461,7 +9461,7 @@ function isCppDedicatedNestedLibrary(name: string): boolean {
     || CPP_DEDICATED_IO_LIBRARY_NAMES.includes(name as any);
 }
 
-function organizeCppStandardLibraries(libraries: CviLibrary[]): CviLibrary[] {
+function organizeCppStandardLibraries(libraries: CpmLibrary[]): CpmLibrary[] {
   const list = Array.isArray(libraries) ? libraries : [];
   const cppLibrary = list.find((library) => library.name === 'C++ Language');
   if (!cppLibrary) return list;
@@ -9485,7 +9485,7 @@ function organizeCppStandardLibraries(libraries: CviLibrary[]): CviLibrary[] {
   organizeCppBasicFoundationEntries(cppLibrary);
   organizeCppConcurrencyCategories(cppLibrary);
 
-  const retainedCategories: CviCategory[] = [];
+  const retainedCategories: CpmCategory[] = [];
   for (const category of Array.isArray(cppLibrary.categories) ? cppLibrary.categories : []) {
     if (!CPP_LEGACY_STL_CATEGORY_NAMES.has(category.name)) {
       retainedCategories.push(category);
@@ -9522,12 +9522,12 @@ function organizeCppStandardLibraries(libraries: CviLibrary[]): CviLibrary[] {
 
 const QT_LANGUAGE_LIBRARY_NAME = 'Qt Language';
 
-function collectCategoryEntriesWithGroupPath(category: CviCategory): Array<{ entry: CviFunction; groupPath: string[] }> {
-  const entries: Array<{ entry: CviFunction; groupPath: string[] }> = [];
+function collectCategoryEntriesWithGroupPath(category: CpmCategory): Array<{ entry: CpmFunction; groupPath: string[] }> {
+  const entries: Array<{ entry: CpmFunction; groupPath: string[] }> = [];
   for (const entry of Array.isArray(category.functions) ? category.functions : []) {
     entries.push({ entry, groupPath: [] });
   }
-  const visitGroups = (groups: CviGroup[] | undefined, prefix: string[]): void => {
+  const visitGroups = (groups: CpmGroup[] | undefined, prefix: string[]): void => {
     for (const group of Array.isArray(groups) ? groups : []) {
       const path = [...prefix, group.name];
       for (const entry of Array.isArray(group.functions) ? group.functions : []) {
@@ -9571,7 +9571,7 @@ function canonicalCLanguageCategoryName(categoryName: string): string {
   return C_LEGACY_CATEGORY_ALIASES[categoryName] || categoryName;
 }
 
-function cLegacyBasicGroup(categoryName: string, fn: CviFunction): string[] {
+function cLegacyBasicGroup(categoryName: string, fn: CpmFunction): string[] {
   const name = String(fn?.name || '').toLowerCase();
   if (categoryName === 'Keywords & Preprocessor' || categoryName === 'Keywords') {
     if (name.includes('include') || name.includes('define') || name.includes('pragma') || name.includes('attribute') || name.includes('has_')) {
@@ -9596,7 +9596,7 @@ function normalizeCLegacyGroupName(categoryName: string, groupName: string): str
   return groupName;
 }
 
-function cLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: string; groupPath: string[] } {
+function cLegacyRoute(categoryName: string, fn: CpmFunction): { categoryName: string; groupPath: string[] } {
   const name = String(fn?.name || '').toLowerCase();
   const canonicalCategoryName = canonicalCLanguageCategoryName(categoryName);
   const structuredNames = new Set<string>(C_STRUCTURED_CATEGORY_ORDER as readonly string[]);
@@ -9643,7 +9643,7 @@ function cLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: st
   }
 }
 
-function mergeCFunction(category: CviCategory, fn: CviFunction, groupPath: string[]): void {
+function mergeCFunction(category: CpmCategory, fn: CpmFunction, groupPath: string[]): void {
   const normalized = { ...fn, library: C_LANGUAGE_LIBRARY_NAME, category: category.name };
   const targetGroup = ensureNestedGroup(category, groupPath);
   const bucket = targetGroup ? targetGroup.functions! : category.functions;
@@ -9653,7 +9653,7 @@ function mergeCFunction(category: CviCategory, fn: CviFunction, groupPath: strin
   bucket.push(normalized);
 }
 
-function mergeCGroups(targetCategory: CviCategory, groups: CviGroup[] | undefined, prefix: string[] = [], sourceCategoryName = ''): void {
+function mergeCGroups(targetCategory: CpmCategory, groups: CpmGroup[] | undefined, prefix: string[] = [], sourceCategoryName = ''): void {
   for (const group of Array.isArray(groups) ? groups : []) {
     const mappedName = normalizeCLegacyGroupName(sourceCategoryName, group.name);
     const path = [...prefix, mappedName];
@@ -9662,9 +9662,9 @@ function mergeCGroups(targetCategory: CviCategory, groups: CviGroup[] | undefine
   }
 }
 
-function organizeCLanguageCategories(categories: CviCategory[]): CviCategory[] {
+function organizeCLanguageCategories(categories: CpmCategory[]): CpmCategory[] {
   const source = Array.isArray(categories) ? categories : [];
-  const result: CviLibrary = { name: C_LANGUAGE_LIBRARY_NAME, categories: [] };
+  const result: CpmLibrary = { name: C_LANGUAGE_LIBRARY_NAME, categories: [] };
   const targetNames = new Set<string>(C_STRUCTURED_CATEGORY_ORDER as readonly string[]);
   for (const category of source) {
     const canonicalCategoryName = canonicalCLanguageCategoryName(category.name);
@@ -9721,7 +9721,7 @@ const PYTHON_STRUCTURED_CATEGORY_ORDER = [
   'Automation, Test Benches & Robotics'
 ] as const;
 
-function pythonLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: string; groupPath: string[] } {
+function pythonLegacyRoute(categoryName: string, fn: CpmFunction): { categoryName: string; groupPath: string[] } {
   const name = String(fn?.name || '').toLowerCase();
   const structuredNames = new Set<string>(PYTHON_STRUCTURED_CATEGORY_ORDER as readonly string[]);
   if (structuredNames.has(categoryName)) return { categoryName, groupPath: ['Legacy imported entries'] };
@@ -9798,7 +9798,7 @@ function pythonLegacyRoute(categoryName: string, fn: CviFunction): { categoryNam
   return { categoryName: 'Language Fundamentals', groupPath: ['Legacy imported entries'] };
 }
 
-function mergePythonFunction(category: CviCategory, fn: CviFunction, groupPath: string[]): void {
+function mergePythonFunction(category: CpmCategory, fn: CpmFunction, groupPath: string[]): void {
   if (getCategoryAllFunctions(category).some((entry) => entry.name === fn.name)) return;
   const normalized = { ...fn, library: PYTHON_LANGUAGE_LIBRARY_NAME, category: category.name };
   const targetGroup = ensureNestedGroup(category, groupPath);
@@ -9806,7 +9806,7 @@ function mergePythonFunction(category: CviCategory, fn: CviFunction, groupPath: 
   else category.functions.push(normalized);
 }
 
-function mergePythonGroups(targetCategory: CviCategory, groups: CviGroup[] | undefined, prefix: string[] = []): void {
+function mergePythonGroups(targetCategory: CpmCategory, groups: CpmGroup[] | undefined, prefix: string[] = []): void {
   for (const group of Array.isArray(groups) ? groups : []) {
     const path = [...prefix, group.name];
     for (const fn of Array.isArray(group.functions) ? group.functions : []) mergePythonFunction(targetCategory, fn, path);
@@ -9814,9 +9814,9 @@ function mergePythonGroups(targetCategory: CviCategory, groups: CviGroup[] | und
   }
 }
 
-function organizePythonLanguageCategories(categories: CviCategory[]): CviCategory[] {
+function organizePythonLanguageCategories(categories: CpmCategory[]): CpmCategory[] {
   const source = Array.isArray(categories) ? categories : [];
-  const result: CviLibrary = { name: PYTHON_LANGUAGE_LIBRARY_NAME, categories: [] };
+  const result: CpmLibrary = { name: PYTHON_LANGUAGE_LIBRARY_NAME, categories: [] };
   const targetNames = new Set<string>(PYTHON_STRUCTURED_CATEGORY_ORDER as readonly string[]);
   for (const category of source) {
     if (targetNames.has(category.name)) {
@@ -9858,7 +9858,7 @@ const WEB_STRUCTURED_CATEGORY_ORDER = [
   'Build, Packaging & Deployment'
 ] as const;
 
-function webLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: string; groupPath: string[] } {
+function webLegacyRoute(categoryName: string, fn: CpmFunction): { categoryName: string; groupPath: string[] } {
   const name = String(fn?.name || '').toLowerCase();
   if ((WEB_STRUCTURED_CATEGORY_ORDER as readonly string[]).includes(categoryName)) {
     return { categoryName, groupPath: ['Legacy imported entries'] };
@@ -9907,7 +9907,7 @@ function webLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: 
   return { categoryName: 'JavaScript Language & Modules', groupPath: ['Legacy imported entries', categoryName] };
 }
 
-function mergeWebFunction(category: CviCategory, fn: CviFunction, groupPath: string[]): void {
+function mergeWebFunction(category: CpmCategory, fn: CpmFunction, groupPath: string[]): void {
   if (getCategoryAllFunctions(category).some((entry) => entry.name === fn.name)) return;
   const normalized = { ...fn, library: WEB_LANGUAGE_LIBRARY_NAME, category: category.name };
   const targetGroup = ensureNestedGroup(category, groupPath);
@@ -9915,7 +9915,7 @@ function mergeWebFunction(category: CviCategory, fn: CviFunction, groupPath: str
   else category.functions.push(normalized);
 }
 
-function mergeWebGroups(targetCategory: CviCategory, groups: CviGroup[] | undefined, prefix: string[] = []): void {
+function mergeWebGroups(targetCategory: CpmCategory, groups: CpmGroup[] | undefined, prefix: string[] = []): void {
   for (const group of Array.isArray(groups) ? groups : []) {
     const path = [...prefix, group.name];
     for (const fn of Array.isArray(group.functions) ? group.functions : []) mergeWebFunction(targetCategory, fn, path);
@@ -9923,9 +9923,9 @@ function mergeWebGroups(targetCategory: CviCategory, groups: CviGroup[] | undefi
   }
 }
 
-function organizeWebLanguageCategories(categories: CviCategory[]): CviCategory[] {
+function organizeWebLanguageCategories(categories: CpmCategory[]): CpmCategory[] {
   const source = Array.isArray(categories) ? categories : [];
-  const result: CviLibrary = { name: WEB_LANGUAGE_LIBRARY_NAME, categories: [] };
+  const result: CpmLibrary = { name: WEB_LANGUAGE_LIBRARY_NAME, categories: [] };
   const targetNames = new Set<string>(WEB_STRUCTURED_CATEGORY_ORDER as readonly string[]);
   for (const category of source) {
     if (targetNames.has(category.name)) {
@@ -9970,7 +9970,7 @@ const JAVA_STRUCTURED_CATEGORY_ORDER = [
   'Automation, Instrumentation & Robotics'
 ] as const;
 
-function javaLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: string; groupPath: string[] } {
+function javaLegacyRoute(categoryName: string, fn: CpmFunction): { categoryName: string; groupPath: string[] } {
   const name = String(fn?.name || '').toLowerCase();
   if ((JAVA_STRUCTURED_CATEGORY_ORDER as readonly string[]).includes(categoryName)) {
     return { categoryName, groupPath: ['Legacy imported entries'] };
@@ -9995,7 +9995,7 @@ function javaLegacyRoute(categoryName: string, fn: CviFunction): { categoryName:
   return { categoryName: 'Language Fundamentals', groupPath: ['Legacy imported entries', categoryName] };
 }
 
-function mergeJavaFunction(category: CviCategory, fn: CviFunction, groupPath: string[]): void {
+function mergeJavaFunction(category: CpmCategory, fn: CpmFunction, groupPath: string[]): void {
   if (getCategoryAllFunctions(category).some((entry) => entry.name === fn.name)) return;
   const normalized = { ...fn, library: JAVA_LANGUAGE_LIBRARY_NAME, category: category.name };
   const targetGroup = ensureNestedGroup(category, groupPath);
@@ -10003,7 +10003,7 @@ function mergeJavaFunction(category: CviCategory, fn: CviFunction, groupPath: st
   else category.functions.push(normalized);
 }
 
-function mergeJavaGroups(targetCategory: CviCategory, groups: CviGroup[] | undefined, prefix: string[] = []): void {
+function mergeJavaGroups(targetCategory: CpmCategory, groups: CpmGroup[] | undefined, prefix: string[] = []): void {
   for (const group of Array.isArray(groups) ? groups : []) {
     const path = [...prefix, group.name];
     for (const fn of Array.isArray(group.functions) ? group.functions : []) mergeJavaFunction(targetCategory, fn, path);
@@ -10011,9 +10011,9 @@ function mergeJavaGroups(targetCategory: CviCategory, groups: CviGroup[] | undef
   }
 }
 
-function organizeJavaLanguageCategories(categories: CviCategory[]): CviCategory[] {
+function organizeJavaLanguageCategories(categories: CpmCategory[]): CpmCategory[] {
   const source = Array.isArray(categories) ? categories : [];
-  const result: CviLibrary = { name: JAVA_LANGUAGE_LIBRARY_NAME, categories: [] };
+  const result: CpmLibrary = { name: JAVA_LANGUAGE_LIBRARY_NAME, categories: [] };
   const targetNames = new Set<string>(JAVA_STRUCTURED_CATEGORY_ORDER as readonly string[]);
   for (const category of source) {
     if (targetNames.has(category.name)) {
@@ -10058,7 +10058,7 @@ const CSHARP_STRUCTURED_CATEGORY_ORDER = [
   'Automation, Instrumentation & Robotics'
 ] as const;
 
-function csharpLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: string; groupPath: string[] } {
+function csharpLegacyRoute(categoryName: string, fn: CpmFunction): { categoryName: string; groupPath: string[] } {
   const name = String(fn?.name || '').toLowerCase();
   if ((CSHARP_STRUCTURED_CATEGORY_ORDER as readonly string[]).includes(categoryName)) {
     return { categoryName, groupPath: ['Legacy imported entries'] };
@@ -10093,7 +10093,7 @@ function csharpLegacyRoute(categoryName: string, fn: CviFunction): { categoryNam
   return { categoryName: 'Language Fundamentals', groupPath: ['Legacy imported entries', categoryName] };
 }
 
-function mergeCsharpFunction(category: CviCategory, fn: CviFunction, groupPath: string[]): void {
+function mergeCsharpFunction(category: CpmCategory, fn: CpmFunction, groupPath: string[]): void {
   if (getCategoryAllFunctions(category).some((entry) => entry.name === fn.name)) return;
   const normalized = { ...fn, library: CSHARP_LANGUAGE_LIBRARY_NAME, category: category.name };
   const targetGroup = ensureNestedGroup(category, groupPath);
@@ -10101,7 +10101,7 @@ function mergeCsharpFunction(category: CviCategory, fn: CviFunction, groupPath: 
   else category.functions.push(normalized);
 }
 
-function mergeCsharpGroups(targetCategory: CviCategory, groups: CviGroup[] | undefined, prefix: string[] = []): void {
+function mergeCsharpGroups(targetCategory: CpmCategory, groups: CpmGroup[] | undefined, prefix: string[] = []): void {
   for (const group of Array.isArray(groups) ? groups : []) {
     const path = [...prefix, group.name];
     for (const fn of Array.isArray(group.functions) ? group.functions : []) mergeCsharpFunction(targetCategory, fn, path);
@@ -10109,9 +10109,9 @@ function mergeCsharpGroups(targetCategory: CviCategory, groups: CviGroup[] | und
   }
 }
 
-function organizeCsharpLanguageCategories(categories: CviCategory[]): CviCategory[] {
+function organizeCsharpLanguageCategories(categories: CpmCategory[]): CpmCategory[] {
   const source = Array.isArray(categories) ? categories : [];
-  const result: CviLibrary = { name: CSHARP_LANGUAGE_LIBRARY_NAME, categories: [] };
+  const result: CpmLibrary = { name: CSHARP_LANGUAGE_LIBRARY_NAME, categories: [] };
   const targetNames = new Set<string>(CSHARP_STRUCTURED_CATEGORY_ORDER as readonly string[]);
   for (const category of source) {
     if (targetNames.has(category.name)) {
@@ -10167,7 +10167,7 @@ function getQtBundledGroupPath(categoryName: string, functionName: string): stri
   return [...(qtBundledGroupPathIndex.get(qtGroupPathIndexKey(categoryName, functionName)) || [])];
 }
 
-function qtStructuredGroupPath(categoryName: string, fn: CviFunction): string[] {
+function qtStructuredGroupPath(categoryName: string, fn: CpmFunction): string[] {
   return getQtBundledGroupPath(categoryName, fn.name);
 }
 
@@ -10219,7 +10219,7 @@ const QT_STRUCTURED_CATEGORY_ORDER = [
   'Application Utilities, Plugins & Build'
 ] as const;
 
-function qtLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: string; groupPath: string[] } {
+function qtLegacyRoute(categoryName: string, fn: CpmFunction): { categoryName: string; groupPath: string[] } {
   const name = String(fn?.name || '').toLowerCase();
   if (categoryName === 'Keywords') return { categoryName: 'Meta-Object & Core', groupPath: ['QObject, macros & properties'] };
   if (categoryName === 'Signals & Slots') return { categoryName: 'Signals, Slots & Events', groupPath: [name.includes('event') ? 'Events & filters' : 'Typed connections'] };
@@ -10287,7 +10287,7 @@ function qtLegacyRoute(categoryName: string, fn: CviFunction): { categoryName: s
   return { categoryName, groupPath: [] };
 }
 
-function mergeQtFunction(category: CviCategory, fn: CviFunction, groupPath: string[]): void {
+function mergeQtFunction(category: CpmCategory, fn: CpmFunction, groupPath: string[]): void {
   if (getCategoryAllFunctions(category).some((entry) => entry.name === fn.name)) return;
   const normalized = { ...fn, library: QT_LANGUAGE_LIBRARY_NAME, category: category.name };
   const targetGroup = ensureNestedGroup(category, groupPath);
@@ -10295,7 +10295,7 @@ function mergeQtFunction(category: CviCategory, fn: CviFunction, groupPath: stri
   else category.functions.push(normalized);
 }
 
-function mergeQtGroups(targetCategory: CviCategory, groups: CviGroup[] | undefined, prefix: string[] = []): void {
+function mergeQtGroups(targetCategory: CpmCategory, groups: CpmGroup[] | undefined, prefix: string[] = []): void {
   for (const group of Array.isArray(groups) ? groups : []) {
     const path = [...prefix, group.name];
     for (const fn of Array.isArray(group.functions) ? group.functions : []) mergeQtFunction(targetCategory, fn, path);
@@ -10303,9 +10303,9 @@ function mergeQtGroups(targetCategory: CviCategory, groups: CviGroup[] | undefin
   }
 }
 
-function organizeQtLanguageCategories(categories: CviCategory[]): CviCategory[] {
+function organizeQtLanguageCategories(categories: CpmCategory[]): CpmCategory[] {
   const source = Array.isArray(categories) ? categories : [];
-  const result: CviLibrary = { name: QT_LANGUAGE_LIBRARY_NAME, categories: [] };
+  const result: CpmLibrary = { name: QT_LANGUAGE_LIBRARY_NAME, categories: [] };
   const targetNames = new Set<string>(QT_STRUCTURED_CATEGORY_ORDER as readonly string[]);
   for (const category of source) {
     if (targetNames.has(category.name)) {
@@ -10422,7 +10422,7 @@ function systemScriptLegacyRoute(libraryName: string, categoryName: string): { c
   return { categoryName: SYSTEM_SCRIPT_CATEGORY_ORDER[libraryName]?.[0] || categoryName, groupPath: ['Legacy imported entries', categoryName] };
 }
 
-function mergeSystemScriptFunction(category: CviCategory, fn: CviFunction, libraryName: string, groupPath: string[]): void {
+function mergeSystemScriptFunction(category: CpmCategory, fn: CpmFunction, libraryName: string, groupPath: string[]): void {
   if (getCategoryAllFunctions(category).some((entry) => entry.name === fn.name)) return;
   const normalized = { ...fn, library: libraryName, category: category.name };
   const targetGroup = ensureNestedGroup(category, groupPath);
@@ -10430,7 +10430,7 @@ function mergeSystemScriptFunction(category: CviCategory, fn: CviFunction, libra
   else category.functions.push(normalized);
 }
 
-function mergeSystemScriptGroups(targetCategory: CviCategory, groups: CviGroup[] | undefined, libraryName: string, prefix: string[] = []): void {
+function mergeSystemScriptGroups(targetCategory: CpmCategory, groups: CpmGroup[] | undefined, libraryName: string, prefix: string[] = []): void {
   for (const group of Array.isArray(groups) ? groups : []) {
     const path = [...prefix, group.name];
     for (const fn of Array.isArray(group.functions) ? group.functions : []) mergeSystemScriptFunction(targetCategory, fn, libraryName, path);
@@ -10438,10 +10438,10 @@ function mergeSystemScriptGroups(targetCategory: CviCategory, groups: CviGroup[]
   }
 }
 
-function organizeSystemScriptLibraryCategories(libraryName: string, categories: CviCategory[]): CviCategory[] {
+function organizeSystemScriptLibraryCategories(libraryName: string, categories: CpmCategory[]): CpmCategory[] {
   const order = SYSTEM_SCRIPT_CATEGORY_ORDER[libraryName];
   if (!order) return categories;
-  const result: CviLibrary = { name: libraryName, categories: [] };
+  const result: CpmLibrary = { name: libraryName, categories: [] };
   const targetNames = new Set<string>(order as readonly string[]);
   for (const category of Array.isArray(categories) ? categories : []) {
     if (targetNames.has(category.name)) {
@@ -10463,9 +10463,9 @@ function organizeSystemScriptLibraryCategories(libraryName: string, categories: 
   return result.categories;
 }
 
-function mergeDuplicateSystemScriptLibraries(libraries: CviLibrary[]): CviLibrary[] {
-  const output: CviLibrary[] = [];
-  const byName = new Map<string, CviLibrary>();
+function mergeDuplicateSystemScriptLibraries(libraries: CpmLibrary[]): CpmLibrary[] {
+  const output: CpmLibrary[] = [];
+  const byName = new Map<string, CpmLibrary>();
   for (const library of libraries) {
     if (!SYSTEM_SCRIPT_CATEGORY_ORDER[library.name]) {
       output.push(library);
@@ -10546,7 +10546,7 @@ function embeddedLegacyRoute(libraryName: string, categoryName: string): { categ
   return { categoryName: 'ESP32 Core, GPIO & Analog', groupPath: ['Legacy imported entries', categoryName] };
 }
 
-function mergeEmbeddedFunction(category: CviCategory, fn: CviFunction, libraryName: string, groupPath: string[]): void {
+function mergeEmbeddedFunction(category: CpmCategory, fn: CpmFunction, libraryName: string, groupPath: string[]): void {
   if (getCategoryAllFunctions(category).some((entry) => entry.name === fn.name)) return;
   const normalized = { ...fn, library: libraryName, category: category.name };
   const targetGroup = ensureNestedGroup(category, groupPath);
@@ -10554,7 +10554,7 @@ function mergeEmbeddedFunction(category: CviCategory, fn: CviFunction, libraryNa
   else category.functions.push(normalized);
 }
 
-function mergeEmbeddedGroups(targetCategory: CviCategory, groups: CviGroup[] | undefined, libraryName: string, prefix: string[] = []): void {
+function mergeEmbeddedGroups(targetCategory: CpmCategory, groups: CpmGroup[] | undefined, libraryName: string, prefix: string[] = []): void {
   for (const group of Array.isArray(groups) ? groups : []) {
     const path = [...prefix, group.name];
     for (const fn of Array.isArray(group.functions) ? group.functions : []) mergeEmbeddedFunction(targetCategory, fn, libraryName, path);
@@ -10562,10 +10562,10 @@ function mergeEmbeddedGroups(targetCategory: CviCategory, groups: CviGroup[] | u
   }
 }
 
-function organizeEmbeddedLibraryCategories(libraryName: string, categories: CviCategory[]): CviCategory[] {
+function organizeEmbeddedLibraryCategories(libraryName: string, categories: CpmCategory[]): CpmCategory[] {
   const order = EMBEDDED_CATEGORY_ORDER[libraryName];
   if (!order) return categories;
-  const result: CviLibrary = { name: libraryName, categories: [] };
+  const result: CpmLibrary = { name: libraryName, categories: [] };
   const targetNames = new Set<string>(order as readonly string[]);
   for (const category of Array.isArray(categories) ? categories : []) {
     if (targetNames.has(category.name)) {
@@ -10587,9 +10587,9 @@ function organizeEmbeddedLibraryCategories(libraryName: string, categories: CviC
   return result.categories;
 }
 
-function mergeDuplicateEmbeddedLibraries(libraries: CviLibrary[]): CviLibrary[] {
-  const output: CviLibrary[] = [];
-  const byName = new Map<string, CviLibrary>();
+function mergeDuplicateEmbeddedLibraries(libraries: CpmLibrary[]): CpmLibrary[] {
+  const output: CpmLibrary[] = [];
+  const byName = new Map<string, CpmLibrary>();
   for (const library of libraries) {
     if (!EMBEDDED_CATEGORY_ORDER[library.name]) {
       output.push(library);
@@ -10607,7 +10607,7 @@ function mergeDuplicateEmbeddedLibraries(libraries: CviLibrary[]): CviLibrary[] 
   return output;
 }
 
-function normalizeLibraries(libraries: CviLibrary[], environmentName = DEFAULT_ENVIRONMENT_NAME): CviLibrary[] {
+function normalizeLibraries(libraries: CpmLibrary[], environmentName = DEFAULT_ENVIRONMENT_NAME): CpmLibrary[] {
   const normalized = (Array.isArray(libraries) ? libraries : []).map((library) => {
     const normalizedLibraryName = canonicalSystemScriptLibraryName(canonicalEmbeddedLibraryName(library.name));
     const categories = (Array.isArray(library.categories) ? library.categories : []).map((category) => ({
@@ -10637,10 +10637,10 @@ function normalizeLibraries(libraries: CviLibrary[], environmentName = DEFAULT_E
   return mergeDuplicateSystemScriptLibraries(mergeDuplicateEmbeddedLibraries(organizeCppStandardLibraries(normalized)));
 }
 
-function normalizeEnvironments(environments: CviEnvironment[] | undefined, legacyLibraries?: CviLibrary[]): CviEnvironment[] {
+function normalizeEnvironments(environments: CpmEnvironment[] | undefined, legacyLibraries?: CpmLibrary[]): CpmEnvironment[] {
   const source = Array.isArray(environments) && environments.length
     ? environments
-    : [{ name: DEFAULT_ENVIRONMENT_NAME, libraries: Array.isArray(legacyLibraries) ? legacyLibraries : [] } as CviEnvironment];
+    : [{ name: DEFAULT_ENVIRONMENT_NAME, libraries: Array.isArray(legacyLibraries) ? legacyLibraries : [] } as CpmEnvironment];
 
   return source.map((environment, environmentIndex) => {
     const environmentName = environment?.name?.trim() || `Environment ${environmentIndex + 1}`;
@@ -10651,8 +10651,8 @@ function normalizeEnvironments(environments: CviEnvironment[] | undefined, legac
   });
 }
 
-function flattenLibrariesFromEnvironments(environments: CviEnvironment[]): CviLibrary[] {
-  const libraries: CviLibrary[] = [];
+function flattenLibrariesFromEnvironments(environments: CpmEnvironment[]): CpmLibrary[] {
+  const libraries: CpmLibrary[] = [];
   for (const environment of Array.isArray(environments) ? environments : []) {
     for (const library of Array.isArray(environment.libraries) ? environment.libraries : []) {
       libraries.push({
@@ -10668,7 +10668,7 @@ function flattenLibrariesFromEnvironments(environments: CviEnvironment[]): CviLi
   return libraries;
 }
 
-function getPackStorageEnvironmentName(environmentName: string, environments: CviEnvironment[]): string {
+function getPackStorageEnvironmentName(environmentName: string, environments: CpmEnvironment[]): string {
   const trimmed = String(environmentName || '').trim() || DEFAULT_ENVIRONMENT_NAME;
   if ((environments || []).length <= 1 && (trimmed === DEFAULT_ENVIRONMENT_NAME || trimmed === 'Default')) {
     return '';
@@ -10693,11 +10693,11 @@ function toPackStorageFile(packFile: LibraryPackFile): LibraryPackFile {
   };
 }
 
-function findEnvironment(packFile: LibraryPackFile, environmentName: string): CviEnvironment | undefined {
+function findEnvironment(packFile: LibraryPackFile, environmentName: string): CpmEnvironment | undefined {
   return (packFile.environments || []).find((entry) => entry.name === environmentName);
 }
 
-function ensureEnvironment(packFile: LibraryPackFile, environmentName: string): CviEnvironment {
+function ensureEnvironment(packFile: LibraryPackFile, environmentName: string): CpmEnvironment {
   packFile.environments = normalizeEnvironments(Array.isArray(packFile.environments) ? packFile.environments : undefined, Array.isArray((packFile as any).libraries) ? (packFile as any).libraries : undefined);
   let environment = findEnvironment(packFile, environmentName);
   if (!environment) {
@@ -10707,7 +10707,7 @@ function ensureEnvironment(packFile: LibraryPackFile, environmentName: string): 
   return environment;
 }
 
-function findLibraryAcrossEnvironments(packFile: LibraryPackFile, libraryName: string, environmentName?: string): { environment: CviEnvironment; library: CviLibrary } | undefined {
+function findLibraryAcrossEnvironments(packFile: LibraryPackFile, libraryName: string, environmentName?: string): { environment: CpmEnvironment; library: CpmLibrary } | undefined {
   const environments = normalizeEnvironments(Array.isArray(packFile.environments) ? packFile.environments : undefined, Array.isArray((packFile as any).libraries) ? (packFile as any).libraries : undefined);
   const selectedEnvironments = environmentName ? environments.filter((entry) => entry.name === environmentName) : environments;
   for (const environment of selectedEnvironments) {
@@ -10744,7 +10744,7 @@ function loadPackFromFile(filePath: string, source: PackSource, writable: boolea
   }
 }
 
-function mergeGroupCollections(targetGroups: CviGroup[] | undefined, sourceGroups: CviGroup[] | undefined): CviGroup[] {
+function mergeGroupCollections(targetGroups: CpmGroup[] | undefined, sourceGroups: CpmGroup[] | undefined): CpmGroup[] {
   const target = Array.isArray(targetGroups) ? targetGroups : [];
   for (const sourceGroup of Array.isArray(sourceGroups) ? sourceGroups : []) {
     const cloned = cloneGroup(sourceGroup);
@@ -10763,16 +10763,16 @@ function mergeGroupCollections(targetGroups: CviGroup[] | undefined, sourceGroup
   return target;
 }
 
-function mergeLibrariesFromPacks(packs: LoadedPack[]): CviDatabase {
-  const environmentMap = new Map<string, Map<string, Map<string, CviCategory>>>();
-  const libraryMap = new Map<string, Map<string, CviCategory>>();
+function mergeLibrariesFromPacks(packs: LoadedPack[]): CpmDatabase {
+  const environmentMap = new Map<string, Map<string, Map<string, CpmCategory>>>();
+  const libraryMap = new Map<string, Map<string, CpmCategory>>();
 
   for (const pack of packs) {
     for (const environment of pack.environments || []) {
       const environmentLabel = getPackStorageEnvironmentName(environment.name, pack.environments || []);
       let envLibraryMap = environmentMap.get(environmentLabel);
       if (!envLibraryMap) {
-        envLibraryMap = new Map<string, Map<string, CviCategory>>();
+        envLibraryMap = new Map<string, Map<string, CpmCategory>>();
         environmentMap.set(environmentLabel, envLibraryMap);
       }
 
@@ -10780,13 +10780,13 @@ function mergeLibrariesFromPacks(packs: LoadedPack[]): CviDatabase {
         const libraryLabel = getDatabaseLibraryLabel(pack, environment.name, library.name);
         let categoryMap = libraryMap.get(libraryLabel);
         if (!categoryMap) {
-          categoryMap = new Map<string, CviCategory>();
+          categoryMap = new Map<string, CpmCategory>();
           libraryMap.set(libraryLabel, categoryMap);
         }
 
         let envCategoryMap = envLibraryMap.get(library.name);
         if (!envCategoryMap) {
-          envCategoryMap = new Map<string, CviCategory>();
+          envCategoryMap = new Map<string, CpmCategory>();
           envLibraryMap.set(library.name, envCategoryMap);
         }
 
@@ -10805,9 +10805,9 @@ function mergeLibrariesFromPacks(packs: LoadedPack[]): CviDatabase {
     }
   }
 
-  const environments: CviEnvironment[] = [];
+  const environments: CpmEnvironment[] = [];
   for (const [environmentName, envLibraryMap] of environmentMap.entries()) {
-    const libraries: CviLibrary[] = [];
+    const libraries: CpmLibrary[] = [];
     for (const [libraryName, categoryMap] of envLibraryMap.entries()) {
       const categories = Array.from(categoryMap.values()).map((category) => ({
         name: category.name,
@@ -10819,7 +10819,7 @@ function mergeLibrariesFromPacks(packs: LoadedPack[]): CviDatabase {
     environments.push({ name: environmentName || DEFAULT_ENVIRONMENT_NAME, libraries });
   }
 
-  const libraries: CviLibrary[] = [];
+  const libraries: CpmLibrary[] = [];
   for (const [libraryName, categoryMap] of libraryMap.entries()) {
     const categories = Array.from(categoryMap.values()).map((category) => ({
       name: category.name,
@@ -10980,12 +10980,12 @@ async function openPackFileInEditor(filePath: string): Promise<void> {
   await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active });
 }
 
-function buildFunctionSignature(name: string, returnType: string, parameters: CviParameter[]): string {
+function buildFunctionSignature(name: string, returnType: string, parameters: CpmParameter[]): string {
   const parameterText = parameters.length === 0 ? 'void' : parameters.map((param) => `${param.type} ${param.name}`).join(', ');
   return `${returnType} ${name} (${parameterText});`;
 }
 
-function buildFunctionInsertText(name: string, parameters: CviParameter[]): string {
+function buildFunctionInsertText(name: string, parameters: CpmParameter[]): string {
   const args = parameters.map((param) => {
     const explicitDefault = typeof param.defaultValue === 'string' ? param.defaultValue.trim() : '';
     if (explicitDefault) {
@@ -11050,7 +11050,7 @@ async function promptForEditorType(): Promise<ParamEditorType | undefined> {
       { label: 'Enum', value: 'enum' as ParamEditorType, description: 'Quick pick from predefined options' },
       { label: 'File path', value: 'pathFile' as ParamEditorType, description: 'Path field. Add a structured picker only when you need one.' },
       { label: 'Folder path', value: 'pathFolder' as ParamEditorType, description: 'Folder field. Add a structured picker only when you need one.' },
-      { label: 'Handle', value: 'handle' as ParamEditorType, description: 'Panel / resource / CVI handle field without automatic quick picks.' }
+      { label: 'Handle', value: 'handle' as ParamEditorType, description: 'Panel / resource / CPM handle field without automatic quick picks.' }
     ],
     { title: 'Choose a parameter editor type' }
   );
@@ -11058,7 +11058,7 @@ async function promptForEditorType(): Promise<ParamEditorType | undefined> {
   return selection?.value;
 }
 
-async function promptForParameter(index: number): Promise<CviParameter | undefined> {
+async function promptForParameter(index: number): Promise<CpmParameter | undefined> {
   const name = await promptForText({
     title: `Parameter ${index + 1}`,
     prompt: 'Parameter name',
@@ -11101,11 +11101,11 @@ async function promptForParameter(index: number): Promise<CviParameter | undefin
   };
 }
 
-async function promptForFunctionDefinition(environments: CviEnvironment[] = [], preset?: { environmentName?: string; libraryName?: string; categoryName?: string }): Promise<{
+async function promptForFunctionDefinition(environments: CpmEnvironment[] = [], preset?: { environmentName?: string; libraryName?: string; categoryName?: string }): Promise<{
   environmentName: string;
   libraryName: string;
   categoryName: string;
-  fn: CviFunction;
+  fn: CpmFunction;
 } | undefined> {
   const environmentList = Array.isArray(environments) ? environments : [];
   let environmentName = preset?.environmentName || '';
@@ -11133,7 +11133,7 @@ async function promptForFunctionDefinition(environments: CviEnvironment[] = [], 
       const createdEnvironment = await promptForText({
         title: 'New environment',
         prompt: 'Environment name',
-        placeHolder: 'CVI'
+        placeHolder: 'CPM'
       });
       if (!createdEnvironment) {
         return undefined;
@@ -11286,7 +11286,7 @@ async function promptForFunctionDefinition(environments: CviEnvironment[] = [], 
   }
   const parameterCount = Math.max(0, Math.min(12, Number.parseInt(parameterCountText || '0', 10) || 0));
 
-  const parameters: CviParameter[] = [];
+  const parameters: CpmParameter[] = [];
   for (let index = 0; index < parameterCount; index += 1) {
     const parameter = await promptForParameter(index);
     if (!parameter) {
@@ -11295,7 +11295,7 @@ async function promptForFunctionDefinition(environments: CviEnvironment[] = [], 
     parameters.push(parameter);
   }
 
-  const fn: CviFunction = {
+  const fn: CpmFunction = {
     name,
     returnType,
     signature: buildFunctionSignature(name, returnType, parameters),
@@ -11317,7 +11317,7 @@ async function addEnvironmentToPackFile(pack: LoadedPack): Promise<string | unde
   const environmentName = await promptForText({
     title: 'Add environment',
     prompt: `New environment name for ${pack.name}`,
-    placeHolder: 'CVI'
+    placeHolder: 'CPM'
   });
   if (!environmentName) {
     return undefined;
@@ -11362,7 +11362,7 @@ async function addLibraryToPackFile(pack: LoadedPack, presetEnvironmentName?: st
   return { environmentName, libraryName: finalLibraryName };
 }
 
-async function addFunctionToPackFile(pack: LoadedPack, target?: { environmentName?: string; libraryName?: string; categoryName?: string }): Promise<CviFunction | undefined> {
+async function addFunctionToPackFile(pack: LoadedPack, target?: { environmentName?: string; libraryName?: string; categoryName?: string }): Promise<CpmFunction | undefined> {
   const packFile = readPackFile(pack.filePath);
   const definition = await promptForFunctionDefinition(packFile.environments, target);
   if (!definition) {
@@ -11399,7 +11399,7 @@ async function addFunctionToPackFile(pack: LoadedPack, target?: { environmentNam
   return definition.fn;
 }
 
-async function chooseTargetSymbol(category: CviCategory, title: string): Promise<string | undefined> {
+async function chooseTargetSymbol(category: CpmCategory, title: string): Promise<string | undefined> {
   const picked = await vscode.window.showQuickPick(
     (category.functions || []).map((fn) => ({
       label: fn.name,
@@ -11634,7 +11634,7 @@ function inferEditorTypeFromPrototype(paramName: string, paramType: string): Par
   return 'text';
 }
 
-function parsePrototypeParameter(paramText: string, index: number): CviParameter | undefined {
+function parsePrototypeParameter(paramText: string, index: number): CpmParameter | undefined {
   const withoutDefault = splitTopLevel(paramText, '=')[0] ?? paramText;
   const cleaned = normalizePrototypeWhitespace(withoutDefault);
   if (!cleaned || cleaned === 'void') {
@@ -11678,7 +11678,7 @@ function parsePrototypeParameter(paramText: string, index: number): CviParameter
   };
 }
 
-function parseFunctionPrototype(prototypeText: string, libraryName: string, categoryName: string, headerHint?: string): CviFunction | undefined {
+function parseFunctionPrototype(prototypeText: string, libraryName: string, categoryName: string, headerHint?: string): CpmFunction | undefined {
   const cleaned = normalizePrototypeWhitespace(prototypeText).replace(/;+$/, '');
   if (!cleaned || !cleaned.includes('(') || !cleaned.includes(')')) {
     return undefined;
@@ -11690,7 +11690,7 @@ function parseFunctionPrototype(prototypeText: string, libraryName: string, cate
     const name = functionPointerMatch[2].trim();
     const paramBlock = functionPointerMatch[3].trim();
     const parameters = paramBlock && paramBlock !== 'void'
-      ? splitTopLevel(paramBlock).map((part, index) => parsePrototypeParameter(part, index)).filter(Boolean) as CviParameter[]
+      ? splitTopLevel(paramBlock).map((part, index) => parsePrototypeParameter(part, index)).filter(Boolean) as CpmParameter[]
       : [];
 
     return {
@@ -11716,7 +11716,7 @@ function parseFunctionPrototype(prototypeText: string, libraryName: string, cate
   const name = match[2].trim();
   const paramBlock = match[3].trim();
   const parameters = paramBlock && paramBlock !== 'void'
-    ? splitTopLevel(paramBlock).map((part, index) => parsePrototypeParameter(part, index)).filter(Boolean) as CviParameter[]
+    ? splitTopLevel(paramBlock).map((part, index) => parsePrototypeParameter(part, index)).filter(Boolean) as CpmParameter[]
     : [];
 
   return {
@@ -11750,7 +11750,7 @@ async function chooseTargetEnvironment(packFile: LibraryPackFile, title: string)
     return promptForText({
       title: 'Create target environment',
       prompt: 'Environment name',
-      placeHolder: 'CVI'
+      placeHolder: 'CPM'
     });
   }
   return picked.value;
@@ -11782,7 +11782,7 @@ async function chooseTargetLibrary(packFile: LibraryPackFile, title: string, env
   return picked.value;
 }
 
-async function chooseTargetCategory(library: CviLibrary, title: string): Promise<string | undefined> {
+async function chooseTargetCategory(library: CpmLibrary, title: string): Promise<string | undefined> {
   const choices = [
     ...library.categories.map((category) => ({ label: category.name, description: 'Existing category', value: category.name })),
     { label: '$(add) Create a new category', description: 'Add a new category under this library', value: '__create__' }
@@ -11801,7 +11801,7 @@ async function chooseTargetCategory(library: CviLibrary, title: string): Promise
   return picked.value;
 }
 
-function ensureEnvironmentLibraryCategory(packFile: LibraryPackFile, environmentName: string, libraryName: string, categoryName: string): { environment: CviEnvironment; library: CviLibrary; category: CviCategory } {
+function ensureEnvironmentLibraryCategory(packFile: LibraryPackFile, environmentName: string, libraryName: string, categoryName: string): { environment: CpmEnvironment; library: CpmLibrary; category: CpmCategory } {
   const environment = ensureEnvironment(packFile, environmentName);
   let library = environment.libraries.find((entry) => entry.name === libraryName);
   if (!library) {
@@ -11863,7 +11863,7 @@ async function importPrototypesToPackFile(pack: LoadedPack, preset?: { environme
     return undefined;
   }
 
-  const parsedFunctions = declarations.map((decl) => ({ ...parseFunctionPrototype(decl, libraryName, categoryName, headerHint || undefined), environment: environmentName })).filter(Boolean) as CviFunction[];
+  const parsedFunctions = declarations.map((decl) => ({ ...parseFunctionPrototype(decl, libraryName, categoryName, headerHint || undefined), environment: environmentName })).filter(Boolean) as CpmFunction[];
   if (parsedFunctions.length === 0) {
     void vscode.window.showWarningMessage('The selected file did not contain any prototype that could be parsed.');
     return undefined;
@@ -11903,11 +11903,11 @@ async function importPrototypesToPackFile(pack: LoadedPack, preset?: { environme
   return { imported, skipped, filePath: sourceUri.fsPath };
 }
 
-function collectFunctionsForHeader(packFile: LibraryPackFile, environmentName?: string, libraryName?: string, categoryName?: string): CviFunction[] {
+function collectFunctionsForHeader(packFile: LibraryPackFile, environmentName?: string, libraryName?: string, categoryName?: string): CpmFunction[] {
   const environments = environmentName
     ? normalizeEnvironments(Array.isArray(packFile.environments) ? packFile.environments : undefined, Array.isArray((packFile as any).libraries) ? (packFile as any).libraries : undefined).filter((environment) => environment.name === environmentName)
     : normalizeEnvironments(Array.isArray(packFile.environments) ? packFile.environments : undefined, Array.isArray((packFile as any).libraries) ? (packFile as any).libraries : undefined);
-  const functions: CviFunction[] = [];
+  const functions: CpmFunction[] = [];
   for (const environment of environments) {
     const libraries = libraryName ? (environment.libraries || []).filter((library) => library.name === libraryName) : (environment.libraries || []);
     for (const library of libraries) {
@@ -12210,7 +12210,7 @@ function normalizeChoices(
   });
 }
 
-function inferEditorType(p: CviParameter): ParamEditorType {
+function inferEditorType(p: CpmParameter): ParamEditorType {
   if (p.editorType) {
     return p.editorType;
   }
@@ -12286,7 +12286,7 @@ function inferDefaultValue(name: string, type: string, editorType?: ParamEditorT
   return name;
 }
 
-function inferPlaceholder(p: CviParameter, editorType: ParamEditorType): string {
+function inferPlaceholder(p: CpmParameter, editorType: ParamEditorType): string {
   if (p.placeholder) {
     return p.placeholder;
   }
@@ -12305,7 +12305,7 @@ function inferPlaceholder(p: CviParameter, editorType: ParamEditorType): string 
   return p.name;
 }
 
-function inferChoiceDescription(value: string, p: CviParameter, editorType: ParamEditorType): string | undefined {
+function inferChoiceDescription(value: string, p: CpmParameter, editorType: ParamEditorType): string | undefined {
   const lowerValue = value.toLowerCase();
   const lowerName = p.name.toLowerCase();
   if (editorType === 'boolean') {
@@ -12331,18 +12331,18 @@ function inferChoiceDescription(value: string, p: CviParameter, editorType: Para
     return 'Address of an output variable';
   }
   if (lowerName.endsWith('id')) {
-    return 'Identifier constant generated by CVI';
+    return 'Identifier constant generated by CPM';
   }
   return undefined;
 }
 
-function inferChoiceDetail(value: string, p: CviParameter, editorType: ParamEditorType): string | undefined {
+function inferChoiceDetail(value: string, p: CpmParameter, editorType: ParamEditorType): string | undefined {
   const lowerValue = value.toLowerCase();
   if (editorType === 'pathFile' && lowerValue.endsWith('.uir"')) {
-    return 'Used by functions that load CVI panels or resources from a UIR file.';
+    return 'Used by functions that load CPM panels or resources from a UIR file.';
   }
   if (editorType === 'handle' && lowerValue === '0' && p.name.toLowerCase().includes('parent')) {
-    return 'CVI uses 0 when the loaded panel should be top-level instead of attached to another panel.';
+    return 'CPM uses 0 when the loaded panel should be top-level instead of attached to another panel.';
   }
   if (lowerValue === '&value') {
     return 'Typical output pointer used when a function fills a result variable.';
@@ -12350,7 +12350,7 @@ function inferChoiceDetail(value: string, p: CviParameter, editorType: ParamEdit
   return undefined;
 }
 
-function inferPresets(p: CviParameter, editorType: ParamEditorType): ChoiceSpec[] {
+function inferPresets(p: CpmParameter, editorType: ParamEditorType): ChoiceSpec[] {
   const explicit = normalizeChoices(p.presets, p.presetDescriptions, p.presetDetails);
   if (explicit.length > 0) {
     return explicit.map((choice) => ({
@@ -12379,7 +12379,7 @@ function inferPresets(p: CviParameter, editorType: ParamEditorType): ChoiceSpec[
   }));
 }
 
-function inferOptions(p: CviParameter, editorType: ParamEditorType): ChoiceSpec[] {
+function inferOptions(p: CpmParameter, editorType: ParamEditorType): ChoiceSpec[] {
   const explicit = normalizeChoices(p.options, p.optionDescriptions, p.optionDetails);
   if (explicit.length > 0) {
     return explicit.map((choice) => ({
@@ -12397,7 +12397,7 @@ function inferOptions(p: CviParameter, editorType: ParamEditorType): ChoiceSpec[
   return [];
 }
 
-function resolveParameter(p: CviParameter, index: number): ResolvedParameter {
+function resolveParameter(p: CpmParameter, index: number): ResolvedParameter {
   const editorType = inferEditorType(p);
   return {
     ...p,
@@ -12410,11 +12410,11 @@ function resolveParameter(p: CviParameter, index: number): ResolvedParameter {
   };
 }
 
-function hasParameterizedInsertTemplate(fn: CviFunction): boolean {
+function hasParameterizedInsertTemplate(fn: CpmFunction): boolean {
   return Array.isArray(fn.parameters) && fn.parameters.length > 0 && /\{\{[A-Za-z_][A-Za-z0-9_]*\}\}/.test(String(fn.insertText || ''));
 }
 
-function applyParameterizedInsertTemplate(fn: CviFunction, values?: string[]): string {
+function applyParameterizedInsertTemplate(fn: CpmFunction, values?: string[]): string {
   const resolved = (fn.parameters ?? []).map(resolveParameter);
   let output = String(fn.insertText || fn.signature || fn.name || '');
   resolved.forEach((param, index) => {
@@ -12425,7 +12425,7 @@ function applyParameterizedInsertTemplate(fn: CviFunction, values?: string[]): s
   return output;
 }
 
-function extractDefaultArguments(fn: CviFunction): string[] {
+function extractDefaultArguments(fn: CpmFunction): string[] {
   const params = (fn.parameters ?? []).map(resolveParameter);
   if (hasParameterizedInsertTemplate(fn)) {
     return params.map((param) => param.defaultValue);
@@ -12450,7 +12450,7 @@ function extractDefaultArguments(fn: CviFunction): string[] {
   return parsed;
 }
 
-function hasReturnValue(fn: CviFunction): boolean {
+function hasReturnValue(fn: CpmFunction): boolean {
   const normalized = fn.returnType.trim().toLowerCase();
   return normalized !== 'void' && normalized !== 'none';
 }
@@ -12467,12 +12467,12 @@ function isSimpleCallableTemplateText(text: string): boolean {
     || /^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_~][A-Za-z0-9_]*\s*\(/.test(trimmed);
 }
 
-function usesPythonStatementStyle(fn: CviFunction): boolean {
+function usesPythonStatementStyle(fn: CpmFunction): boolean {
   const haystack = `${fn.environment ?? ''} ${fn.library ?? ''}`.toLowerCase();
   return haystack.includes('python');
 }
 
-function ensureStatementTerminator(text: string, fn?: CviFunction): string {
+function ensureStatementTerminator(text: string, fn?: CpmFunction): string {
   const trimmed = String(text || '').trim();
   if (!trimmed) {
     return trimmed;
@@ -12486,7 +12486,7 @@ function ensureStatementTerminator(text: string, fn?: CviFunction): string {
   return `${trimmed};`;
 }
 
-function buildCallText(fn: CviFunction, values?: string[], returnTarget?: string): string {
+function buildCallText(fn: CpmFunction, values?: string[], returnTarget?: string): string {
   if (hasParameterizedInsertTemplate(fn)) {
     const rendered = applyParameterizedInsertTemplate(fn, values);
     const kind = getGlobalSymbolKind(fn);
@@ -12525,7 +12525,7 @@ function buildCallText(fn: CviFunction, values?: string[], returnTarget?: string
   return statement;
 }
 
-function defaultReturnDescription(fn: CviFunction): string {
+function defaultReturnDescription(fn: CpmFunction): string {
   if (!hasReturnValue(fn)) {
     return 'This function does not return a value.';
   }
@@ -12535,7 +12535,7 @@ function defaultReturnDescription(fn: CviFunction): string {
   return `Return type: ${fn.returnType}. You can optionally assign the result to a variable before insertion.`;
 }
 
-function getStateKey(fn: CviFunction): string {
+function getStateKey(fn: CpmFunction): string {
   return `jcLib:functionState:${fn.library}:${fn.category}:${fn.name}:${fn.signature}`;
 }
 
@@ -12662,20 +12662,20 @@ function renderParamRow(param: ResolvedParameter, currentValue: string, cviAttri
 }
 
 
-function normalizeCviAttributeConstant(label: string): string {
+function normalizeCpmAttributeConstant(label: string): string {
   const raw = String(label || '').trim();
   if (!raw) return 'ATTR_CUSTOM';
   return 'ATTR_' + raw.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
 }
 
-let cachedCviUiAttributeCatalog: any | undefined;
-let didTryLoadCviUiAttributeCatalog = false;
+let cachedCpmUiAttributeCatalog: any | undefined;
+let didTryLoadCpmUiAttributeCatalog = false;
 
-function loadCviUiAttributeCatalog(): any | undefined {
-  if (didTryLoadCviUiAttributeCatalog) {
-    return cachedCviUiAttributeCatalog;
+function loadCpmUiAttributeCatalog(): any | undefined {
+  if (didTryLoadCpmUiAttributeCatalog) {
+    return cachedCpmUiAttributeCatalog;
   }
-  didTryLoadCviUiAttributeCatalog = true;
+  didTryLoadCpmUiAttributeCatalog = true;
   const candidates = [
     path.join(__dirname, '..', 'data', 'metadata', 'cvi_ui_attribute_catalog.json'),
     path.join(__dirname, 'data', 'metadata', 'cvi_ui_attribute_catalog.json')
@@ -12687,23 +12687,23 @@ function loadCviUiAttributeCatalog(): any | undefined {
       }
       const parsed = JSON.parse(fs.readFileSync(candidate, 'utf8'));
       if (parsed && typeof parsed === 'object' && parsed.helpers && typeof parsed.helpers === 'object') {
-        cachedCviUiAttributeCatalog = parsed;
-        return cachedCviUiAttributeCatalog;
+        cachedCpmUiAttributeCatalog = parsed;
+        return cachedCpmUiAttributeCatalog;
       }
     } catch (error) {
-      console.error(`C/C++ Libraries: failed to load CVI UI attribute catalog from ${candidate}`, error);
+      console.error(`C/C++ Libraries: failed to load CPM UI attribute catalog from ${candidate}`, error);
     }
   }
   return undefined;
 }
 
-function getExternalCviAttributeHelper(name: string): any | undefined {
-  const catalog = loadCviUiAttributeCatalog();
+function getExternalCpmAttributeHelper(name: string): any | undefined {
+  const catalog = loadCpmUiAttributeCatalog();
   const helper = catalog?.helpers?.[String(name || '').trim()];
   return helper && typeof helper === 'object' ? JSON.parse(JSON.stringify(helper)) : undefined;
 }
 
-function normalizeCviValueOptions(rawOptions: any): any[] {
+function normalizeCpmValueOptions(rawOptions: any): any[] {
   return (Array.isArray(rawOptions) ? rawOptions : []).map((entry: any) => {
     const value = String(entry?.value ?? entry?.constant ?? entry?.label ?? '').trim();
     if (!value) {
@@ -12721,7 +12721,7 @@ function normalizeCviValueOptions(rawOptions: any): any[] {
   }).filter(Boolean);
 }
 
-function inferCviAttributeValueMetadata(constant: string, description?: string, defaultValue?: string): any {
+function inferCpmAttributeValueMetadata(constant: string, description?: string, defaultValue?: string): any {
   const name = String(constant || '').trim();
   const text = `${name} ${String(description || '')}`.toLowerCase();
   const explicitDefault = String(defaultValue || '').trim();
@@ -12751,7 +12751,7 @@ function inferCviAttributeValueMetadata(constant: string, description?: string, 
     ] };
   }
   if (optionsFromDescription.length) {
-    return { valueKind: 'enum', valuePlaceholder: optionsFromDescription[0], defaultValue: explicitDefault || optionsFromDescription[0], valueOptions: optionsFromDescription.map((value) => ({ value, label: value, description: `Insert the CVI constant ${value}.` })) };
+    return { valueKind: 'enum', valuePlaceholder: optionsFromDescription[0], defaultValue: explicitDefault || optionsFromDescription[0], valueOptions: optionsFromDescription.map((value) => ({ value, label: value, description: `Insert the CPM constant ${value}.` })) };
   }
   if (stringValue) {
     return { valueKind: 'string', valuePlaceholder: '"text"', defaultValue: explicitDefault || '"text"', valueOptions: [
@@ -12788,7 +12788,7 @@ function flattenStructuredPickerItems(config: any): any[] {
   return output;
 }
 
-function mergeCviAttributeHelpers(primary: any, supplementary: any): any {
+function mergeCpmAttributeHelpers(primary: any, supplementary: any): any {
   if (!primary || !supplementary) {
     return primary;
   }
@@ -12802,7 +12802,7 @@ function mergeCviAttributeHelpers(primary: any, supplementary: any): any {
       items.forEach((item: any) => existing.add(String(item?.value ?? item?.constant ?? '').trim()));
       return items.length ? { ...group, items } : undefined;
     }).filter(Boolean);
-    return groups.length ? { ...section, label: 'Header-derived supplementary attributes', description: 'Additional settable User Interface attributes derived from userint.h. Applicability still depends on the concrete CVI control type.', groups } : undefined;
+    return groups.length ? { ...section, label: 'Header-derived supplementary attributes', description: 'Additional settable User Interface attributes derived from userint.h. Applicability still depends on the concrete CPM control type.', groups } : undefined;
   }).filter(Boolean);
   if (!supplementarySections.length) {
     return primary;
@@ -12810,7 +12810,7 @@ function mergeCviAttributeHelpers(primary: any, supplementary: any): any {
   return { ...primary, sections: [...(Array.isArray(primary.sections) ? primary.sections : []), ...supplementarySections] };
 }
 
-function buildCviAttributeValuePickerConfig(fn: CviFunction, helper: any, currentValues?: string[]): StructuredPickerConfig | undefined {
+function buildCpmAttributeValuePickerConfig(fn: CpmFunction, helper: any, currentValues?: string[]): StructuredPickerConfig | undefined {
   const attributeIndex = typeof helper?.attributeIndex === 'number' ? helper.attributeIndex : -1;
   const valueIndex = typeof helper?.valueIndex === 'number' ? helper.valueIndex : -1;
   if (attributeIndex < 0 || valueIndex < 0) {
@@ -12818,10 +12818,10 @@ function buildCviAttributeValuePickerConfig(fn: CviFunction, helper: any, curren
   }
   const selectedConstant = String(currentValues?.[attributeIndex] || '').trim();
   const selectedItem = flattenStructuredPickerItems(helper).find((item: any) => String(item?.value ?? item?.constant ?? '').trim() === selectedConstant);
-  const inferred = inferCviAttributeValueMetadata(selectedConstant, selectedItem?.description, selectedItem?.defaultValue);
+  const inferred = inferCpmAttributeValueMetadata(selectedConstant, selectedItem?.description, selectedItem?.defaultValue);
   const valueKind = String(selectedItem?.valueKind || inferred.valueKind || 'value').trim() || 'value';
   const valuePlaceholder = String(selectedItem?.valuePlaceholder || inferred.valuePlaceholder || '').trim();
-  const options = normalizeCviValueOptions(Array.isArray(selectedItem?.valueOptions) && selectedItem.valueOptions.length ? selectedItem.valueOptions : inferred.valueOptions);
+  const options = normalizeCpmValueOptions(Array.isArray(selectedItem?.valueOptions) && selectedItem.valueOptions.length ? selectedItem.valueOptions : inferred.valueOptions);
   if (!options.length) {
     return undefined;
   }
@@ -12837,7 +12837,7 @@ function buildCviAttributeValuePickerConfig(fn: CviFunction, helper: any, curren
     applyDefaultIfEmpty: false,
     sections: [{
       label: selectedConstant || 'Generic value',
-      description: String(selectedItem?.description || 'Contextual value suggestions for the selected CVI User Interface attribute.').trim(),
+      description: String(selectedItem?.description || 'Contextual value suggestions for the selected CPM User Interface attribute.').trim(),
       groups: [{ label: `${valueKind} suggestions`, description: valuePlaceholder ? `Editable argument placeholder: ${valuePlaceholder}` : '', items: options }]
     }]
   }, `Select value for ${selectedConstant || fn.name}`);
@@ -12873,7 +12873,7 @@ function normalizeStructuredPickerConfig(raw: any, fallbackTitle?: string): Stru
           sourceTypes: sourceTypes.length ? sourceTypes : ['All'],
           valueKind: String(item?.valueKind || '').trim(),
           valuePlaceholder: String(item?.valuePlaceholder || '').trim(),
-          valueOptions: normalizeCviValueOptions(item?.valueOptions)
+          valueOptions: normalizeCpmValueOptions(item?.valueOptions)
         };
       }).filter(Boolean);
       if (!items.length) {
@@ -12911,7 +12911,7 @@ function normalizeStructuredPickerConfig(raw: any, fallbackTitle?: string): Stru
             sourceTypes: sourceTypes.length ? sourceTypes : ['All'],
             valueKind: String(item?.valueKind || '').trim(),
             valuePlaceholder: String(item?.valuePlaceholder || '').trim(),
-            valueOptions: normalizeCviValueOptions(item?.valueOptions)
+            valueOptions: normalizeCpmValueOptions(item?.valueOptions)
           };
         }).filter(Boolean)
       });
@@ -12984,8 +12984,8 @@ function buildAutoStructuredPickerConfig(param: ResolvedParameter): StructuredPi
   }, `Select value for ${param.name}`);
 }
 
-function getCviAttributeHelperConfigForParameter(fn: CviFunction, paramIndex: number, fallbackTitle?: string, currentValues?: string[]): StructuredPickerConfig | undefined {
-  const helper = getCviAttributeHelperConfig(fn);
+function getCpmAttributeHelperConfigForParameter(fn: CpmFunction, paramIndex: number, fallbackTitle?: string, currentValues?: string[]): StructuredPickerConfig | undefined {
+  const helper = getCpmAttributeHelperConfig(fn);
   if (!helper) {
     return undefined;
   }
@@ -12993,7 +12993,7 @@ function getCviAttributeHelperConfigForParameter(fn: CviFunction, paramIndex: nu
     return normalizeStructuredPickerConfig(helper, helper.title || fallbackTitle || 'Select value');
   }
   if (typeof helper.valueIndex === 'number' && helper.valueIndex === paramIndex) {
-    return buildCviAttributeValuePickerConfig(fn, helper, currentValues);
+    return buildCpmAttributeValuePickerConfig(fn, helper, currentValues);
   }
   return undefined;
 }
@@ -13051,11 +13051,11 @@ function applyStructuredPickerOverrides(baseConfig: StructuredPickerConfig | und
   return result;
 }
 
-function getStructuredPickerConfigForParameter(fn: CviFunction, param: ResolvedParameter, currentValues?: string[]): StructuredPickerConfig | undefined {
+function getStructuredPickerConfigForParameter(fn: CpmFunction, param: ResolvedParameter, currentValues?: string[]): StructuredPickerConfig | undefined {
   const fallbackTitle = `Select value for ${param.name}`;
   const explicitRaw = { ...(param?.pickerConfig || {}), targetIndex: param.index };
   const explicitConfig = normalizeStructuredPickerConfig(explicitRaw, fallbackTitle);
-  const helperConfig = getCviAttributeHelperConfigForParameter(fn, param.index, fallbackTitle, currentValues);
+  const helperConfig = getCpmAttributeHelperConfigForParameter(fn, param.index, fallbackTitle, currentValues);
   const mergedHelperConfig = applyStructuredPickerOverrides(helperConfig, explicitRaw, explicitConfig, fallbackTitle);
   if (mergedHelperConfig) {
     return mergedHelperConfig;
@@ -13086,7 +13086,7 @@ function getStructuredPickerConfigForParameter(fn: CviFunction, param: ResolvedP
   return autoConfig;
 }
 
-function getCviAttributeHelperConfig(fn: CviFunction): any | undefined {
+function getCpmAttributeHelperConfig(fn: CpmFunction): any | undefined {
   const name = String(fn?.name || '').trim();
   if (!name) return undefined;
   const params = Array.isArray(fn.parameters) ? fn.parameters : [];
@@ -13094,15 +13094,15 @@ function getCviAttributeHelperConfig(fn: CviFunction): any | undefined {
   const valueIndex = attributeIndex >= 0 ? params.findIndex((_param, index) => index > attributeIndex) : -1;
   const controlTypes = ['All', 'ActiveX', 'Binary Switch', 'Canvas', 'Color Numeric', 'Command Button', 'Decoration', 'Digital Graph', 'Graph', 'LED', 'List', 'Numeric', 'Numeric Slide', 'Picture', 'Picture Button', 'Picture Ring', 'Radio Button', 'Ring', 'Ring Slide', 'Splitter', 'String', 'Strip Chart', 'Tab', 'Table', 'Text Box', 'Text Button', 'Text Message', 'Timer', 'Toggle Button', 'Tree'];
   const buildLeaf = (label: string, description: string, defaultValue: string, types?: string[], constant?: string) => {
-    const attributeConstant = constant || normalizeCviAttributeConstant(label);
-    return { kind: 'attribute', label, value: attributeConstant, constant: attributeConstant, description, defaultValue, sourceTypes: Array.isArray(types) && types.length ? types : ['All'], ...inferCviAttributeValueMetadata(attributeConstant, description, defaultValue) };
+    const attributeConstant = constant || normalizeCpmAttributeConstant(label);
+    return { kind: 'attribute', label, value: attributeConstant, constant: attributeConstant, description, defaultValue, sourceTypes: Array.isArray(types) && types.length ? types : ['All'], ...inferCpmAttributeValueMetadata(attributeConstant, description, defaultValue) };
   };
   if (name === 'SetCtrlAttribute') {
     const graphControls = ['Graph', 'Digital Graph', 'Strip Chart'];
     const textControls = ['String', 'Text Box', 'Text Message', 'Command Button', 'Text Button', 'Ring', 'Picture Ring', 'List', 'Table', 'Tree', 'Tab', 'Numeric', 'Color Numeric', 'Numeric Slide', 'Ring Slide', 'Toggle Button', 'Radio Button', 'Binary Switch'];
     const tableListTreeControls = ['Table', 'List', 'Tree'];
     const canvasControls = ['Canvas'];
-    return mergeCviAttributeHelpers({
+    return mergeCpmAttributeHelpers({
       title: 'Select Control Attribute Constant',
       mode: 'control',
       attributeIndex,
@@ -13334,9 +13334,9 @@ function getCviAttributeHelperConfig(fn: CviFunction): any | undefined {
           ]
         }
       ]
-    }, getExternalCviAttributeHelper(name));
+    }, getExternalCpmAttributeHelper(name));
   }
-  const catalogHelper = getExternalCviAttributeHelper(name);
+  const catalogHelper = getExternalCpmAttributeHelper(name);
   if (catalogHelper) {
     return {
       ...catalogHelper,
@@ -13393,7 +13393,7 @@ function getCviAttributeHelperConfig(fn: CviFunction): any | undefined {
   return undefined;
 }
 
-function renderNotesWarningsCards(fn: CviFunction): string {
+function renderNotesWarningsCards(fn: CpmFunction): string {
   const cards: string[] = [];
   const notes = Array.isArray(fn.notes) ? fn.notes.filter(Boolean) : [];
   const warnings = Array.isArray(fn.warnings) ? fn.warnings.filter(Boolean) : [];
@@ -13414,7 +13414,7 @@ function renderNotesWarningsCards(fn: CviFunction): string {
   return cards.join('');
 }
 
-function renderFieldDetailsCard(fn: CviFunction, symbolLabel: string): string {
+function renderFieldDetailsCard(fn: CpmFunction, symbolLabel: string): string {
   const fields = Array.isArray(fn.fields) ? fn.fields : [];
   if (!fields.length) {
     return `
@@ -13443,7 +13443,7 @@ function renderFieldDetailsCard(fn: CviFunction, symbolLabel: string): string {
 }
 
 
-function renderMethodDetailsCard(fn: CviFunction): string {
+function renderMethodDetailsCard(fn: CpmFunction): string {
   const methods = Array.isArray(fn.methods) ? fn.methods : [];
   if (!methods.length) {
     return `
@@ -13473,7 +13473,7 @@ function renderMethodDetailsCard(fn: CviFunction): string {
   </div>`;
 }
 
-function renderEnumDetailsCard(fn: CviFunction): string {
+function renderEnumDetailsCard(fn: CpmFunction): string {
   const values = Array.isArray(fn.enumValues) ? fn.enumValues : [];
   if (!values.length) {
     return `
@@ -13501,7 +13501,7 @@ function renderEnumDetailsCard(fn: CviFunction): string {
   </div>`;
 }
 
-function getGlobalSymbolKind(fn: CviFunction): string {
+function getGlobalSymbolKind(fn: CpmFunction): string {
   const raw = String(fn?.symbolKind || '').trim();
   if (raw) return raw;
   const category = String(fn?.category || '').trim().toLowerCase();
@@ -13546,7 +13546,7 @@ function isCallableSymbolKind(kind: string): boolean {
   return kind === 'function' || kind === 'method' || kind === 'metamethod' || kind === 'macro' || kind === 'command';
 }
 
-function getSymbolKind(fn: CviFunction): string {
+function getSymbolKind(fn: CpmFunction): string {
   return getGlobalSymbolKind(fn);
 }
 
@@ -13554,7 +13554,7 @@ function getSymbolKindLabel(kind: string): string {
   return getGlobalSymbolKindLabel(kind);
 }
 
-function buildNonFunctionDetailsHtml(fn: CviFunction): string {
+function buildNonFunctionDetailsHtml(fn: CpmFunction): string {
   const symbolKind = getGlobalSymbolKind(fn);
   const symbolLabel = getGlobalSymbolKindLabel(symbolKind);
   const declaration = fn.declaration || fn.signature || fn.insertText || fn.name;
@@ -13650,14 +13650,14 @@ function buildNonFunctionDetailsHtml(fn: CviFunction): string {
 </html>`;
 }
 
-function buildDetailsHtml(fn: CviFunction, storedState?: StoredFunctionState): string {
+function buildDetailsHtml(fn: CpmFunction, storedState?: StoredFunctionState): string {
   const symbolKind = getGlobalSymbolKind(fn);
   const isParameterizedTemplate = hasParameterizedInsertTemplate(fn);
   if (!isCallableSymbolKind(symbolKind) && !isParameterizedTemplate) {
     return buildNonFunctionDetailsHtml(fn);
   }
   const resolvedParams = (fn.parameters ?? []).map(resolveParameter);
-  const cviAttributeHelper = getCviAttributeHelperConfig(fn);
+  const cviAttributeHelper = getCpmAttributeHelperConfig(fn);
   const defaults = extractDefaultArguments(fn);
   const initialValues = resolvedParams.map((param, index) => {
     const saved = storedState?.values?.[index];
@@ -13971,7 +13971,7 @@ function buildDetailsHtml(fn: CviFunction, storedState?: StoredFunctionState): s
 }
 
 
-function buildCviAttributeHelperHtml(fn: CviFunction, config: any, currentValues?: string[]): string {
+function buildCpmAttributeHelperHtml(fn: CpmFunction, config: any, currentValues?: string[]): string {
   const normalizedConfig = normalizeStructuredPickerConfig(config, `Select value for ${fn?.name || 'parameter'}`);
   if (!normalizedConfig) {
     return `<!DOCTYPE html>
@@ -14606,7 +14606,7 @@ async function insertFunctionCallText(text: string): Promise<void> {
   });
 }
 
-async function insertFunctionCall(fn: CviFunction): Promise<void> {
+async function insertFunctionCall(fn: CpmFunction): Promise<void> {
   const kind = getSymbolKind(fn);
   if (!isCallableSymbolKind(kind)) {
     const text = fn.insertText || fn.declaration || fn.signature || fn.name;
@@ -14638,7 +14638,7 @@ async function pickValueForParameter(param: ResolvedParameter, currentValue: str
       canSelectFolders: false,
       title: `Select a file for ${param.name}`,
       filters: {
-        'CVI UI Resources': ['uir'],
+        'CPM UI Resources': ['uir'],
         'All Files': ['*']
       }
     });
@@ -14704,7 +14704,7 @@ async function pickValueForParameter(param: ResolvedParameter, currentValue: str
   return picked.label;
 }
 
-function flattenFunctions(db: CviDatabase): FunctionSearchEntry[] {
+function flattenFunctions(db: CpmDatabase): FunctionSearchEntry[] {
   const entries: FunctionSearchEntry[] = [];
   for (const environment of db.environments || []) {
     for (const library of environment.libraries || []) {
@@ -14789,10 +14789,10 @@ function buildFunctionFilterItems(entries: FunctionSearchEntry[], query: string,
   return scored.map((row) => buildFunctionQuickPickItem(row.entry));
 }
 
-function createRevealItems(entry: FunctionSearchEntry): { environment: CviItem; library: CviItem; category: CviItem; fn: CviItem } {
+function createRevealItems(entry: FunctionSearchEntry): { environment: CpmItem; library: CpmItem; category: CpmItem; fn: CpmItem } {
   const environmentName = entry.fn.environment || DEFAULT_ENVIRONMENT_NAME;
   const libraryName = entry.fn.library || entry.library;
-  const environmentItem = new CviItem(
+  const environmentItem = new CpmItem(
     'environment',
     environmentName,
     vscode.TreeItemCollapsibleState.Collapsed,
@@ -14801,7 +14801,7 @@ function createRevealItems(entry: FunctionSearchEntry): { environment: CviItem; 
     'Environment',
     `environment:${environmentName}`
   );
-  const libraryItem = new CviItem(
+  const libraryItem = new CpmItem(
     'library',
     libraryName,
     vscode.TreeItemCollapsibleState.Collapsed,
@@ -14811,7 +14811,7 @@ function createRevealItems(entry: FunctionSearchEntry): { environment: CviItem; 
     `library:${environmentName}:${libraryName}`,
     `environment:${environmentName}`
   );
-  const categoryItem = new CviItem(
+  const categoryItem = new CpmItem(
     'category',
     entry.category,
     vscode.TreeItemCollapsibleState.Collapsed,
@@ -14822,7 +14822,7 @@ function createRevealItems(entry: FunctionSearchEntry): { environment: CviItem; 
     `library:${environmentName}:${libraryName}`,
     { environmentName, libraryName, categoryName: entry.category, groupPath: [] }
   );
-  const functionItem = new CviItem(
+  const functionItem = new CpmItem(
     'function',
     entry.fn.name,
     vscode.TreeItemCollapsibleState.None,
@@ -14836,7 +14836,7 @@ function createRevealItems(entry: FunctionSearchEntry): { environment: CviItem; 
   return { environment: environmentItem, library: libraryItem, category: categoryItem, fn: functionItem };
 }
 
-function updateViewMessage(treeView: vscode.TreeView<CviItem>, provider: CviTreeProvider): void {
+function updateViewMessage(treeView: vscode.TreeView<CpmItem>, provider: CpmTreeProvider): void {
   const term = provider.getFilterTerm();
   if (!term) {
     treeView.message = undefined;
@@ -14916,11 +14916,11 @@ function sanitizePackFileForSave(packFile: LibraryPackFile): LibraryPackFile {
                 parameters
               };
             };
-            const sanitizeFunctionList = (functions: CviFunction[] | undefined): CviFunction[] => {
-              const sanitized: CviFunction[] = [];
+            const sanitizeFunctionList = (functions: CpmFunction[] | undefined): CpmFunction[] => {
+              const sanitized: CpmFunction[] = [];
               const exactKeys = new Set<string>();
               (Array.isArray(functions) ? functions : []).forEach((fn, functionIndex) => {
-                const item = sanitizeFunction(fn, functionIndex) as CviFunction;
+                const item = sanitizeFunction(fn, functionIndex) as CpmFunction;
                 const exactKey = JSON.stringify({ ...item, name: String(item.name || '').trim() });
                 if (exactKeys.has(exactKey)) {
                   return;
@@ -14954,7 +14954,7 @@ function getBuiltInPickerTemplateKey(fnName: string | undefined, paramIndex: num
   return `${String(fnName || '').trim().toLowerCase()}::${paramIndex}`;
 }
 
-function collectBuiltInPickerTemplatesFromGroups(groups: CviGroup[] | undefined, acc: Record<string, StructuredPickerConfig>): void {
+function collectBuiltInPickerTemplatesFromGroups(groups: CpmGroup[] | undefined, acc: Record<string, StructuredPickerConfig>): void {
   if (!Array.isArray(groups)) {
     return;
   }
@@ -14963,7 +14963,7 @@ function collectBuiltInPickerTemplatesFromGroups(groups: CviGroup[] | undefined,
       const parameters = Array.isArray(fn?.parameters) ? fn.parameters : [];
       parameters.forEach((param, paramIndex) => {
         const fallbackTitle = `Select value for ${param?.name || `param${paramIndex + 1}`}`;
-        const helperConfig = getCviAttributeHelperConfigForParameter(fn as CviFunction, paramIndex, fallbackTitle);
+        const helperConfig = getCpmAttributeHelperConfigForParameter(fn as CpmFunction, paramIndex, fallbackTitle);
         if (helperConfig) {
           acc[getBuiltInPickerTemplateKey(fn?.name, paramIndex)] = helperConfig;
         }
@@ -14982,7 +14982,7 @@ function buildBuiltInPickerTemplateMapForPack(pack: LibraryPackFile): Record<str
           const parameters = Array.isArray(fn?.parameters) ? fn.parameters : [];
           parameters.forEach((param, paramIndex) => {
             const fallbackTitle = `Select value for ${param?.name || `param${paramIndex + 1}`}`;
-            const helperConfig = getCviAttributeHelperConfigForParameter(fn as CviFunction, paramIndex, fallbackTitle);
+            const helperConfig = getCpmAttributeHelperConfigForParameter(fn as CpmFunction, paramIndex, fallbackTitle);
             if (helperConfig) {
               acc[getBuiltInPickerTemplateKey(fn?.name, paramIndex)] = helperConfig;
             }
@@ -15233,7 +15233,7 @@ function buildPackEditorHtml(pack: LibraryPackFile, loadedPack: LoadedPack): str
   let previewReturnTarget = '';
   const PACK_EDITOR_UI_STATE_SCHEMA = 'v3';
   const PACK_EDITOR_SUMMARY_ITEM_LIMIT = 120;
-  const uiStateKey = 'labwindowsCvi.library.packEditorState:' + PACK_EDITOR_UI_STATE_SCHEMA + ':' + String(initialPack.id || initialPack.name || meta.filePath || 'default');
+  const uiStateKey = 'cpm.library.packEditorState:' + PACK_EDITOR_UI_STATE_SCHEMA + ':' + String(initialPack.id || initialPack.name || meta.filePath || 'default');
   function loadUiState() {
     try {
       const raw = localStorage.getItem(uiStateKey);
@@ -19077,8 +19077,8 @@ export function activate(context: vscode.ExtensionContext): void {
   ensureCustomTreeIcons(context);
   let currentData = loadExtensionData(context);
 
-  const treeProvider = new CviTreeProvider(currentData.db);
-  const treeView = vscode.window.createTreeView('labwindowsCvi.libraryExplorer', { treeDataProvider: treeProvider, showCollapseAll: true });
+  const treeProvider = new CpmTreeProvider(currentData.db);
+  const treeView = vscode.window.createTreeView('cpm.libraryExplorer', { treeDataProvider: treeProvider, showCollapseAll: true });
 
   context.subscriptions.push(treeView.onDidChangeSelection(async (event) => {
     const selected = event.selection[0];
@@ -19090,7 +19090,7 @@ export function activate(context: vscode.ExtensionContext): void {
   let searchEntries = flattenFunctions(currentData.db);
 
   let detailsPanel: vscode.WebviewPanel | undefined;
-  let currentPanelFunction: CviFunction | undefined;
+  let currentPanelFunction: CpmFunction | undefined;
   let currentDetailsStateKey: string | undefined;
   let pendingDetailsRender = false;
   let choicePickerPanel: vscode.WebviewPanel | undefined;
@@ -19101,7 +19101,7 @@ export function activate(context: vscode.ExtensionContext): void {
     searchEntries = flattenFunctions(treeProvider.getDatabase());
   };
 
-  const resolveDetailsFunction = (fn: CviFunction | undefined): CviFunction | undefined => {
+  const resolveDetailsFunction = (fn: CpmFunction | undefined): CpmFunction | undefined => {
     if (!fn) {
       return undefined;
     }
@@ -19115,7 +19115,7 @@ export function activate(context: vscode.ExtensionContext): void {
     )?.fn ?? fn;
   };
 
-  const buildDetailsLoadingHtml = (fn: CviFunction | undefined): string => `<!DOCTYPE html>
+  const buildDetailsLoadingHtml = (fn: CpmFunction | undefined): string => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -19134,7 +19134,7 @@ export function activate(context: vscode.ExtensionContext): void {
 </body>
 </html>`;
 
-  const buildDetailsErrorHtml = (fn: CviFunction | undefined, error: unknown): string => `<!DOCTYPE html>
+  const buildDetailsErrorHtml = (fn: CpmFunction | undefined, error: unknown): string => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -19211,7 +19211,7 @@ export function activate(context: vscode.ExtensionContext): void {
     return vscode.ViewColumn.One;
   };
 
-  const openStructuredChoicePicker = (fn: CviFunction, pickerConfig: StructuredPickerConfig, currentValues: string[]): void => {
+  const openStructuredChoicePicker = (fn: CpmFunction, pickerConfig: StructuredPickerConfig, currentValues: string[]): void => {
     const normalizedConfig = normalizeStructuredPickerConfig(pickerConfig, pickerConfig?.title || `Select value for ${fn.name}`);
     const targetIndex = typeof normalizedConfig?.targetIndex === 'number' ? normalizedConfig.targetIndex : -1;
     if (!normalizedConfig || targetIndex < 0) {
@@ -19280,7 +19280,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     choicePickerPanel.title = normalizedConfig.title || `Selection: ${fn.name}`;
-    choicePickerPanel.webview.html = buildCviAttributeHelperHtml(fn, normalizedConfig, currentValues);
+    choicePickerPanel.webview.html = buildCpmAttributeHelperHtml(fn, normalizedConfig, currentValues);
     choicePickerPanel.reveal(choicePickerPanel.viewColumn ?? vscode.ViewColumn.Active, true);
   };
 
@@ -19301,7 +19301,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
 
-  const showFunctionDetailsPanel = async (fn: CviFunction, options?: { preserveFocus?: boolean }): Promise<void> => {
+  const showFunctionDetailsPanel = async (fn: CpmFunction, options?: { preserveFocus?: boolean }): Promise<void> => {
     const resolvedFunction = resolveDetailsFunction(fn) ?? fn;
 
     currentPanelFunction = resolvedFunction;
@@ -19310,7 +19310,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (!detailsPanel) {
       const initialColumn = getPreferredDetailsColumn();
       detailsPanel = vscode.window.createWebviewPanel(
-        'cviFunctionDetails',
+        'cpmFunctionDetails',
         `C/C++ Libraries: ${resolvedFunction.name}`,
         initialColumn,
         { enableScripts: true, retainContextWhenHidden: true }
@@ -19404,7 +19404,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'cviPackEditor',
+      'cpmPackEditor',
       `Pack: ${pack.name}`,
       vscode.ViewColumn.Active,
       { enableScripts: true, retainContextWhenHidden: true }
@@ -19741,10 +19741,10 @@ export function activate(context: vscode.ExtensionContext): void {
     await reloadAllData();
   };
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.refresh', refreshView));
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.reloadPacks', refreshView));
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.refresh', refreshView));
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.reloadPacks', refreshView));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.openVisualEditor', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.openVisualEditor', async () => {
     const pack = await chooseWritablePack(currentData.packs, 'Open visual library pack editor');
     if (!pack) {
       return;
@@ -19764,7 +19764,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const languageChoice = await vscode.window.showQuickPick([
       { label: 'C', value: 'c' },
-      { label: 'CVI', value: 'cvi' },
+      { label: 'CPM', value: 'cvi' },
       { label: 'C++', value: 'cpp' },
       { label: 'Other', value: 'other' }
     ], {
@@ -19836,7 +19836,7 @@ export function activate(context: vscode.ExtensionContext): void {
     void vscode.window.showInformationMessage(`Imported ${path.basename(destination)} into ${sourceLabel(scope)} packs.`);
   };
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.createPack', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.createPack', async () => {
     const modeChoice = await vscode.window.showQuickPick([
       { label: 'Create new pack', value: 'create', description: 'Start from an empty C/C++ Libraries pack template' },
       { label: 'Import existing pack', value: 'import', description: 'Copy an existing JSON library pack into C/C++ Libraries storage' }
@@ -19861,7 +19861,7 @@ export function activate(context: vscode.ExtensionContext): void {
   }));
 
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.generateHeader', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.generateHeader', async () => {
     const pack = await chooseWritablePack(currentData.packs, 'Choose a pack for header generation')
       ?? await vscode.window.showQuickPick(
         currentData.packs.map((candidate) => ({
@@ -19888,7 +19888,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.importPrototypes', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.importPrototypes', async () => {
     const pack = await chooseWritablePack(currentData.packs, 'Choose a pack that will receive imported prototypes');
     if (!pack) {
       return;
@@ -19908,7 +19908,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
 
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.importSymbols', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.importSymbols', async () => {
     const pack = await chooseWritablePack(currentData.packs, 'Choose a pack that will receive imported symbols');
     if (!pack) {
       return;
@@ -19926,7 +19926,7 @@ export function activate(context: vscode.ExtensionContext): void {
     void vscode.window.showInformationMessage(`${message} Source: ${result.filePath}`);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.exportContent', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.exportContent', async () => {
     const pack = await vscode.window.showQuickPick(
       currentData.packs.map((candidate) => ({
         label: candidate.name,
@@ -19952,7 +19952,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.addContent', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.addContent', async () => {
     const pack = await chooseWritablePack(currentData.packs, 'Choose a pack that will receive added content');
     if (!pack) {
       return;
@@ -19967,7 +19967,7 @@ export function activate(context: vscode.ExtensionContext): void {
     void vscode.window.showInformationMessage(result.message);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.deleteContent', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.deleteContent', async () => {
     const pack = await chooseWritablePack(currentData.packs, 'Choose a pack that will have content removed');
     if (!pack) {
       return;
@@ -19982,7 +19982,7 @@ export function activate(context: vscode.ExtensionContext): void {
     void vscode.window.showInformationMessage(result.message);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.addLanguageStarter', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.addLanguageStarter', async () => {
     const pack = await chooseWritablePack(currentData.packs, 'Choose a pack that will receive language packs, snippets, or DLL helpers');
     if (!pack) {
       return;
@@ -19997,7 +19997,7 @@ export function activate(context: vscode.ExtensionContext): void {
     void vscode.window.showInformationMessage(`Added ${result.added} item(s) from ${result.label} to ${result.libraryName}.`);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.importSnippetFile', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.importSnippetFile', async () => {
     const pack = await chooseWritablePack(currentData.packs, 'Choose a pack that will receive the imported snippet');
     if (!pack) {
       return;
@@ -20011,7 +20011,7 @@ export function activate(context: vscode.ExtensionContext): void {
     await reloadAllData();
     void vscode.window.showInformationMessage(`Imported snippet into ${result.libraryName} / ${result.categoryName}. Source: ${result.filePath}`);
   }));
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.importPack', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.importPack', async () => {
     const scope = await choosePackScope(!!getWorkspaceRoot());
     if (!scope) {
       return;
@@ -20019,7 +20019,7 @@ export function activate(context: vscode.ExtensionContext): void {
     await runImportPackFlow(scope);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.managePacks', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.managePacks', async () => {
     const packChoice = await vscode.window.showQuickPick(
       currentData.packs.map((pack) => ({
         label: pack.name,
@@ -20179,7 +20179,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.findFunction', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.findFunction', async () => {
     const quickPick = vscode.window.createQuickPick<FunctionQuickPickItem>();
     quickPick.title = 'Find Symbol';
     quickPick.placeholder = 'Type a function name, library, category, header, signature, or parameter name';
@@ -20263,12 +20263,12 @@ export function activate(context: vscode.ExtensionContext): void {
     quickPick.show();
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.clearFind', () => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.clearFind', () => {
     treeProvider.clearFilter();
     updateViewMessage(treeView, treeProvider);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.insertCall', async (item?: CviItem) => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.insertCall', async (item?: CpmItem) => {
     if (!item?.functionData) {
       void vscode.window.showInformationMessage('Select a function node first.');
       return;
@@ -20276,7 +20276,7 @@ export function activate(context: vscode.ExtensionContext): void {
     await insertFunctionCall(item.functionData);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.showFunctionDetails', async (item?: CviItem) => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.showFunctionDetails', async (item?: CpmItem) => {
     if (!item?.functionData) {
       void vscode.window.showInformationMessage('Select a function node first.');
       return;
@@ -20284,7 +20284,7 @@ export function activate(context: vscode.ExtensionContext): void {
     await showFunctionDetailsPanel(item.functionData);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('labwindowsCvi.library.showFunctionDetailsByName', async (name?: string, fallback?: CviFunction) => {
+  context.subscriptions.push(vscode.commands.registerCommand('cpm.library.showFunctionDetailsByName', async (name?: string, fallback?: CpmFunction) => {
     const wanted = String(name ?? '').trim().toLowerCase();
     const matched = wanted ? searchEntries.find((entry) => entry.fn.name.toLowerCase() === wanted)?.fn : undefined;
     const resolved = matched ?? fallback;

@@ -1,0 +1,28 @@
+{
+  "status": "ok",
+  "version": "0.5.0",
+  "requiredCommands": [
+    "labwindowsCvi.createNewFile",
+    "labwindowsCvi.insertSnippet",
+    "labwindowsCvi.saveSelectionAsSnippet",
+    "labwindowsCvi.manageSnippets",
+    "labwindowsCvi.saveFileAsTemplate",
+    "labwindowsCvi.importFileTemplate",
+    "labwindowsCvi.manageFileTemplates",
+    "labwindowsCvi.library.findFunction"
+  ],
+  "missingCommands": [],
+  "keybindings": [
+    {
+      "command": "labwindowsCvi.library.findFunction",
+      "key": "ctrl+alt+p",
+      "mac": "cmd+alt+p"
+    },
+    {
+      "command": "labwindowsCvi.insertSnippet",
+      "key": "ctrl+alt+i",
+      "mac": "cmd+alt+i",
+      "when": "editorTextFocus"
+    }
+  ]
+}

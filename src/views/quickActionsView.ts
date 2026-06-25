@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
-import { CviBuildMode } from '../model/types';
-import { CviBuildService } from '../services/cviBuildService';
-import { CviProjectSettingsService } from '../services/cviProjectSettingsService';
-import { CviWorkspaceService } from '../services/cviWorkspaceService';
+import { CpmBuildMode } from '../model/types';
+import { CpmBuildService } from '../services/cpmBuildService';
+import { CpmProjectSettingsService } from '../services/cpmProjectSettingsService';
+import { CpmWorkspaceService } from '../services/cpmWorkspaceService';
 
 interface QuickActionsSummary {
   workspaceName: string;
   projectCount: number;
   projectName: string;
   projectPath: string;
-  buildMode: CviBuildMode;
+  buildMode: CpmBuildMode;
   targetType: string;
   commandLine: string;
   workingDirectory: string;
@@ -44,9 +44,9 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
   private readonly disposables: vscode.Disposable[] = [];
 
   constructor(
-    private readonly workspaces: CviWorkspaceService,
-    private readonly builds: CviBuildService,
-    private readonly projectSettings: CviProjectSettingsService
+    private readonly workspaces: CpmWorkspaceService,
+    private readonly builds: CpmBuildService,
+    private readonly projectSettings: CpmProjectSettingsService
   ) {
     this.disposables.push(this.workspaces.onDidChange(() => this.update()));
   }
@@ -59,7 +59,7 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
     const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
     item.description = element.description;
     item.tooltip = element.tooltip ?? [element.label, element.description].filter(Boolean).join(' — ');
-    item.contextValue = element.contextValue ?? 'cviQuickActionSummary';
+    item.contextValue = element.contextValue ?? 'cpmQuickActionSummary';
     if (element.icon) {
       item.iconPath = new vscode.ThemeIcon(element.icon);
     }
@@ -73,14 +73,14 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
     if (!workspace) {
       return [
         info('No workspace loaded', 'Open or create a C/C++ workspace to display the active target summary.', 'info'),
-        action('Open workspace or project…', 'labwindowsCvi.openWorkspace', 'folder-opened'),
-        action('Create workspace and project…', 'labwindowsCvi.createWorkspaceProject', 'new-folder')
+        action('Open workspace or project…', 'cpm.openWorkspace', 'folder-opened'),
+        action('Create workspace and project…', 'cpm.createWorkspaceProject', 'new-folder')
       ];
     }
     if (!ref?.exists) {
       return [
         info('No active project', 'Select an existing project in the workspace tree.', 'info'),
-        action('Open workspace or project…', 'labwindowsCvi.openWorkspace', 'folder-opened')
+        action('Open workspace or project…', 'cpm.openWorkspace', 'folder-opened')
       ];
     }
 
@@ -98,12 +98,12 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
       info('Build steps', summary.buildSteps, 'list-ordered'),
       info('Dependencies', summary.dependencies, 'references'),
       info('Project files', summary.files, summary.hasMissingFiles ? 'warning' : 'pass'),
-      action('Open project build settings…', 'labwindowsCvi.editBuildSettings', 'settings-gear'),
-      action('Open build settings in safe mode…', 'labwindowsCvi.editBuildSettingsSafeMode', 'shield'),
-      action('Enable automatic suggestions', 'labwindowsCvi.enableAutomaticSuggestions', 'sparkle'),
-      action('Build & Debug', 'labwindowsCvi.debugInCvi', 'debug-alt-small'),
-      action('Build & Run', 'labwindowsCvi.run', 'play'),
-      action('Run without build', 'labwindowsCvi.runWithoutBuild', 'run')
+      action('Open project build settings…', 'cpm.editBuildSettings', 'settings-gear'),
+      action('Open build settings in safe mode…', 'cpm.editBuildSettingsSafeMode', 'shield'),
+      action('Enable automatic suggestions', 'cpm.enableAutomaticSuggestions', 'sparkle'),
+      action('Build & Debug', 'cpm.debugInCpm', 'debug-alt-small'),
+      action('Build & Run', 'cpm.run', 'play'),
+      action('Run without build', 'cpm.runWithoutBuild', 'run')
     ];
   }
 
@@ -147,11 +147,11 @@ function info(label: string, description: string, icon: string): QuickActionNode
 }
 
 function action(label: string, command: string, icon: string): QuickActionNode {
-  return { label, icon, contextValue: 'cviQuickActionCommand', command: { command, title: label } };
+  return { label, icon, contextValue: 'cpmQuickActionCommand', command: { command, title: label } };
 }
 
 function configuredLabel(value: string): string { return value.trim() ? 'Configured' : 'Empty'; }
-function modeDescription(mode: CviBuildMode): string {
+function modeDescription(mode: CpmBuildMode): string {
   switch (mode) {
     case 'release': return 'Release x86';
     case 'debug64': return 'Debug x64';

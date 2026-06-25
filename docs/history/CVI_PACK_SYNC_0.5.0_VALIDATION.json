@@ -1,0 +1,11 @@
+{
+  "status": "ok",
+  "fromVersion": "1.2.0",
+  "toVersion": "1.5.0",
+  "backupCount": 1,
+  "backupFile": "cvi_pack.backup-1.2.0-2026-06-10T16-13-55-184Z.json",
+  "logs": [
+    "[CVI Libraries] Upgraded CVI library pack 1.2.0 -> 1.5.0.",
+    "[CVI Libraries] Previous writable pack backed up to: /tmp/lwcvi-pack-6lLA8p/storage/packs/cvi_pack.backup-1.2.0-2026-06-10T16-13-55-184Z.json"
+  ]
+}

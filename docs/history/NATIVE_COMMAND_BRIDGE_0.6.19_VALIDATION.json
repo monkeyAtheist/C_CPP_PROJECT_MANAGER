@@ -1,0 +1,31 @@
+{
+  "version": "0.6.19",
+  "commandsDeclaredAndRegistered": 8,
+  "primaryTransport": "ActiveX CVI.Application",
+  "activeXConnectionModes": [
+    "active-object",
+    "create-object"
+  ],
+  "activeXMethods": [
+    "GetCVIState",
+    "BuildProject",
+    "RunProject",
+    "SuspendExecution",
+    "ContinueExecution",
+    "TerminateExecution"
+  ],
+  "ddeCompatibilityFallback": {
+    "modes": [
+      "ansi",
+      "unicode"
+    ],
+    "service": "cvi",
+    "topic": "system",
+    "item": "status"
+  },
+  "activeXHostTimeoutMs": 15000,
+  "ddeFallbackHostTimeoutMs": 90000,
+  "activeXRegistryDiscoveryTimeoutMs": 10000,
+  "packagedBridgeScripts": 3,
+  "packagedCompiledService": true
+}

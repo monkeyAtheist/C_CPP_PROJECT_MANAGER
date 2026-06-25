@@ -1,0 +1,15 @@
+{
+  "version": "0.6.9",
+  "feature": "DLL conditional target-settings UI",
+  "checks": {
+    "manifestPathDisabledWhenEmbedManifestIsFalse": true,
+    "importLibraryBaseNameDisabledWhenDefaultIsSelected": true,
+    "customCopyDirectoryDisabledUnlessCustomDirectoryIsSelected": true,
+    "exportHeadersDisabledForSymbolsMarkedAsExport": true,
+    "iviVxiChoicesMovedToDedicatedDialog": true,
+    "iviChoicePersisted": true,
+    "vxiPlugAndPlayChoicePersisted": true,
+    "dialogCancelRestoresSnapshot": true,
+    "existingValuesPreservedWhileDisabled": true
+  }
+}

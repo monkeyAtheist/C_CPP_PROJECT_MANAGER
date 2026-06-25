@@ -15,7 +15,7 @@ export function unquote(value: string | undefined): string | undefined {
   return trimmed;
 }
 
-export function toCviPath(inputPath: string): string {
+export function toCpmPath(inputPath: string): string {
   const normalized = inputPath.replace(/\\/g, '/');
   const driveMatch = normalized.match(/^([A-Za-z]):\/(.*)$/);
   if (driveMatch) {
@@ -24,7 +24,7 @@ export function toCviPath(inputPath: string): string {
   return normalized;
 }
 
-export function fromCviPath(inputPath: string): string {
+export function fromCpmPath(inputPath: string): string {
   const value = unquote(inputPath) ?? '';
   const driveMatch = value.match(/^\/([A-Za-z])\/(.*)$/);
   if (driveMatch) {
@@ -33,7 +33,7 @@ export function fromCviPath(inputPath: string): string {
   return value.replace(/\//g, path.sep);
 }
 
-export function splitCviLongValue(value: string, maxLength = 96): string[] {
+export function splitCpmLongValue(value: string, maxLength = 96): string[] {
   if (value.length <= maxLength) {
     return [value];
   }
@@ -56,7 +56,7 @@ export function fileNameWithoutExtension(filePath: string): string {
   return path.basename(filePath, path.extname(filePath));
 }
 
-export function toCviRuntimeStoragePath(inputPath: string): string {
+export function toCpmRuntimeStoragePath(inputPath: string): string {
   const trimmed = inputPath.trim();
   if (!trimmed) {
     return '';
@@ -65,12 +65,12 @@ export function toCviRuntimeStoragePath(inputPath: string): string {
   if (cygdrive) {
     return `/${cygdrive[1].toLowerCase()}/${cygdrive[2].replace(/\\/g, '/')}`;
   }
-  const cviDrive = trimmed.match(/^\/([A-Za-z])\/(.*)$/);
-  if (cviDrive) {
-    return `/${cviDrive[1].toLowerCase()}/${cviDrive[2].replace(/\\/g, '/')}`;
+  const cpmDrive = trimmed.match(/^\/([A-Za-z])\/(.*)$/);
+  if (cpmDrive) {
+    return `/${cpmDrive[1].toLowerCase()}/${cpmDrive[2].replace(/\\/g, '/')}`;
   }
   if (/^[A-Za-z]:[\\/]/.test(trimmed)) {
-    return toCviPath(trimmed);
+    return toCpmPath(trimmed);
   }
   return trimmed;
 }
@@ -85,9 +85,9 @@ export function normalizeRuntimePath(inputPath: string): string {
   if (cygdrive) {
     return path.win32.normalize(`${cygdrive[1].toUpperCase()}:\\${cygdrive[2].replace(/\//g, '\\')}`);
   }
-  const cviDrive = expanded.match(/^\/([A-Za-z])\/(.*)$/);
-  if (cviDrive) {
-    return path.win32.normalize(`${cviDrive[1].toUpperCase()}:\\${cviDrive[2].replace(/\//g, '\\')}`);
+  const cpmDrive = expanded.match(/^\/([A-Za-z])\/(.*)$/);
+  if (cpmDrive) {
+    return path.win32.normalize(`${cpmDrive[1].toUpperCase()}:\\${cpmDrive[2].replace(/\//g, '\\')}`);
   }
   if (/^[A-Za-z]:[\\/]/.test(expanded)) {
     return path.win32.normalize(expanded.replace(/\//g, '\\'));

@@ -1,0 +1,32 @@
+{
+  "status": "ok",
+  "generatedFiles": [
+    "blank_panel.uir",
+    "blank_panel.h",
+    "ui_app.c",
+    "ui_app.uir",
+    "ui_app.h",
+    "module.c",
+    "module.h",
+    "my_dll.c",
+    "my_dll.h",
+    "cvi_error.c",
+    "cvi_error.h",
+    "main.c"
+  ],
+  "generatedReferenceCount": 12,
+  "parsedTypes": {
+    "User Interface Resource": 2,
+    "Include": 5,
+    "CSource": 5
+  },
+  "builtInSnippets": 9,
+  "uirTemplateBytes": 1112,
+  "uirSignature": "RSRC",
+  "logLines": 14,
+  "headerGuard": "MY_FILE_H",
+  "resolvedUirVersions": {
+    "cvi2012": "cvi2012",
+    "cvi2020": "cvi2020"
+  }
+}

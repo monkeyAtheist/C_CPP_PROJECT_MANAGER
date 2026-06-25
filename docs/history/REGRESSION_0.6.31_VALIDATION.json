@@ -1,0 +1,41 @@
+{
+  "version": "0.6.31",
+  "checks": {
+    "typescriptCompilation": true,
+    "nativeDebugPreflight": {
+      "version": "0.6.31",
+      "dapRemoved": true,
+      "localCompileExePreflightBeforeNativeDebug": true,
+      "nativeTimeoutDefaults": {
+        "commandMs": 10000,
+        "startupMs": 25000,
+        "sessionMs": 30000,
+        "postIdeDelayMs": 2000
+      },
+      "debugActionRenamed": "Build & Run Debug",
+      "continueActionVisibleDuringNativeSession": true,
+      "standaloneBuildActionRemovedFromCviDebugView": true
+    },
+    "breakpointMirror": {
+      "version": "0.6.31",
+      "finalBreakpoints": [
+        39,
+        45
+      ],
+      "removedNative": [
+        43
+      ],
+      "tracepointPreserved": true
+    },
+    "workspaceScaffold": {
+      "status": "ok",
+      "userWorkspaceMissingSectionsDetectedBeforeMigration": 22,
+      "project0003AutoInitializedOnRunSettingsSave": true,
+      "project0002InitializedByRepairCommand": true,
+      "newlyAddedProject0004InitializedImmediately": true,
+      "freshWorkspaceProject0001InitializedImmediately": true,
+      "compatibilityIssuesAfterRepair": 0,
+      "nativeBackupCount": 3
+    }
+  }
+}

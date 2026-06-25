@@ -1,0 +1,25 @@
+{
+  "version": "0.6.12",
+  "feature": "Create New Project in Workspace",
+  "status": "passed",
+  "checks": {
+    "manifest_command_declared": true,
+    "workspace_context_menu_declared": true,
+    "extension_command_registered": true,
+    "standalone_prj_guard": true,
+    "project_destination_picker": true,
+    "project_name_validation": true,
+    "target_types": [
+      "Executable",
+      "Dynamic Link Library",
+      "Static Library"
+    ],
+    "minimal_prj_created": true,
+    "workspace_reference_added": true,
+    "new_project_selected_active": true,
+    "workspace_relative_reference": "libs/Core.prj",
+    "workspace_project_count_after_test": 2,
+    "workspace_active_project_after_test": 2,
+    "native_workspace_backup_guard_retained": true
+  }
+}

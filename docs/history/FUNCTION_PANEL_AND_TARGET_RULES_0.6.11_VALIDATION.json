@@ -1,0 +1,27 @@
+{
+  "version": "0.6.11",
+  "targetSettings": {
+    "signingFieldsDisabledUntilSignTarget": true,
+    "externalDllDebugExecutableDisabledOutsideDll": true,
+    "executableCommandLineHiddenForStaticLibrary": true
+  },
+  "functionPanel": {
+    "sample": "asynctmr.fp",
+    "functionsExtracted": 8,
+    "names": [
+      "NewAsyncTimer",
+      "NewAsyncTimerWithPriority",
+      "DiscardAsyncTimer",
+      "SuspendAsyncTimerCallbacks",
+      "ResumeAsyncTimerCallbacks",
+      "SetAsyncTimerAttribute",
+      "GetAsyncTimerAttribute",
+      "GetAsyncTimerResolution"
+    ],
+    "includeFile": "toolbox\\asynctmr.h",
+    "variadicParameterPreserved": true,
+    "nativeQuickPick": true,
+    "jcLibDetailsByName": true,
+    "fallbackDetailsFromFp": true
+  }
+}

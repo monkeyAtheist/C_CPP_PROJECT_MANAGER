@@ -1,0 +1,49 @@
+{
+  "status": "ok",
+  "packVersion": "1.5.0",
+  "defaultPackVersion": "2.30.0",
+  "environment": "CVI",
+  "libraries": 19,
+  "allCards": 2024,
+  "cviBasicsCards": 53,
+  "cviBasicsCategories": [
+    "CVI Run-Time Engine lifecycle",
+    "Callback type prototypes",
+    "Parameterized callback skeletons",
+    "Events",
+    "Event data specifiers",
+    "Callback installation & dispatch recipes",
+    "Keywords",
+    "Examples / Workflows",
+    "References & notes"
+  ],
+  "requiredCards": [
+    "CVICALLBACK",
+    "CVIFUNC",
+    "CVIRTEHasBeenDetached",
+    "CloseCVIRTE",
+    "InitCVIRTE",
+    "InitCVIRTEEx"
+  ],
+  "requiredCardsPresent": [
+    "CVICALLBACK",
+    "CVIFUNC",
+    "CVIRTEHasBeenDetached",
+    "CloseCVIRTE",
+    "InitCVIRTE",
+    "InitCVIRTEEx"
+  ],
+  "standalonePatternsLibraryPresent": false,
+  "metadata": [
+    {
+      "file": "cvi_ui_attribute_catalog.json",
+      "exists": true,
+      "bytes": 991413
+    },
+    {
+      "file": "cvi_callback_event_catalog.json",
+      "exists": true,
+      "bytes": 25804
+    }
+  ]
+}

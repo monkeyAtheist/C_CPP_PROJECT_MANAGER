@@ -1,0 +1,15 @@
+{
+  "status": "ok",
+  "version": "0.5.6",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "quickActions": {
+    "id": "labwindowsCvi.quickActions",
+    "name": "CVI Actions",
+    "type": "webview",
+    "contextualTitle": "CVI Actions",
+    "visibility": "visible"
+  },
+  "workspaceTitleActions": [],
+  "libraryTitleActions": 5,
+  "activation": true
+}

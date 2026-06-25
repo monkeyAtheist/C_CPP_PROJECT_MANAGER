@@ -1,0 +1,44 @@
+{
+  "version": "0.6.5",
+  "commands": [
+    {
+      "command": "labwindowsCvi.copyFilePath",
+      "declared": true,
+      "activationEvent": true,
+      "contextMenu": [
+        {
+          "command": "labwindowsCvi.copyFilePath",
+          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "group": "clipboard@1"
+        }
+      ],
+      "hiddenFromCommandPalette": true
+    },
+    {
+      "command": "labwindowsCvi.copyRelativeFilePath",
+      "declared": true,
+      "activationEvent": true,
+      "contextMenu": [
+        {
+          "command": "labwindowsCvi.copyRelativeFilePath",
+          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "group": "clipboard@2"
+        }
+      ],
+      "hiddenFromCommandPalette": true
+    }
+  ],
+  "runtime": {
+    "extensionRegistration": true,
+    "clipboardWrite": true,
+    "relativeFallbacks": [
+      "VS Code workspace folder",
+      "loaded CVI workspace directory",
+      "CVI project directory"
+    ]
+  },
+  "sampleRelativePaths": {
+    "windowsWorkspaceExample": "src\\main.c",
+    "windowsProjectFallbackExample": "include\\api.h"
+  }
+}

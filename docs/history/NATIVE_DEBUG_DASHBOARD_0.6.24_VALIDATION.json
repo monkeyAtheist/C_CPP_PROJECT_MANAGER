@@ -1,0 +1,10 @@
+{
+  "version": "0.6.24",
+  "nativeDebugTreeView": true,
+  "primaryVsCodeDapAction": true,
+  "legacyNativeWindowFallback": true,
+  "contextualActionRows": true,
+  "visuallyDisabledUnavailableActions": true,
+  "noDashboardWebview": true,
+  "packagedCompiledDashboard": true
+}

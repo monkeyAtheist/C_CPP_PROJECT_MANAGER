@@ -1,0 +1,29 @@
+{
+  "version": "0.6.24",
+  "status": "ok",
+  "nativeBreakpointSerialization": {
+    "firstSyncApplied": 2,
+    "nativeBreakpointPreserved": true,
+    "tracepointPreserved": true,
+    "outsideProjectBreakpointIgnored": true,
+    "resynchronizationRemovesOnlyTrackedEntries": true,
+    "clearRemovesOnlyTrackedEntries": true,
+    "nativeOverlapNotDuplicated": true
+  },
+  "uploadedCviWorkspaceFixture": {
+    "workspace": "CVI_PRJ/Source File.cws",
+    "nativeBreakpointsPreserved": [39, 43],
+    "temporarySynchronizedBreakpointAddedThenRemoved": 45,
+    "tracepointsPreserved": [41, 44],
+    "nativeBackupCreated": true
+  },
+  "workspaceScaffoldMigration": {
+    "missingSectionsDetectedBeforeMigration": 22,
+    "project0003AutoInitializedOnRunSettingsSave": true,
+    "project0002InitializedByRepairCommand": true,
+    "newlyAddedProject0004InitializedImmediately": true,
+    "freshWorkspaceProject0001InitializedImmediately": true,
+    "compatibilityIssuesAfterRepair": 0,
+    "nativeBackupCount": 3
+  }
+}

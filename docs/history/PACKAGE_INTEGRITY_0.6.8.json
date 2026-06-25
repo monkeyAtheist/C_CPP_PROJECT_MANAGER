@@ -1,0 +1,15 @@
+{
+  "package": "labwindows-cvi-project-manager-0.6.8.vsix",
+  "sha256": "efd54a65e6e27e6104e59440b14f05fae37ff50e8a7b92185bff35a5e6e7c61f",
+  "size_bytes": 5563418,
+  "zip_integrity": "OK",
+  "manifest_version": "0.6.8",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "file_count": 164,
+  "required_files": {
+    "extension/package.json": true,
+    "extension/out/extension.js": true,
+    "extension/out/views/buildSettingsPanel.js": true,
+    "extension/media/cvi-marketplace.png": true
+  }
+}

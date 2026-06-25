@@ -1,0 +1,19 @@
+{
+  "version": "0.6.16",
+  "commandsDeclaredAndRegistered": 8,
+  "ddeCompatibilityModes": [
+    "ansi",
+    "unicode"
+  ],
+  "ddeContract": {
+    "service": "cvi",
+    "topic": "system",
+    "item": "status"
+  },
+  "symbolicDdeErrorMapping": true,
+  "structuredDdeAttempts": true,
+  "utf8PowerShellOutput": true,
+  "activeXRegistryDiscoveryFallback": true,
+  "packagedBridgeScripts": 2,
+  "packagedCompiledService": true
+}

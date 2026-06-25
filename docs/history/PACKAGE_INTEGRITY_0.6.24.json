@@ -1,0 +1,26 @@
+{
+  "version": "0.6.24",
+  "vsix": "labwindows-cvi-project-manager-0.6.24.vsix",
+  "sha256": "33923497e0fd78507601a6e740921409206a0fbcfaea2beaab8b84fba91eaf88",
+  "sizeBytes": 5681560,
+  "zipEntryCount": 255,
+  "zipIntegrity": "ok",
+  "requiredEntries": [
+    "extension/package.json",
+    "extension/out/extension.js",
+    "extension/out/debug/cviNativeDebugAdapter.js",
+    "extension/out/services/cviNativeCommandService.js",
+    "extension/native/cvi-dde-command.ps1",
+    "extension/native/cvi-start-background.ps1",
+    "extension/native/cvi-window-control.ps1",
+    "extension/VALIDATION_0.6.24.md",
+    "extension/MANUAL_TEST_CHECKLIST_0.6.24.md",
+    "extension/NATIVE_DAP_0.6.24_VALIDATION.json",
+    "extension/NATIVE_COMMAND_BRIDGE_0.6.24_VALIDATION.json",
+    "extension/NATIVE_DEBUG_DASHBOARD_0.6.24_VALIDATION.json",
+    "extension/REGRESSION_0.6.24_VALIDATION.json"
+  ],
+  "missingRequiredEntries": [],
+  "requiredEntriesPresent": true,
+  "compiledJavaScriptSyntax": "ok"
+}

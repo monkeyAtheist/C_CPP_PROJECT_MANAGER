@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "out",
@@ -12,5 +14,14 @@
     "skipLibCheck": true,
     "sourceMap": true
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*Cvi*.ts",
+    "src/**/activeX*.ts",
+    "src/**/cvi*.ts",
+    "src/**/dde*.ts",
+    "src/**/nativeCvi*.ts"
+  ]
 }

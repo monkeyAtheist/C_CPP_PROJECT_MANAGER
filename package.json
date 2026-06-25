@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.7",
+  "version": "0.2.23",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -22,92 +22,96 @@
     "Workspace"
   ],
   "activationEvents": [
-    "onView:labwindowsCvi.quickActions",
-    "onView:labwindowsCvi.workspaceExplorer",
-    "onCommand:labwindowsCvi.openHome",
-    "onCommand:labwindowsCvi.createProjectInWorkspace",
-    "onView:labwindowsCvi.libraryExplorer",
-    "onCommand:labwindowsCvi.debugInCvi",
-    "onCommand:labwindowsCvi.library.findFunction",
-    "onCommand:labwindowsCvi.library.managePacks",
-    "onCommand:labwindowsCvi.library.reloadPacks",
-    "onCommand:labwindowsCvi.insertSnippet",
-    "onCommand:labwindowsCvi.saveSelectionAsSnippet",
-    "onCommand:labwindowsCvi.manageSnippets",
-    "onCommand:labwindowsCvi.saveFileAsTemplate",
-    "onCommand:labwindowsCvi.importFileTemplate",
-    "onCommand:labwindowsCvi.manageFileTemplates",
-    "onCommand:labwindowsCvi.diagnoseCppTools",
-    "onCommand:labwindowsCvi.addWorkspaceFolderForIntelliSense",
-    "onCommand:labwindowsCvi.repairCppToolsProvider",
-    "onCommand:labwindowsCvi.enableAutomaticSuggestions",
-    "onCommand:labwindowsCvi.chooseBuildAction",
-    "onCommand:labwindowsCvi.clean",
-    "onCommand:labwindowsCvi.cleanProject",
-    "onCommand:labwindowsCvi.selectTargetType",
-    "onCommand:labwindowsCvi.editBuildSettings",
-    "onCommand:labwindowsCvi.editBuildSettingsSafeMode",
-    "onCommand:labwindowsCvi.generatePrototypes",
-    "onView:labwindowsCvi.fileSymbols",
-    "onCommand:labwindowsCvi.refreshFileSymbols",
-    "onCommand:labwindowsCvi.revealFileSymbol",
-    "onCommand:labwindowsCvi.chooseRunAction",
-    "onCommand:labwindowsCvi.runWithoutBuild",
-    "onCommand:labwindowsCvi.selectBuildModeD32",
-    "onCommand:labwindowsCvi.selectBuildModeR32",
-    "onCommand:labwindowsCvi.selectBuildModeD64",
-    "onCommand:labwindowsCvi.selectBuildModeR64",
-    "onCommand:labwindowsCvi.selectTargetTypeEXE",
-    "onCommand:labwindowsCvi.selectTargetTypeDLL",
-    "onCommand:labwindowsCvi.selectTargetTypeLIB",
-    "onCommand:labwindowsCvi.prepareDllImportLibraryGeneration",
-    "onCommand:labwindowsCvi.copyFilePath",
-    "onCommand:labwindowsCvi.copyRelativeFilePath",
-    "onCommand:labwindowsCvi.convertSelectedIntegerToDecimal",
-    "onCommand:labwindowsCvi.convertSelectedIntegerToHexadecimal",
-    "onCommand:labwindowsCvi.convertSelectedIntegerToBinary",
-    "onCommand:labwindowsCvi.openFunctionPanel"
+    "onView:cpm.quickActions",
+    "onView:cpm.workspaceExplorer",
+    "onCommand:cpm.openHome",
+    "onCommand:cpm.createProjectInWorkspace",
+    "onView:cpm.libraryExplorer",
+    "onCommand:cpm.debugWithGdb",
+    "onCommand:cpm.library.findFunction",
+    "onCommand:cpm.library.managePacks",
+    "onCommand:cpm.library.reloadPacks",
+    "onCommand:cpm.insertSnippet",
+    "onCommand:cpm.saveSelectionAsSnippet",
+    "onCommand:cpm.manageSnippets",
+    "onCommand:cpm.saveFileAsTemplate",
+    "onCommand:cpm.importFileTemplate",
+    "onCommand:cpm.manageFileTemplates",
+    "onCommand:cpm.diagnoseCppTools",
+    "onCommand:cpm.addWorkspaceFolderForIntelliSense",
+    "onCommand:cpm.repairCppToolsProvider",
+    "onCommand:cpm.enableAutomaticSuggestions",
+    "onCommand:cpm.chooseBuildAction",
+    "onCommand:cpm.clean",
+    "onCommand:cpm.cleanProject",
+    "onCommand:cpm.selectTargetType",
+    "onCommand:cpm.editBuildSettings",
+    "onCommand:cpm.editBuildSettingsSafeMode",
+    "onCommand:cpm.generatePrototypes",
+    "onView:cpm.fileSymbols",
+    "onCommand:cpm.refreshFileSymbols",
+    "onCommand:cpm.revealFileSymbol",
+    "onCommand:cpm.chooseRunAction",
+    "onCommand:cpm.runWithoutBuild",
+    "onCommand:cpm.selectBuildModeD32",
+    "onCommand:cpm.selectBuildModeR32",
+    "onCommand:cpm.selectBuildModeD64",
+    "onCommand:cpm.selectBuildModeR64",
+    "onCommand:cpm.selectTargetTypeEXE",
+    "onCommand:cpm.selectTargetTypeDLL",
+    "onCommand:cpm.selectTargetTypeLIB",
+    "onCommand:cpm.prepareDllImportLibraryGeneration",
+    "onCommand:cpm.copyFilePath",
+    "onCommand:cpm.copyRelativeFilePath",
+    "onCommand:cpm.convertSelectedIntegerToDecimal",
+    "onCommand:cpm.convertSelectedIntegerToHexadecimal",
+    "onCommand:cpm.convertSelectedIntegerToBinary",
+    "onCommand:cpm.openFunctionPanel",
+    "onCommand:cpm.insertFileHeader",
+    "onCommand:cpm.insertHeaderChangeEntry",
+    "onCommand:cpm.insertCommentSection"
   ],
   "main": "./out/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "package": "vsce package"
+    "compile": "npm run clean:legacy-cvi && tsc -p ./",
+    "watch": "npm run clean:legacy-cvi && tsc -watch -p ./",
+    "package": "vsce package",
+    "clean:legacy-cvi": "node ./scripts/clean-legacy-cvi-sources.js"
   },
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "labwindowsCvi",
+          "id": "cpm",
           "title": "C/C++ PM",
           "icon": "media/cpm.svg"
         }
       ]
     },
     "views": {
-      "labwindowsCvi": [
+      "cpm": [
         {
-          "id": "labwindowsCvi.workspaceExplorer",
+          "id": "cpm.workspaceExplorer",
           "name": "C/C++ Workspace",
           "contextualTitle": "C/C++ Workspace",
           "showCollapseAll": true
         },
         {
-          "id": "labwindowsCvi.quickActions",
+          "id": "cpm.quickActions",
           "name": "C/C++ Actions",
           "contextualTitle": "C/C++ Actions",
           "visibility": "visible",
           "showCollapseAll": false
         },
         {
-          "id": "labwindowsCvi.fileSymbols",
+          "id": "cpm.fileSymbols",
           "name": "C/C++ File Symbols",
           "contextualTitle": "C/C++ File Symbols",
           "showCollapseAll": false
         },
         {
-          "id": "labwindowsCvi.libraryExplorer",
+          "id": "cpm.libraryExplorer",
           "name": "C/C++ Libraries",
           "contextualTitle": "C/C++ Libraries",
           "showCollapseAll": true
@@ -116,490 +120,508 @@
     },
     "viewsWelcome": [
       {
-        "view": "labwindowsCvi.workspaceExplorer",
-        "contents": "No C/C++ workspace is currently loaded.\n[Open a workspace](command:labwindowsCvi.openWorkspace)\n[Create a workspace and project](command:labwindowsCvi.createWorkspaceProject)\n[Open the home page](command:labwindowsCvi.openHome)"
+        "view": "cpm.workspaceExplorer",
+        "contents": "No C/C++ workspace is currently loaded.\n[Open a workspace](command:cpm.openWorkspace)\n[Create a workspace and project](command:cpm.createWorkspaceProject)\n[Open the home page](command:cpm.openHome)"
       }
     ],
     "commands": [
       {
-        "command": "labwindowsCvi.openHome",
+        "command": "cpm.openHome",
         "title": "C/C++ Project Manager: Open Home",
         "icon": "$(home)"
       },
       {
-        "command": "labwindowsCvi.openWorkspace",
+        "command": "cpm.openWorkspace",
         "title": "C/C++ Project Manager: Open Workspace or Project",
         "icon": "$(folder-opened)"
       },
       {
-        "command": "labwindowsCvi.createWorkspaceProject",
+        "command": "cpm.createWorkspaceProject",
         "title": "C/C++ Project Manager: Create Workspace and Project"
       },
       {
-        "command": "labwindowsCvi.refresh",
+        "command": "cpm.refresh",
         "title": "C/C++ Project Manager: Refresh Workspace",
         "icon": "$(refresh)"
       },
       {
-        "command": "labwindowsCvi.configureInstallation",
+        "command": "cpm.configureInstallation",
         "title": "C/C++ Project Manager: Detect / Select Toolchain",
         "icon": "$(settings-gear)"
       },
       {
-        "command": "labwindowsCvi.syncCppTools",
+        "command": "cpm.syncCppTools",
         "title": "C/C++ Project Manager: Synchronize C/C++ IntelliSense Configuration",
         "icon": "$(symbol-namespace)"
       },
       {
-        "command": "labwindowsCvi.diagnoseCppTools",
+        "command": "cpm.diagnoseCppTools",
         "title": "C/C++ Project Manager: Diagnose C/C++ IntelliSense Configuration",
         "icon": "$(pulse)"
       },
       {
-        "command": "labwindowsCvi.repairCppToolsProvider",
+        "command": "cpm.repairCppToolsProvider",
         "title": "C/C++ Project Manager: Repair C/C++ IntelliSense Provider Selection",
         "icon": "$(wrench)"
       },
       {
-        "command": "labwindowsCvi.enableAutomaticSuggestions",
+        "command": "cpm.enableAutomaticSuggestions",
         "title": "C/C++ Project Manager: Enable Automatic C/C++ Suggestions",
         "icon": "$(sparkle)"
       },
       {
-        "command": "labwindowsCvi.addWorkspaceFolderForIntelliSense",
+        "command": "cpm.addWorkspaceFolderForIntelliSense",
         "title": "C/C++ Project Manager: Add C/C++ Folder to VS Code Workspace for IntelliSense"
       },
       {
-        "command": "labwindowsCvi.selectBuildMode",
+        "command": "cpm.selectBuildMode",
         "title": "C/C++ Project Manager: Select Build Mode",
         "icon": "$(symbol-enum)"
       },
       {
-        "command": "labwindowsCvi.build",
+        "command": "cpm.build",
         "title": "C/C++ Project Manager: Build Active Project",
         "icon": "$(tools)"
       },
       {
-        "command": "labwindowsCvi.rebuild",
+        "command": "cpm.rebuild",
         "title": "C/C++ Project Manager: Rebuild Active Project"
       },
       {
-        "command": "labwindowsCvi.run",
+        "command": "cpm.run",
         "title": "C/C++ Project Manager: Build and Run Active Target",
         "icon": "$(play)"
       },
       {
-        "command": "labwindowsCvi.openWorkspaceInCvi",
+        "command": "cpm.openWorkspaceFile",
         "title": "Open Workspace File",
         "icon": "$(link-external)"
       },
       {
-        "command": "labwindowsCvi.setActiveProject",
+        "command": "cpm.setActiveProject",
         "title": "Set Active Project"
       },
       {
-        "command": "labwindowsCvi.buildProject",
+        "command": "cpm.buildProject",
         "title": "Build"
       },
       {
-        "command": "labwindowsCvi.rebuildProject",
+        "command": "cpm.rebuildProject",
         "title": "Rebuild"
       },
       {
-        "command": "labwindowsCvi.executeProject",
+        "command": "cpm.executeProject",
         "title": "Execute"
       },
       {
-        "command": "labwindowsCvi.editProjectInCvi",
+        "command": "cpm.editProjectFile",
         "title": "Edit Project File..."
       },
       {
-        "command": "labwindowsCvi.openProjectFile",
+        "command": "cpm.openProjectFile",
         "title": "Browse Project File..."
       },
       {
-        "command": "labwindowsCvi.createProjectInWorkspace",
+        "command": "cpm.createProjectInWorkspace",
         "title": "Create New Project in Workspace..."
       },
       {
-        "command": "labwindowsCvi.addExistingProject",
+        "command": "cpm.addExistingProject",
         "title": "Add Existing Project to Workspace"
       },
       {
-        "command": "labwindowsCvi.removeProject",
+        "command": "cpm.removeProject",
         "title": "Remove Project From Workspace"
       },
       {
-        "command": "labwindowsCvi.addFiles",
+        "command": "cpm.addFiles",
         "title": "Add Existing File..."
       },
       {
-        "command": "labwindowsCvi.createNewFile",
+        "command": "cpm.createNewFile",
         "title": "Create New File or Starter..."
       },
       {
-        "command": "labwindowsCvi.addFolder",
+        "command": "cpm.addFolder",
         "title": "Add Folder..."
       },
       {
-        "command": "labwindowsCvi.renameFolder",
+        "command": "cpm.renameFolder",
         "title": "Rename Folder..."
       },
       {
-        "command": "labwindowsCvi.removeFolder",
+        "command": "cpm.removeFolder",
         "title": "Remove Folder"
       },
       {
-        "command": "labwindowsCvi.removeFile",
+        "command": "cpm.removeFile",
         "title": "Remove File"
       },
       {
-        "command": "labwindowsCvi.excludeFile",
+        "command": "cpm.excludeFile",
         "title": "Exclude File from Build"
       },
       {
-        "command": "labwindowsCvi.includeFile",
+        "command": "cpm.includeFile",
         "title": "Include File in Build"
       },
       {
-        "command": "labwindowsCvi.toggleObjOption",
+        "command": "cpm.toggleObjOption",
         "title": "Toggle .Obj Option"
       },
       {
-        "command": "labwindowsCvi.renameFile",
+        "command": "cpm.renameFile",
         "title": "Rename File..."
       },
       {
-        "command": "labwindowsCvi.replaceFile",
+        "command": "cpm.replaceFile",
         "title": "Replace File in Project..."
       },
       {
-        "command": "labwindowsCvi.compileFile",
+        "command": "cpm.compileFile",
         "title": "Compile File"
       },
       {
-        "command": "labwindowsCvi.saveFile",
+        "command": "cpm.saveFile",
         "title": "Save"
       },
       {
-        "command": "labwindowsCvi.saveAll",
+        "command": "cpm.saveAll",
         "title": "Save All"
       },
       {
-        "command": "labwindowsCvi.openFile",
+        "command": "cpm.openFile",
         "title": "Open"
       },
       {
-        "command": "labwindowsCvi.openPanelInCvi",
+        "command": "cpm.openPanelFile",
         "title": "Open UI/Resource File"
       },
       {
-        "command": "labwindowsCvi.openFunctionPanel",
+        "command": "cpm.openFunctionPanel",
         "title": "Open Function Panel"
       },
       {
-        "command": "labwindowsCvi.revealProjectFile",
+        "command": "cpm.revealProjectFile",
         "title": "Reveal Project File in Explorer"
       },
       {
-        "command": "labwindowsCvi.revealFile",
+        "command": "cpm.revealFile",
         "title": "Browse File..."
       },
       {
-        "command": "labwindowsCvi.copyFilePath",
+        "command": "cpm.copyFilePath",
         "title": "Copy Path"
       },
       {
-        "command": "labwindowsCvi.copyRelativeFilePath",
+        "command": "cpm.copyRelativeFilePath",
         "title": "Copy Relative Path"
       },
       {
-        "command": "labwindowsCvi.exploreProjectDirectory",
+        "command": "cpm.exploreProjectDirectory",
         "title": "Explore Directory..."
       },
       {
-        "command": "labwindowsCvi.exploreFolderDirectory",
+        "command": "cpm.exploreFolderDirectory",
         "title": "Explore Directory..."
       },
       {
-        "command": "labwindowsCvi.exploreFileDirectory",
+        "command": "cpm.exploreFileDirectory",
         "title": "Explore Directory..."
       },
       {
-        "command": "labwindowsCvi.findProject",
+        "command": "cpm.findProject",
         "title": "Find..."
       },
       {
-        "command": "labwindowsCvi.findFolder",
+        "command": "cpm.findFolder",
         "title": "Find..."
       },
       {
-        "command": "labwindowsCvi.findFile",
+        "command": "cpm.findFile",
         "title": "Find..."
       },
       {
-        "command": "labwindowsCvi.expandAll",
+        "command": "cpm.expandAll",
         "title": "Expand All"
       },
       {
-        "command": "labwindowsCvi.collapseAll",
+        "command": "cpm.collapseAll",
         "title": "Collapse All"
       },
       {
-        "command": "labwindowsCvi.debugInCvi",
+        "command": "cpm.debugWithGdb",
         "title": "C/C++ Project Manager: Build & Debug",
         "category": "C/C++ Project Manager",
         "icon": "$(debug-alt)"
       },
       {
-        "command": "labwindowsCvi.debugProjectInCvi",
+        "command": "cpm.debugProjectWithGdb",
         "title": "Build & Debug",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.refresh",
+        "command": "cpm.library.refresh",
         "title": "Refresh Libraries",
         "category": "C/C++ Project Manager",
         "icon": "$(refresh)"
       },
       {
-        "command": "labwindowsCvi.library.showFunctionDetails",
+        "command": "cpm.library.showFunctionDetails",
         "title": "Show Symbol Details",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.insertCall",
+        "command": "cpm.library.insertCall",
         "title": "Insert Symbol Call",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.findFunction",
+        "command": "cpm.library.findFunction",
         "title": "Find Symbol",
         "category": "C/C++ Project Manager",
         "icon": "$(search)"
       },
       {
-        "command": "labwindowsCvi.library.clearFind",
+        "command": "cpm.library.clearFind",
         "title": "Clear Filter",
         "category": "C/C++ Project Manager",
         "icon": "$(clear-all)"
       },
       {
-        "command": "labwindowsCvi.library.reloadPacks",
+        "command": "cpm.library.reloadPacks",
         "title": "Reload Library Packs",
         "category": "C/C++ Project Manager",
         "icon": "$(sync)"
       },
       {
-        "command": "labwindowsCvi.library.managePacks",
+        "command": "cpm.library.managePacks",
         "title": "Manage Library Packs",
         "category": "C/C++ Project Manager",
         "icon": "$(package)"
       },
       {
-        "command": "labwindowsCvi.library.importPack",
+        "command": "cpm.library.importPack",
         "title": "Import Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.createPack",
+        "command": "cpm.library.createPack",
         "title": "Add Library Pack",
         "category": "C/C++ Project Manager",
         "icon": "$(add)"
       },
       {
-        "command": "labwindowsCvi.library.openVisualEditor",
+        "command": "cpm.library.openVisualEditor",
         "title": "Open Visual Library Pack Editor",
         "category": "C/C++ Project Manager",
         "icon": "$(edit)"
       },
       {
-        "command": "labwindowsCvi.library.generateHeader",
+        "command": "cpm.library.generateHeader",
         "title": "Generate Header From Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.importSymbols",
+        "command": "cpm.library.importSymbols",
         "title": "Import Source/Header Into Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.importPrototypes",
+        "command": "cpm.library.importPrototypes",
         "title": "Import Prototypes Into Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.importSnippetFile",
+        "command": "cpm.library.importSnippetFile",
         "title": "Import Snippet File Into Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.addLanguageStarter",
+        "command": "cpm.library.addLanguageStarter",
         "title": "Add Language Starter Into Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.addContent",
+        "command": "cpm.library.addContent",
         "title": "Add Content To Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.exportContent",
+        "command": "cpm.library.exportContent",
         "title": "Export Content From Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.library.deleteContent",
+        "command": "cpm.library.deleteContent",
         "title": "Delete Content From Library Pack",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.insertSnippet",
-        "title": "CPM: Insert snippet",
-        "category": "C/C++ Project Manager",
+        "command": "cpm.insertSnippet",
+        "title": "Insert snippet",
+        "category": "CPM",
         "icon": "$(symbol-snippet)"
       },
       {
-        "command": "labwindowsCvi.saveSelectionAsSnippet",
-        "title": "C/C++ Project Manager: Save Selection as C/C++ Snippet...",
-        "category": "C/C++ Project Manager"
+        "command": "cpm.saveSelectionAsSnippet",
+        "title": "Save selection as snippet",
+        "category": "CPM"
       },
       {
-        "command": "labwindowsCvi.manageSnippets",
-        "title": "C/C++ Project Manager: Manage C/C++ Snippets...",
-        "category": "C/C++ Project Manager"
+        "command": "cpm.manageSnippets",
+        "title": "Manage snippets...",
+        "category": "CPM"
       },
       {
-        "command": "labwindowsCvi.saveFileAsTemplate",
+        "command": "cpm.insertFileHeader",
+        "title": "Insert file description header",
+        "category": "CPM",
+        "icon": "$(note)"
+      },
+      {
+        "command": "cpm.insertHeaderChangeEntry",
+        "title": "Insert header change line",
+        "category": "CPM",
+        "icon": "$(add)"
+      },
+      {
+        "command": "cpm.insertCommentSection",
+        "title": "Insert comment section",
+        "category": "CPM",
+        "icon": "$(symbol-string)"
+      },
+      {
+        "command": "cpm.saveFileAsTemplate",
         "title": "Save as C/C++ Creation Template...",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.importFileTemplate",
-        "title": "C/C++ Project Manager: Import Creation Template From File...",
+        "command": "cpm.importFileTemplate",
+        "title": "CPM: Import creation template from file...",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.manageFileTemplates",
-        "title": "C/C++ Project Manager: Manage Creation Templates...",
+        "command": "cpm.manageFileTemplates",
+        "title": "CPM: Manage creation templates...",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.chooseBuildAction",
+        "command": "cpm.chooseBuildAction",
         "title": "C/C++ Project Manager: Build / Rebuild / Clean Active Project",
         "icon": "$(tools)",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.clean",
+        "command": "cpm.clean",
         "title": "C/C++ Project Manager: Clean Active Project",
         "icon": "$(trash)",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.cleanProject",
+        "command": "cpm.cleanProject",
         "title": "Clean Generated Target",
         "icon": "$(trash)",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.selectTargetType",
+        "command": "cpm.selectTargetType",
         "title": "Select Target Type...",
         "icon": "$(symbol-enum)",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.editBuildSettings",
+        "command": "cpm.editBuildSettings",
         "title": "Project Build Settings...",
         "icon": "$(settings-gear)",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.editBuildSettingsSafeMode",
+        "command": "cpm.editBuildSettingsSafeMode",
         "title": "Project Build Settings (Safe Mode)…",
         "icon": "$(shield)",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.generatePrototypes",
+        "command": "cpm.generatePrototypes",
         "title": "Generate Prototypes Header...",
         "icon": "$(symbol-method)",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.refreshFileSymbols",
+        "command": "cpm.refreshFileSymbols",
         "title": "Refresh Selected File Symbols",
         "category": "C/C++ Project Manager",
         "icon": "$(refresh)"
       },
       {
-        "command": "labwindowsCvi.revealFileSymbol",
+        "command": "cpm.revealFileSymbol",
         "title": "Reveal Function in Source",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.chooseRunAction",
+        "command": "cpm.chooseRunAction",
         "title": "C/C++ Project Manager: Run Options...",
         "icon": "$(list-selection)",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.runWithoutBuild",
+        "command": "cpm.runWithoutBuild",
         "title": "C/C++ Project Manager: Run Active Target Without Build",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.selectBuildModeD32",
+        "command": "cpm.selectBuildModeD32",
         "title": "D32",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.selectBuildModeR32",
+        "command": "cpm.selectBuildModeR32",
         "title": "R32",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.selectBuildModeD64",
+        "command": "cpm.selectBuildModeD64",
         "title": "D64",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.selectBuildModeR64",
+        "command": "cpm.selectBuildModeR64",
         "title": "R64",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.selectTargetTypeEXE",
+        "command": "cpm.selectTargetTypeEXE",
         "title": "EXE",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.selectTargetTypeDLL",
+        "command": "cpm.selectTargetTypeDLL",
         "title": "DLL",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.selectTargetTypeLIB",
+        "command": "cpm.selectTargetTypeLIB",
         "title": "LIB",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.prepareDllImportLibraryGeneration",
+        "command": "cpm.prepareDllImportLibraryGeneration",
         "title": "Prepare DLL Import Library Generation in editor...",
         "icon": "$(library)"
       },
       {
-        "command": "labwindowsCvi.convertSelectedIntegerToDecimal",
+        "command": "cpm.convertSelectedIntegerToDecimal",
         "title": "Convert Selected Integer to Decimal",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.convertSelectedIntegerToHexadecimal",
+        "command": "cpm.convertSelectedIntegerToHexadecimal",
         "title": "Convert Selected Integer to Hexadecimal",
         "category": "C/C++ Project Manager"
       },
       {
-        "command": "labwindowsCvi.convertSelectedIntegerToBinary",
+        "command": "cpm.convertSelectedIntegerToBinary",
         "title": "Convert Selected Integer to Binary",
         "category": "C/C++ Project Manager"
       }
@@ -607,619 +629,654 @@
     "menus": {
       "view/title": [
         {
-          "command": "labwindowsCvi.library.findFunction",
-          "when": "view == labwindowsCvi.libraryExplorer",
+          "command": "cpm.library.findFunction",
+          "when": "view == cpm.libraryExplorer",
           "group": "navigation@1"
         },
         {
-          "command": "labwindowsCvi.library.clearFind",
-          "when": "view == labwindowsCvi.libraryExplorer",
+          "command": "cpm.library.clearFind",
+          "when": "view == cpm.libraryExplorer",
           "group": "navigation@2"
         },
         {
-          "command": "labwindowsCvi.library.managePacks",
-          "when": "view == labwindowsCvi.libraryExplorer",
+          "command": "cpm.library.managePacks",
+          "when": "view == cpm.libraryExplorer",
           "group": "navigation@3"
         },
         {
-          "command": "labwindowsCvi.library.openVisualEditor",
-          "when": "view == labwindowsCvi.libraryExplorer",
+          "command": "cpm.library.openVisualEditor",
+          "when": "view == cpm.libraryExplorer",
           "group": "navigation@4"
         },
         {
-          "command": "labwindowsCvi.library.reloadPacks",
-          "when": "view == labwindowsCvi.libraryExplorer",
+          "command": "cpm.library.reloadPacks",
+          "when": "view == cpm.libraryExplorer",
           "group": "navigation@5"
         },
         {
-          "command": "labwindowsCvi.refreshFileSymbols",
-          "when": "view == labwindowsCvi.fileSymbols",
+          "command": "cpm.refreshFileSymbols",
+          "when": "view == cpm.fileSymbols",
           "group": "navigation@1"
         },
         {
-          "command": "labwindowsCvi.openHome",
-          "when": "view == labwindowsCvi.workspaceExplorer",
+          "command": "cpm.openHome",
+          "when": "view == cpm.workspaceExplorer",
           "group": "navigation@1"
         },
         {
-          "command": "labwindowsCvi.openWorkspace",
-          "when": "view == labwindowsCvi.workspaceExplorer",
+          "command": "cpm.openWorkspace",
+          "when": "view == cpm.workspaceExplorer",
           "group": "navigation@2"
         },
         {
-          "command": "labwindowsCvi.chooseBuildAction",
-          "when": "view == labwindowsCvi.workspaceExplorer",
+          "command": "cpm.chooseBuildAction",
+          "when": "view == cpm.workspaceExplorer",
           "group": "navigation@3"
         },
         {
-          "command": "labwindowsCvi.run",
-          "when": "view == labwindowsCvi.workspaceExplorer",
+          "command": "cpm.run",
+          "when": "view == cpm.workspaceExplorer",
           "group": "navigation@4"
         },
         {
-          "command": "labwindowsCvi.chooseRunAction",
-          "when": "view == labwindowsCvi.workspaceExplorer",
+          "command": "cpm.chooseRunAction",
+          "when": "view == cpm.workspaceExplorer",
           "group": "navigation@5"
         },
         {
-          "command": "labwindowsCvi.selectBuildModeD32",
-          "when": "view == labwindowsCvi.workspaceExplorer && labwindowsCvi.buildMode == debug",
+          "command": "cpm.selectBuildModeD32",
+          "when": "view == cpm.workspaceExplorer && cpm.buildMode == debug",
           "group": "navigation@6"
         },
         {
-          "command": "labwindowsCvi.selectBuildModeR32",
-          "when": "view == labwindowsCvi.workspaceExplorer && labwindowsCvi.buildMode == release",
+          "command": "cpm.selectBuildModeR32",
+          "when": "view == cpm.workspaceExplorer && cpm.buildMode == release",
           "group": "navigation@6"
         },
         {
-          "command": "labwindowsCvi.selectBuildModeD64",
-          "when": "view == labwindowsCvi.workspaceExplorer && labwindowsCvi.buildMode == debug64",
+          "command": "cpm.selectBuildModeD64",
+          "when": "view == cpm.workspaceExplorer && cpm.buildMode == debug64",
           "group": "navigation@6"
         },
         {
-          "command": "labwindowsCvi.selectBuildModeR64",
-          "when": "view == labwindowsCvi.workspaceExplorer && labwindowsCvi.buildMode == release64",
+          "command": "cpm.selectBuildModeR64",
+          "when": "view == cpm.workspaceExplorer && cpm.buildMode == release64",
           "group": "navigation@6"
         },
         {
-          "command": "labwindowsCvi.selectTargetTypeEXE",
-          "when": "view == labwindowsCvi.workspaceExplorer && labwindowsCvi.targetType == exe",
+          "command": "cpm.selectTargetTypeEXE",
+          "when": "view == cpm.workspaceExplorer && cpm.targetType == exe",
           "group": "navigation@7"
         },
         {
-          "command": "labwindowsCvi.selectTargetTypeDLL",
-          "when": "view == labwindowsCvi.workspaceExplorer && labwindowsCvi.targetType == dll",
+          "command": "cpm.selectTargetTypeDLL",
+          "when": "view == cpm.workspaceExplorer && cpm.targetType == dll",
           "group": "navigation@7"
         },
         {
-          "command": "labwindowsCvi.selectTargetTypeLIB",
-          "when": "view == labwindowsCvi.workspaceExplorer && labwindowsCvi.targetType == lib",
+          "command": "cpm.selectTargetTypeLIB",
+          "when": "view == cpm.workspaceExplorer && cpm.targetType == lib",
           "group": "navigation@7"
         },
         {
-          "command": "labwindowsCvi.editBuildSettings",
-          "when": "view == labwindowsCvi.workspaceExplorer",
+          "command": "cpm.editBuildSettings",
+          "when": "view == cpm.workspaceExplorer",
           "group": "navigation@8"
         },
         {
-          "command": "labwindowsCvi.refresh",
-          "when": "view == labwindowsCvi.workspaceExplorer",
+          "command": "cpm.refresh",
+          "when": "view == cpm.workspaceExplorer",
           "group": "navigation@9"
         }
       ],
       "view/item/context": [
         {
-          "command": "labwindowsCvi.openWorkspaceInCvi",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviWorkspace",
+          "command": "cpm.openWorkspaceFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
           "group": "inline@1"
         },
         {
-          "command": "labwindowsCvi.createProjectInWorkspace",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviWorkspace",
+          "command": "cpm.createProjectInWorkspace",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
           "group": "modification@1"
         },
         {
-          "command": "labwindowsCvi.addExistingProject",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviWorkspace",
+          "command": "cpm.addExistingProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
           "group": "modification@2"
         },
         {
-          "command": "labwindowsCvi.saveAll",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.saveAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "project@1"
         },
         {
-          "command": "labwindowsCvi.setActiveProject",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.setActiveProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "project@2"
         },
         {
-          "command": "labwindowsCvi.buildProject",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.buildProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "build@1"
         },
         {
-          "command": "labwindowsCvi.rebuildProject",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.rebuildProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "build@2"
         },
         {
-          "command": "labwindowsCvi.editProjectInCvi",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.editProjectFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "build@4"
         },
         {
-          "command": "labwindowsCvi.executeProject",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.executeProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "build@5"
         },
         {
-          "command": "labwindowsCvi.chooseRunAction",
+          "command": "cpm.chooseRunAction",
           "group": "build@5.5",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject"
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject"
         },
         {
-          "command": "labwindowsCvi.removeProject",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.removeProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "build@6"
         },
         {
-          "command": "labwindowsCvi.addFolder",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.addFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "modification@1"
         },
         {
-          "command": "labwindowsCvi.addFiles",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.addFiles",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "modification@2"
         },
         {
-          "command": "labwindowsCvi.createNewFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.createNewFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "modification@3"
         },
         {
-          "command": "labwindowsCvi.openProjectFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.openProjectFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "navigation@1"
         },
         {
-          "command": "labwindowsCvi.revealProjectFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.revealProjectFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "navigation@2"
         },
         {
-          "command": "labwindowsCvi.exploreProjectDirectory",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.exploreProjectDirectory",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "navigation@3"
         },
         {
-          "command": "labwindowsCvi.findProject",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.findProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "navigation@4"
         },
         {
-          "command": "labwindowsCvi.expandAll",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.expandAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "navigation@5"
         },
         {
-          "command": "labwindowsCvi.collapseAll",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.collapseAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "navigation@6"
         },
         {
-          "command": "labwindowsCvi.renameFolder",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.renameFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "modification@1"
         },
         {
-          "command": "labwindowsCvi.removeFolder",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.removeFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "modification@2"
         },
         {
-          "command": "labwindowsCvi.addFolder",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.addFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "modification@3"
         },
         {
-          "command": "labwindowsCvi.addFiles",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.addFiles",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "modification@4"
         },
         {
-          "command": "labwindowsCvi.createNewFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.createNewFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "modification@5"
         },
         {
-          "command": "labwindowsCvi.findFolder",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.findFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "navigation@1"
         },
         {
-          "command": "labwindowsCvi.exploreFolderDirectory",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.exploreFolderDirectory",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "navigation@2"
         },
         {
-          "command": "labwindowsCvi.expandAll",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.expandAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "navigation@3"
         },
         {
-          "command": "labwindowsCvi.collapseAll",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviFolder",
+          "command": "cpm.collapseAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
           "group": "navigation@4"
         },
         {
-          "command": "labwindowsCvi.openFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.(source|header|library|other)\\./",
+          "command": "cpm.openFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|library|other)\\./",
           "group": "inline@1"
         },
         {
-          "command": "labwindowsCvi.openPanelInCvi",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.panel\\./",
+          "command": "cpm.openPanelFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.panel\\./",
           "group": "inline@1"
         },
         {
-          "command": "labwindowsCvi.openFunctionPanel",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.functionPanel\\./",
+          "command": "cpm.openFunctionPanel",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.functionPanel\\./",
           "group": "inline@1"
         },
         {
-          "command": "labwindowsCvi.saveFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.(source|header|library|other)\\./",
+          "command": "cpm.saveFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|library|other)\\./",
           "group": "file@2"
         },
         {
-          "command": "labwindowsCvi.excludeFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\..*\\.included\\./",
+          "command": "cpm.excludeFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.included\\./",
           "group": "build@1"
         },
         {
-          "command": "labwindowsCvi.includeFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\..*\\.excluded\\./",
+          "command": "cpm.includeFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.excluded\\./",
           "group": "build@1"
         },
         {
-          "command": "labwindowsCvi.toggleObjOption",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.source\\./",
+          "command": "cpm.toggleObjOption",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
           "group": "build@2"
         },
         {
-          "command": "labwindowsCvi.renameFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.renameFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "modification@1"
         },
         {
-          "command": "labwindowsCvi.replaceFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.replaceFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "modification@2"
         },
         {
-          "command": "labwindowsCvi.removeFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.removeFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "modification@3"
         },
         {
-          "command": "labwindowsCvi.compileFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.source\\./",
+          "command": "cpm.compileFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
           "group": "build@3"
         },
         {
-          "command": "labwindowsCvi.copyFilePath",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.copyFilePath",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "clipboard@1"
         },
         {
-          "command": "labwindowsCvi.copyRelativeFilePath",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.copyRelativeFilePath",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "clipboard@2"
         },
         {
-          "command": "labwindowsCvi.revealFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.revealFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "navigation@1"
         },
         {
-          "command": "labwindowsCvi.exploreFileDirectory",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.exploreFileDirectory",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "navigation@2"
         },
         {
-          "command": "labwindowsCvi.findFile",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.findFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "navigation@3"
         },
         {
-          "command": "labwindowsCvi.expandAll",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.expandAll",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "navigation@4"
         },
         {
-          "command": "labwindowsCvi.collapseAll",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\./",
+          "command": "cpm.collapseAll",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "navigation@5"
         },
         {
-          "command": "labwindowsCvi.debugProjectInCvi",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.debugProjectWithGdb",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "build@4"
         },
         {
-          "command": "labwindowsCvi.library.insertCall",
-          "when": "view == labwindowsCvi.libraryExplorer && viewItem == cviFunction",
+          "command": "cpm.library.insertCall",
+          "when": "view == cpm.libraryExplorer && viewItem == cpmFunction",
           "group": "inline@9"
         },
         {
-          "command": "labwindowsCvi.saveFileAsTemplate",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.(source|header|other)\\./",
+          "command": "cpm.saveFileAsTemplate",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|other)\\./",
           "group": "modification@3"
         },
         {
-          "command": "labwindowsCvi.openWorkspaceInCvi",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviWorkspace",
+          "command": "cpm.openWorkspaceFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
           "group": "navigation@1"
         },
         {
-          "command": "labwindowsCvi.cleanProject",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.cleanProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "build@3"
         },
         {
-          "command": "labwindowsCvi.selectTargetType",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.selectTargetType",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "settings@1"
         },
         {
-          "command": "labwindowsCvi.editBuildSettings",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.editBuildSettings",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "settings@2"
         },
         {
-          "command": "labwindowsCvi.editBuildSettingsSafeMode",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem == cviProject",
+          "command": "cpm.editBuildSettingsSafeMode",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
           "group": "settings@3"
         },
         {
-          "command": "labwindowsCvi.generatePrototypes",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.source\\./",
+          "command": "cpm.generatePrototypes",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
           "group": "build@4"
         },
         {
-          "command": "labwindowsCvi.prepareDllImportLibraryGeneration",
-          "when": "view == labwindowsCvi.workspaceExplorer && viewItem =~ /^cviFile\\.header\\./",
+          "command": "cpm.prepareDllImportLibraryGeneration",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.header\\./",
           "group": "build@5"
         }
       ],
       "commandPalette": [
         {
-          "command": "labwindowsCvi.setActiveProject",
+          "command": "cpm.setActiveProject",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.buildProject",
+          "command": "cpm.buildProject",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.rebuildProject",
+          "command": "cpm.rebuildProject",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.executeProject",
+          "command": "cpm.executeProject",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.editProjectInCvi",
+          "command": "cpm.editProjectFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.openProjectFile",
+          "command": "cpm.openProjectFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.removeProject",
+          "command": "cpm.removeProject",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.addFiles",
+          "command": "cpm.addFiles",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.addFolder",
+          "command": "cpm.addFolder",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.renameFolder",
+          "command": "cpm.renameFolder",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.removeFolder",
+          "command": "cpm.removeFolder",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.removeFile",
+          "command": "cpm.removeFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.excludeFile",
+          "command": "cpm.excludeFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.includeFile",
+          "command": "cpm.includeFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.toggleObjOption",
+          "command": "cpm.toggleObjOption",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.renameFile",
+          "command": "cpm.renameFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.replaceFile",
+          "command": "cpm.replaceFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.compileFile",
+          "command": "cpm.compileFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.saveFile",
+          "command": "cpm.saveFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.openFile",
+          "command": "cpm.openFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.openPanelInCvi",
+          "command": "cpm.openPanelFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.revealProjectFile",
+          "command": "cpm.revealProjectFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.revealFile",
+          "command": "cpm.revealFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.exploreProjectDirectory",
+          "command": "cpm.exploreProjectDirectory",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.exploreFolderDirectory",
+          "command": "cpm.exploreFolderDirectory",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.exploreFileDirectory",
+          "command": "cpm.exploreFileDirectory",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.findProject",
+          "command": "cpm.findProject",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.findFolder",
+          "command": "cpm.findFolder",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.findFile",
+          "command": "cpm.findFile",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.debugProjectInCvi",
+          "command": "cpm.debugProjectWithGdb",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.cleanProject",
+          "command": "cpm.cleanProject",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.generatePrototypes",
+          "command": "cpm.generatePrototypes",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.selectBuildModeD32",
+          "command": "cpm.selectBuildModeD32",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.selectBuildModeR32",
+          "command": "cpm.selectBuildModeR32",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.selectBuildModeD64",
+          "command": "cpm.selectBuildModeD64",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.selectBuildModeR64",
+          "command": "cpm.selectBuildModeR64",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.selectTargetTypeEXE",
+          "command": "cpm.selectTargetTypeEXE",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.selectTargetTypeDLL",
+          "command": "cpm.selectTargetTypeDLL",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.selectTargetTypeLIB",
+          "command": "cpm.selectTargetTypeLIB",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.prepareDllImportLibraryGeneration",
+          "command": "cpm.prepareDllImportLibraryGeneration",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.copyFilePath",
+          "command": "cpm.copyFilePath",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.copyRelativeFilePath",
+          "command": "cpm.copyRelativeFilePath",
           "when": "false"
         },
         {
-          "command": "labwindowsCvi.openFunctionPanel",
+          "command": "cpm.openFunctionPanel",
           "when": "false"
         }
       ],
       "editor/context": [
         {
-          "command": "labwindowsCvi.insertSnippet",
+          "submenu": "cpm.editorRoot",
           "when": "editorLangId == c || editorLangId == cpp",
           "group": "modification@1"
-        },
-        {
-          "command": "labwindowsCvi.saveSelectionAsSnippet",
-          "when": "(editorLangId == c || editorLangId == cpp) && editorHasSelection",
-          "group": "modification@2"
-        },
-        {
-          "submenu": "labwindowsCvi.convertSelectedInteger",
-          "when": "editorHasSelection",
-          "group": "modification@3"
         }
       ],
-      "labwindowsCvi.convertSelectedInteger": [
+      "cpm.convertSelectedInteger": [
         {
-          "command": "labwindowsCvi.convertSelectedIntegerToDecimal",
+          "command": "cpm.convertSelectedIntegerToDecimal",
           "when": "editorHasSelection",
           "group": "1_convert@1"
         },
         {
-          "command": "labwindowsCvi.convertSelectedIntegerToHexadecimal",
+          "command": "cpm.convertSelectedIntegerToHexadecimal",
           "when": "editorHasSelection",
           "group": "1_convert@2"
         },
         {
-          "command": "labwindowsCvi.convertSelectedIntegerToBinary",
+          "command": "cpm.convertSelectedIntegerToBinary",
           "when": "editorHasSelection",
           "group": "1_convert@3"
+        }
+      ],
+      "cpm.editorRoot": [
+        {
+          "submenu": "cpm.editorDocumentation",
+          "group": "1_doc@1"
+        },
+        {
+          "submenu": "cpm.editorSnippets",
+          "group": "2_snippets@1"
+        },
+        {
+          "submenu": "cpm.convertSelectedInteger",
+          "when": "editorHasSelection",
+          "group": "3_tools@1"
+        }
+      ],
+      "cpm.editorDocumentation": [
+        {
+          "command": "cpm.insertFileHeader",
+          "group": "1_header@1"
+        },
+        {
+          "command": "cpm.insertHeaderChangeEntry",
+          "group": "1_header@2"
+        },
+        {
+          "command": "cpm.insertCommentSection",
+          "group": "2_section@1"
+        }
+      ],
+      "cpm.editorSnippets": [
+        {
+          "command": "cpm.insertSnippet",
+          "group": "1_snippets@1"
+        },
+        {
+          "command": "cpm.saveSelectionAsSnippet",
+          "when": "editorHasSelection",
+          "group": "1_snippets@2"
+        },
+        {
+          "command": "cpm.manageSnippets",
+          "group": "1_snippets@3"
         }
       ]
     },
     "configuration": {
       "title": "C/C++ Project Manager",
       "properties": {
-        "labwindowsCvi.installations": {
+        "cpm.installations": {
           "type": "array",
           "default": [],
           "items": {
             "type": "string"
           },
-          "description": "Known C/C++ toolchain root or bin directories detected or added manually."
+          "description": "Known C/C++ toolchain root or bin directories detected or added manually.",
+          "markdownDescription": "Known C/C++ toolchain root or bin directories detected or added manually."
         },
-        "labwindowsCvi.activeInstallation": {
+        "cpm.activeInstallation": {
           "type": "string",
           "default": "",
           "description": "Selected C/C++ toolchain root or bin directory. Leave empty to use automatic detection from PATH and common MinGW/MSYS2/Clang locations."
         },
-        "labwindowsCvi.buildMode": {
+        "cpm.buildMode": {
           "type": "string",
           "enum": [
             "debug",
@@ -1230,20 +1287,7 @@
           "default": "debug",
           "description": "Build mode used by the generic C/C++ build pipeline. Debug modes add -g -O0; release modes add -O2."
         },
-        "labwindowsCvi.customBuildConfiguration": {
-          "type": "string",
-          "default": "",
-          "description": "Optional C/C++ custom build configuration name passed through -config=..."
-        },
-        "labwindowsCvi.extraCompilerArguments": {
-          "type": "array",
-          "default": [],
-          "items": {
-            "type": "string"
-          },
-          "description": "Legacy compatibility setting. For the generic C/C++ build pipeline, prefer compilerFlags, cCompilerFlags or cppCompilerFlags."
-        },
-        "labwindowsCvi.runArguments": {
+        "cpm.runArguments": {
           "type": "array",
           "default": [],
           "items": {
@@ -1251,49 +1295,33 @@
           },
           "description": "Arguments passed to the active executable when running it."
         },
-        "labwindowsCvi.projectFormatVersion": {
+        "cpm.projectFormatVersion": {
           "type": "number",
           "default": 1200,
           "minimum": 1,
-          "description": "Version value used when generating new .cws and .prj files. The default matches the supplied C/C++ 2012 examples."
+          "description": "Internal .cws/.prj format version used when generating new C/C++ Project Manager workspaces. Keep the default unless you need compatibility with a specific legacy parser."
         },
-        "labwindowsCvi.autoLoadWorkspace": {
+        "cpm.autoLoadWorkspace": {
           "type": "boolean",
           "default": true,
           "description": "Automatically load a .cws file when the opened VS Code folder contains exactly one C/C++ workspace."
         },
-        "labwindowsCvi.autoConfigureCppTools": {
+        "cpm.autoConfigureCppTools": {
           "type": "boolean",
           "default": false,
           "description": "Automatically create or update the managed C/C++ Project Manager entry in .vscode/c_cpp_properties.json when a C/C++ workspace is opened or the selected installation changes. Disabled by default to avoid slowing Microsoft C/C++ IntelliSense; use the Sync IntelliSense command manually."
         },
-        "labwindowsCvi.autoAddCviFolderToWorkspace": {
+        "cpm.autoAddCpmFolderToWorkspace": {
           "type": "boolean",
           "default": false,
           "description": "Automatically add the precise C/C++ project root to the standard VS Code Explorer. Disabled by default to avoid unexpected workspace changes and large IntelliSense indexing scopes."
         },
-        "labwindowsCvi.uirTemplateVersion": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "cvi2012",
-            "cvi2020"
-          ],
-          "default": "auto",
-          "description": "Legacy CVI UI resource setting kept only for compatibility with imported workspaces."
-        },
-        "labwindowsCvi.useCppToolsConfigurationProvider": {
-          "type": "boolean",
-          "default": false,
-          "description": "Deprecated compatibility switch. Dynamic C/C++ provider registration is no longer used because it can override IntelliSense outside C/C++ workspaces. The extension manages c_cpp_properties.json directly.",
-          "deprecationMessage": "Deprecated since 0.6.0. The dynamic provider is disabled permanently; use the generated c_cpp_properties.json configuration."
-        },
-        "labwindowsCvi.intelliSenseCompilerPath": {
+        "cpm.intelliSenseCompilerPath": {
           "type": "string",
           "default": "",
           "description": "Optional explicit compiler executable used by Microsoft C/C++ IntelliSense. Leave empty to use the selected gcc/g++/clang toolchain."
         },
-        "labwindowsCvi.additionalIncludePaths": {
+        "cpm.additionalIncludePaths": {
           "type": "array",
           "default": [],
           "items": {
@@ -1301,52 +1329,52 @@
           },
           "description": "Additional include directories appended to the generated C/C++ IntelliSense configuration."
         },
-        "labwindowsCvi.enableSupplementalCompletionProvider": {
+        "cpm.enableSupplementalCompletionProvider": {
           "type": "boolean",
           "default": false,
           "description": "Provide supplemental completion items parsed from active project sources only. Disabled by default to leave completion fully managed by Microsoft C/C++ and avoid extra work while typing."
         },
-        "labwindowsCvi.enableStandardLibraryCompletionProvider": {
+        "cpm.enableStandardLibraryCompletionProvider": {
           "type": "boolean",
           "default": true,
           "description": "Provide lightweight completion items for common C/C++ standard-library symbols only when the matching header is not already included. This avoids duplicates with Microsoft C/C++ IntelliSense while still allowing auto-include insertion before the header exists."
         },
-        "labwindowsCvi.standardLibraryCompletionAutoInclude": {
+        "cpm.standardLibraryCompletionAutoInclude": {
           "type": "boolean",
           "default": true,
           "description": "When a standard-library completion item is accepted, insert the required #include if it is missing from the current file."
         },
-        "labwindowsCvi.showPersistentStatusBarActions": {
+        "cpm.showPersistentStatusBarActions": {
           "type": "boolean",
           "default": true,
           "description": "Show compact C/C++ Project Manager actions in the VS Code status bar. These actions remain available when the C/C++ Workspace view is collapsed."
         },
-        "labwindowsCvi.cCompilerPath": {
+        "cpm.cCompilerPath": {
           "type": "string",
           "default": "gcc",
           "description": "C compiler executable used by the generic build pipeline, for example gcc or an absolute MinGW gcc.exe path."
         },
-        "labwindowsCvi.cppCompilerPath": {
+        "cpm.cppCompilerPath": {
           "type": "string",
           "default": "g++",
           "description": "C++ compiler and linker executable used by the generic build pipeline, for example g++ or an absolute MinGW g++.exe path."
         },
-        "labwindowsCvi.archiverPath": {
+        "cpm.archiverPath": {
           "type": "string",
           "default": "ar",
           "description": "Static-library archiver executable used for Static Library targets."
         },
-        "labwindowsCvi.debuggerPath": {
+        "cpm.debuggerPath": {
           "type": "string",
           "default": "gdb",
           "description": "GDB executable used when launching the VS Code cppdbg debugger."
         },
-        "labwindowsCvi.outputDirectory": {
+        "cpm.outputDirectory": {
           "type": "string",
           "default": "build",
           "description": "Directory, relative to the project file by default, used to store generic compiler objects and fallback targets."
         },
-        "labwindowsCvi.cStandard": {
+        "cpm.cStandard": {
           "type": "string",
           "enum": [
             "auto",
@@ -1363,7 +1391,7 @@
           "default": "auto",
           "description": "C language standard passed as -std=<value>. auto does not pass a C standard flag."
         },
-        "labwindowsCvi.cppStandard": {
+        "cpm.cppStandard": {
           "type": "string",
           "enum": [
             "auto",
@@ -1383,7 +1411,57 @@
           "default": "c++17",
           "description": "C++ language standard passed as -std=<value>. auto does not pass a C++ standard flag."
         },
-        "labwindowsCvi.compilerFlags": {
+        "cpm.warningLevel": {
+          "type": "string",
+          "enum": [
+            "none",
+            "wall",
+            "wall-extra",
+            "wall-extra-pedantic",
+            "all"
+          ],
+          "default": "wall-extra",
+          "description": "Predefined warning profile used by the generic GCC/MinGW build pipeline. none passes no warning flag; all adds -Wall -Wextra -Wpedantic -Wconversion."
+        },
+        "cpm.optimizationLevel": {
+          "type": "string",
+          "enum": [
+            "mode-default",
+            "none",
+            "O0",
+            "Og",
+            "O1",
+            "O2",
+            "O3",
+            "Os",
+            "Ofast"
+          ],
+          "default": "mode-default",
+          "description": "Optimization profile used by the generic build pipeline. mode-default uses -O0 for Debug and -O2 for Release."
+        },
+        "cpm.debugInformation": {
+          "type": "string",
+          "enum": [
+            "mode-default",
+            "none",
+            "g",
+            "g3"
+          ],
+          "default": "mode-default",
+          "description": "Debug-information profile used by the generic build pipeline. mode-default adds -g only for Debug configurations."
+        },
+        "cpm.architectureMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "from-build-mode",
+            "m32",
+            "m64"
+          ],
+          "default": "auto",
+          "description": "Architecture flag mode. auto uses the selected compiler default; from-build-mode maps Debug/Release to -m32 and Debug64/Release64 to -m64."
+        },
+        "cpm.compilerFlags": {
           "type": "array",
           "default": [],
           "items": {
@@ -1391,7 +1469,7 @@
           },
           "description": "Additional flags passed to both C and C++ compilation commands."
         },
-        "labwindowsCvi.cCompilerFlags": {
+        "cpm.cCompilerFlags": {
           "type": "array",
           "default": [],
           "items": {
@@ -1399,7 +1477,7 @@
           },
           "description": "Additional flags passed only to C compilation commands."
         },
-        "labwindowsCvi.cppCompilerFlags": {
+        "cpm.cppCompilerFlags": {
           "type": "array",
           "default": [],
           "items": {
@@ -1407,7 +1485,7 @@
           },
           "description": "Additional flags passed only to C++ compilation commands."
         },
-        "labwindowsCvi.linkerFlags": {
+        "cpm.linkerFlags": {
           "type": "array",
           "default": [],
           "items": {
@@ -1415,7 +1493,7 @@
           },
           "description": "Additional flags passed to the final link command."
         },
-        "labwindowsCvi.includePaths": {
+        "cpm.includePaths": {
           "type": "array",
           "default": [],
           "items": {
@@ -1423,7 +1501,7 @@
           },
           "description": "Additional include directories. Relative paths are resolved from the project file directory."
         },
-        "labwindowsCvi.libraryPaths": {
+        "cpm.libraryPaths": {
           "type": "array",
           "default": [],
           "items": {
@@ -1431,7 +1509,7 @@
           },
           "description": "Additional library search directories passed as -L entries. Relative paths are resolved from the project file directory."
         },
-        "labwindowsCvi.libraries": {
+        "cpm.libraries": {
           "type": "array",
           "default": [],
           "items": {
@@ -1439,7 +1517,7 @@
           },
           "description": "Additional libraries passed to the linker. Values may be names such as m/ws2_32 or complete -l flags."
         },
-        "labwindowsCvi.defineSymbols": {
+        "cpm.defineSymbols": {
           "type": "array",
           "default": [],
           "items": {
@@ -1447,21 +1525,40 @@
           },
           "description": "Preprocessor symbols passed as -D entries."
         },
-        "labwindowsCvi.useBuildModeArchitectureFlags": {
+        "cpm.useBuildModeArchitectureFlags": {
           "type": "boolean",
           "default": false,
           "description": "When enabled, x86 modes add -m32 and x64 modes add -m64. Keep disabled if you select architecture by choosing a specific compiler path."
+        },
+        "cpm.deployRuntimeDlls": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "never"
+          ],
+          "default": "auto",
+          "description": "Deploy MinGW runtime DLLs such as libgcc_s_*.dll, libstdc++-6.dll and libwinpthread-1.dll beside generated executables/DLLs. auto copies only DLLs found in the selected toolchain bin directory."
+        },
+        "cpm.useLocalBuildCacheForOneDrive": {
+          "type": "boolean",
+          "default": true,
+          "description": "When the project is located under OneDrive and the normal object directory cannot be created, fall back to a local build cache for intermediate object files."
+        },
+        "cpm.cleanRuntimeDllsOnDeploy": {
+          "type": "boolean",
+          "default": true,
+          "description": "Before deploying MinGW runtime DLLs beside the target, remove stale or architecture-mismatched MinGW runtime DLLs from the target directory. This prevents x86/x64 runtime DLL mix-ups when switching build modes."
         }
       }
     },
     "keybindings": [
       {
-        "command": "labwindowsCvi.library.findFunction",
+        "command": "cpm.library.findFunction",
         "key": "ctrl+alt+p",
         "mac": "cmd+alt+p"
       },
       {
-        "command": "labwindowsCvi.insertSnippet",
+        "command": "cpm.insertSnippet",
         "key": "ctrl+alt+i",
         "mac": "cmd+alt+i",
         "when": "editorTextFocus"
@@ -1469,7 +1566,19 @@
     ],
     "submenus": [
       {
-        "id": "labwindowsCvi.convertSelectedInteger",
+        "id": "cpm.editorSnippets",
+        "label": "Snippets"
+      },
+      {
+        "id": "cpm.editorDocumentation",
+        "label": "Documentation / comments"
+      },
+      {
+        "id": "cpm.editorRoot",
+        "label": "CPM"
+      },
+      {
+        "id": "cpm.convertSelectedInteger",
         "label": "Convert selected integer to"
       }
     ],

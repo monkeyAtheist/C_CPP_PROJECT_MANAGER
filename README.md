@@ -1,136 +1,56 @@
-# Intelligent Boats — Macroplastique Challenge (v3)
-## Architecture Raspberry Pi 4B + ESP32 + C++ camera_worker
+# C/C++ Project Manager and Build
 
----
+Visual Studio Code extension for creating and managing lightweight C/C++ workspaces and projects without writing `tasks.json` or `launch.json` manually.
 
-## Nouveauté v3 — Délégation caméra au C++
+The extension is derived from the former C/C++ Project Manager project-manager architecture, but the build and debug workflow is now generic C/C++. It keeps the `.cws/.prj` project model for compatibility with the existing workspace explorer, while using configurable GCC/MinGW/Clang/GDB tools for compilation and debugging.
 
-Toute la partie caméra (capture, traitement vidéo, détection et classification
-des balles) est gérée par un programme **C++ externe** (`camera_worker`).
+## Main features
 
-Python communique avec lui via **stdin/stdout (JSON Lines)** — le même
-protocole que celui décrit dans `catj_py_helper.py` et `README_python_worker_protocol.md`.
+- Create or open a workspace containing one or more C/C++ projects.
+- Add existing `.c`, `.cpp`, `.h`, `.hpp`, `.a`, `.lib`, `.o` and `.obj` files to a project.
+- Create starter files from embedded C/C++ templates.
+- Select executable, dynamic-library or static-library targets.
+- Build, rebuild, clean, run and debug the active project.
+- Detect C/C++ toolchains from `PATH`, common MinGW/MSYS2/Clang locations and manually configured folders.
+- Store explicit compiler paths for `gcc`, `g++`, `ar` and `gdb` or compatible alternatives.
+- Synchronize a managed `.vscode/c_cpp_properties.json` entry for Microsoft C/C++ IntelliSense.
+- Browse embedded C/C++ library packs and insert snippets.
 
-```
-Raspberry Pi 4B
-│
-├──[UART /dev/ttyAMA0]──▶ ESP32         (PCA9685, LCD, IMU, GPS…)
-├──[USB  /dev/ttyUSB0]──▶ RPLidar C1   (navigation)
-└──[pipe stdin/stdout]──▶ ./camera_worker  ← NOUVEAU v3
-      │
-      ├── Python → C++ : {"cmd":"get_detections"}\n
-      └── C++ → Python : {"ok":true,"detections":[...]}\n
-```
+## Toolchain selection
 
----
+Use **C/C++ Project Manager: Detect / Select Toolchain** or the **Detect / select toolchain** button on the home page.
 
-## Structure des fichiers Python
+The selector lists detected GCC, MinGW, MSYS2 and Clang toolchains. It also provides two manual options:
 
-```
-robot_v3/
-├── main.py                ← POINT D'ENTRÉE → python3 main.py
-├── config.py              ← Constantes (dont CPP_CAMERA_BINARY)
-├── logger.py              ← Logger partagé
-├── catj_py_helper.py      ← Helper protocole C++/Python (fourni)
-│
-├── protocole_uart.py      ← Trames JSON ESP32
-├── esp32_interface.py     ← Communication UART ESP32
-│
-├── camera_client.py       ★ NOUVEAU : client vers C++ caméra
-├── traitement_balles.py   ★ MODIFIÉ : consomme camera_client
-│
-├── controleur_lidar.py    ← RPLidar C1 (inchangé)
-├── navigation.py          ← FGM + cap + guidage visuel (sans cv2)
-├── mode_labyrinthe.py     ← Contre-la-montre (inchangé)
-├── mode_course.py         ★ MODIFIÉ : collecte via vision C++
-└── demarrage.py           ← Init + homologation (inchangé)
-```
+- add a toolchain from a root or `bin` directory;
+- enter the C compiler, C++ compiler, archiver and debugger executable paths manually.
 
----
+The selected paths are stored in these settings:
 
-## Contrat attendu du programme C++
+- `cpm.cCompilerPath`
+- `cpm.cppCompilerPath`
+- `cpm.archiverPath`
+- `cpm.debuggerPath`
+- `cpm.intelliSenseCompilerPath`
 
-### Commande `get_detections`
+The setting prefix is kept for compatibility with the original project-manager codebase and may be migrated in a later version.
 
-```json
-// Python → C++ (stdin du C++)
-{"cmd":"get_detections"}
+## Build and debug
 
-// C++ → Python (stdout du C++)
-{
-  "ok": true,
-  "frame_id": 1234,
-  "timestamp_ms": 98765,
-  "detections": [
-    {
-      "type":       "piscine_rouge",
-      "cx":         320,
-      "cy":         240,
-      "rayon_px":   28.5,
-      "distance_m": 1.42,
-      "angle_deg":  5.2,
-      "confidence": 0.91
-    }
-  ]
-}
-```
+The generic build pipeline compiles each included C/C++ source into an object file, then links the configured target.
 
-### Types de balles reconnus
+Supported target types:
 
-| `type`            | Description              | Score  |
-|-------------------|--------------------------|--------|
-| `pingpong_orange` | Ping-pong orange Ø 4 cm  | −5 pts |
-| `piscine_rouge`   | Piscine rouge Ø 7 cm     | +10 pts|
-| `piscine_autre`   | Piscine autre couleur     | −10 pts|
+- `Executable` -> `.exe` on Windows-style project outputs;
+- `Dynamic Link Library` -> `.dll`;
+- `Static Library` -> `.a`.
 
-### Autres commandes supportées
+Debug uses VS Code `cppdbg` with the configured debugger path, usually `gdb` for MinGW/GCC projects.
 
-```json
-{"cmd":"ping"}          → {"ok":true,"reply":"pong"}
-{"cmd":"get_frame_info"} → {"ok":true,"width":640,"height":480,"fps":30}
-{"cmd":"set_params",...} → {"ok":true}
-{"cmd":"quit"}           → {"ok":true,"stop":true}
-```
+## Notes
 
----
+Some internal command identifiers still use the historical `cpm` namespace to avoid breaking the existing workspace, project, template and parser services. User-visible labels have been moved to C/C++ Project Manager terminology where this version touches the UI.
 
-## Configuration (config.py)
+## Documentation layout
 
-```python
-CPP_CAMERA_BINARY    = './camera_worker'   # Chemin du binaire C++
-CPP_CAMERA_ARGS      = ['--pipe']          # Arguments de lancement
-CPP_CAMERA_TIMEOUT_S = 2.0                 # Timeout réponse (s)
-CPP_CAMERA_REFRESH_S = 0.10                # Cadence refresh (s)
-```
-
----
-
-## Installation
-
-```bash
-pip3 install pyserial rplidar-roboticia
-# OpenCV n'est plus nécessaire côté Python
-```
-
----
-
-## Lancement
-
-```bash
-cd robot_v3/
-python3 main.py
-```
-
-Si `camera_worker` est introuvable → **mode simulation automatique**
-(détections fictives générées pour tester la logique Python).
-
----
-
-## Filtres appliqués côté Python (traitement_balles.py)
-
-| Filtre              | Valeur par défaut |
-|---------------------|-------------------|
-| Confidence minimale | 0.50              |
-| Distance minimale   | 0.10 m            |
-| Distance maximale   | 6.00 m            |
-| Anti-rebond collecte| 1.50 s            |
+Historical validation reports and migration notes are stored under `docs/history/`. The project root keeps only `README.md`, `CHANGELOG.md`, `ARCHITECTURE.md` and `TEMPLATES_AND_SNIPPETS.md` as active documentation.

@@ -1,0 +1,20 @@
+{
+  "artifact": "labwindows-cvi-project-manager-0.6.9.vsix",
+  "version": "0.6.9",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "sizeBytes": 5569811,
+  "zipEntries": 172,
+  "checks": {
+    "zipIntegrity": true,
+    "manifestVersion": true,
+    "publisher": true,
+    "compiledBuildSettingsPanelIncluded": true,
+    "manifestConditionalControls": true,
+    "importLibBaseNameConditionalControls": true,
+    "customCopyDirectoryConditionalControls": true,
+    "exportHeadersConditionalControls": true,
+    "importLibraryChoicesDialog": true,
+    "typeInformationUiPreserved": true,
+    "marketplaceIconIncluded": true
+  }
+}

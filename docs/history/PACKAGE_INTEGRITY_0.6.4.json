@@ -1,0 +1,18 @@
+{
+  "version": "0.6.4",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "vsix": "labwindows-cvi-project-manager-0.6.4.vsix",
+  "sizeBytes": 5551275,
+  "sha256": "aa318decc9f13ee30159dea91cb27af10dfc44e5194b5cc459d091fa9a9a0164",
+  "zipIntegrity": "ok",
+  "fileCount": 153,
+  "checks": {
+    "manifestVersion064": true,
+    "publisherCorrect": true,
+    "buildSettingsPanelCompiled": true,
+    "marketplaceIconIncluded": true,
+    "cviPackIncluded": true,
+    "callbackMetadataIncluded": true,
+    "uiAttributeMetadataIncluded": true
+  }
+}

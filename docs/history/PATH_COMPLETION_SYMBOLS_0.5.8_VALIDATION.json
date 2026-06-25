@@ -1,0 +1,35 @@
+{
+  "status": "ok",
+  "version": "0.5.8",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "runtimePathNormalization": {
+    "cviDrive": "C:\\PROG_CVI\\EXE\\Test.exe",
+    "cygdrive": "D:\\tools\\app.exe"
+  },
+  "quickActionsTitleToolbar": {
+    "count": 10,
+    "commands": [
+      "labwindowsCvi.openHome",
+      "labwindowsCvi.openWorkspace",
+      "labwindowsCvi.openWorkspaceInCvi",
+      "labwindowsCvi.chooseBuildAction",
+      "labwindowsCvi.run",
+      "labwindowsCvi.debugInCvi",
+      "labwindowsCvi.selectBuildMode",
+      "labwindowsCvi.selectTargetType",
+      "labwindowsCvi.editBuildSettings",
+      "labwindowsCvi.refresh"
+    ]
+  },
+  "fileSymbolsView": true,
+  "supplementalCompletionSetting": true,
+  "supplementalCompletionRegistration": true,
+  "bundledCompletionSymbols": 1971,
+  "scannedFunctions": [
+    "helper",
+    "check_lg2",
+    "Update",
+    "WinMain"
+  ],
+  "runPathNormalizationHook": true
+}

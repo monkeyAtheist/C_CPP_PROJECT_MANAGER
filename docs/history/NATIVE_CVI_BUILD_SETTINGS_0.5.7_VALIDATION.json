@@ -1,0 +1,41 @@
+{
+  "status": "ok",
+  "sourceRoot": "/mnt/data/prjcvi/PrjCVI",
+  "nativeDebugActions": {
+    "preBuildActions": [
+      "Pre build actions"
+    ],
+    "customBuildActions": [
+      "Custom build actions"
+    ],
+    "postBuildActions": [
+      "Post build actions"
+    ],
+    "nativeSectionsPresent": true
+  },
+  "nativeDebugRun": {
+    "arguments": "Comment line arguments",
+    "workingDirectory": "Working directories",
+    "environmentOptions": "Environnement options",
+    "externalProcessPath": ""
+  },
+  "writtenReleaseActions": {
+    "preBuildActions": [
+      "echo release-pre"
+    ],
+    "customBuildActions": [
+      "echo release-custom"
+    ],
+    "postBuildActions": [
+      "echo release-post"
+    ],
+    "nativeSectionsPresent": true
+  },
+  "writtenDebug64Run": {
+    "arguments": "--x64",
+    "workingDirectory": "C:/work",
+    "environmentOptions": "MODE=x64",
+    "externalProcessPath": "C:/host.exe"
+  },
+  "debugPreservedAfterDebug64Write": "Comment line arguments"
+}

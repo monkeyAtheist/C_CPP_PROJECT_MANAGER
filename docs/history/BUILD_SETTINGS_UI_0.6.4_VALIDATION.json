@@ -1,0 +1,58 @@
+{
+  "version": "0.6.4",
+  "status": "ok",
+  "modes": {
+    "debug": {
+      "title": "ALL_CONFIG_TITLE",
+      "runtimeSupport": "Instrument Driver Support Only",
+      "runtimeBinding": "Side-by-side",
+      "help": "XML & HTML",
+      "output": "/tmp/cvi064-dCePLt/all-config-output.dll"
+    },
+    "release": {
+      "title": "ALL_CONFIG_TITLE",
+      "runtimeSupport": "Instrument Driver Support Only",
+      "runtimeBinding": "Side-by-side",
+      "help": "XML & HTML",
+      "output": "/tmp/cvi064-dCePLt/all-config-output.dll"
+    },
+    "debug64": {
+      "title": "ALL_CONFIG_TITLE",
+      "runtimeSupport": "Instrument Driver Support Only",
+      "runtimeBinding": "Side-by-side",
+      "help": "XML & HTML",
+      "output": "/tmp/cvi064-dCePLt/all-config-output.dll"
+    },
+    "release64": {
+      "title": "ALL_CONFIG_TITLE",
+      "runtimeSupport": "Instrument Driver Support Only",
+      "runtimeBinding": "Side-by-side",
+      "help": "XML & HTML",
+      "output": "/tmp/cvi064-dCePLt/all-config-output.dll"
+    }
+  },
+  "browserFields": [
+    "outputPath",
+    "iconFile",
+    "manifestPath",
+    "customDirectoryToCopyDll",
+    "typeLibFpFile",
+    "singleHeaderNiTypeInfoFile",
+    "workingDirectory",
+    "externalProcessPath"
+  ],
+  "scopes": [
+    "debug",
+    "release",
+    "debug64",
+    "release64",
+    "all"
+  ],
+  "selectLists": [
+    "runtimeSupport",
+    "runtimeBinding",
+    "generateSourceDocumentation",
+    "whereToCopyDll",
+    "dllExports"
+  ]
+}

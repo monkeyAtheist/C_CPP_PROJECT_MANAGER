@@ -1,0 +1,30 @@
+{
+  "version": "0.6.17",
+  "commandsDeclaredAndRegistered": 8,
+  "ddeCompatibilityModes": [
+    "ansi",
+    "unicode"
+  ],
+  "ddeContract": {
+    "service": "cvi",
+    "topic": "system",
+    "item": "status"
+  },
+  "emptyArgumentForwardingFixed": true,
+  "earlyPowerShellFailureDetails": [
+    "stderr",
+    "stdout",
+    "exit/code",
+    "signal",
+    "timeout"
+  ],
+  "guardedUtf8Initialization": true,
+  "explicitDdeClientConstruction": true,
+  "activeXRegistryDiscoveryTimeoutMs": 30000,
+  "activeXRegistryDiscoveryDiagnostics": [
+    "scannedRoots",
+    "warnings"
+  ],
+  "packagedBridgeScripts": 2,
+  "packagedCompiledService": true
+}

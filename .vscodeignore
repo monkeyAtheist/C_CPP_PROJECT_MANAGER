@@ -11,3 +11,15 @@ test-mocks/**
 *.bak
 
 *.vsix
+
+data/cvi_pack.json
+data/default_pack.json
+native/cvi-*.ps1
+docs/history/**
+**/*_VALIDATION.json
+**/*REGRESSION*.json
+**/PACKAGE_INTEGRITY_*.json
+**/SHA256SUMS-*.txt
+media/cvi*
+data/templates/*cvi*
+data/metadata/cvi_*

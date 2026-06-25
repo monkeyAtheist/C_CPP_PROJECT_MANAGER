@@ -1,0 +1,12 @@
+{
+  "artifact": "labwindows-cvi-project-manager-0.6.10.vsix",
+  "version": "0.6.10",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "zip_integrity": "OK",
+  "entries": 175,
+  "size_bytes": 5571625,
+  "sha256": "a3a6502b8c89e3fafa4b2a3a440a2f2c4394c61e89e52c9d58874677bfeeecfb",
+  "manifest_version_present": true,
+  "marketplace_icon_present": true,
+  "compiled_build_settings_present": true
+}

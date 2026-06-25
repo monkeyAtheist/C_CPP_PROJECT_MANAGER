@@ -1,0 +1,33 @@
+{
+  "version": "0.6.22",
+  "nativeDebugTreeView": true,
+  "noDashboardWebview": true,
+  "dynamicStatusBar": [
+    "CVI:off",
+    "CVI:idle",
+    "CVI:run",
+    "CVI:pause"
+  ],
+  "dashboardRows": [
+    "bridge",
+    "session",
+    "execution",
+    "project",
+    "linked",
+    "transport",
+    "stateSource",
+    "lastCommand",
+    "lastResult"
+  ],
+  "dashboardActions": [
+    "build",
+    "run",
+    "pause",
+    "continue",
+    "stop",
+    "refresh",
+    "diagnose"
+  ],
+  "nativeCommandChangeEvents": true,
+  "packagedCompiledDashboard": true
+}

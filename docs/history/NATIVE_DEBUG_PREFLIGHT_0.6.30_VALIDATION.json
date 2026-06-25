@@ -1,0 +1,9 @@
+{
+  "version": "0.6.30",
+  "dapRemoved": true,
+  "localCompileExePreflightBeforeNativeDebug": true,
+  "stableDdePathRestoredFrom": "0.6.24",
+  "dashboardGrouped": true,
+  "exactBreakpointMirrorAvailable": true,
+  "conservativeNaturalCompletionProbe": true
+}

@@ -1,0 +1,32 @@
+{
+  "version": "0.6.24",
+  "inlineDebugAdapterRegistered": true,
+  "debuggerType": "labwindows-cvi-native",
+  "sourceBreakpointContribution": [
+    "c",
+    "cpp"
+  ],
+  "vscodeToolbarControls": [
+    "launch",
+    "pause",
+    "continue",
+    "terminate",
+    "disconnect"
+  ],
+  "conservativeBreakpointVerification": true,
+  "minimizedNativeBackendDefault": true,
+  "backgroundWindowControlPackaged": true,
+  "persistentDdePolling": true,
+  "nonDestructivePollingTimeout": true,
+  "explicitPhaseOneLimitations": [
+    "stackTrace",
+    "scopes",
+    "variables",
+    "evaluate",
+    "stepIn",
+    "stepOut",
+    "next"
+  ],
+  "legacyNativeWindowFallbackPreserved": true,
+  "packagedCompiledAdapter": true
+}

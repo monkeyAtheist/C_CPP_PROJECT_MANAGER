@@ -1,0 +1,28 @@
+{
+  "version": "0.6.14",
+  "feature": "native CVI workspace breakpoint bridge",
+  "supported": [
+    "standard enabled VS Code source breakpoints",
+    "active CVI project file filtering",
+    "native CVI breakpoint preservation",
+    "extension-owned breakpoint cleanup",
+    "native Tracepoint preservation",
+    "automatic synchronization before native CVI debug open",
+    "explicit synchronize, clear and diagnose commands",
+    "timestamped .cws backup before write"
+  ],
+  "conservativelySkipped": [
+    "disabled VS Code breakpoints",
+    "conditional VS Code breakpoints",
+    "hit-count VS Code breakpoints",
+    "VS Code logpoints",
+    "breakpoints outside the selected CVI project"
+  ],
+  "automatedValidation": {
+    "typescriptCompilation": "ok",
+    "parserSynchronization": "ok",
+    "commandRegistrations": "ok",
+    "workspaceProjectScaffoldRegression": "ok",
+    "uploadedCviWorkspaceFixture": "ok"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "logArgument": true,
+  "logDirectory": true,
+  "clean": true,
+  "actions": true
+}

@@ -1,13 +1,13 @@
-export type CviBuildMode = 'debug' | 'release' | 'debug64' | 'release64';
+export type CpmBuildMode = 'debug' | 'release' | 'debug64' | 'release64';
 
-export interface CviRunOptions {
+export interface CpmRunOptions {
   arguments: string;
   workingDirectory: string;
   environmentOptions: string;
   externalProcessPath: string;
 }
 
-export interface CviWorkspaceProjectRef {
+export interface CpmWorkspaceProjectRef {
   index: number;
   relativePath: string;
   absolutePath: string;
@@ -15,15 +15,15 @@ export interface CviWorkspaceProjectRef {
   exists: boolean;
 }
 
-export interface CviWorkspace {
+export interface CpmWorkspace {
   path: string;
   name: string;
   activeProjectIndex: number;
-  projects: CviWorkspaceProjectRef[];
-  cviDir?: string;
+  projects: CpmWorkspaceProjectRef[];
+  cpmDir?: string;
 }
 
-export interface CviProjectFile {
+export interface CpmProjectFile {
   sectionName: string;
   id: number;
   type: string;
@@ -35,16 +35,16 @@ export interface CviProjectFile {
   exists: boolean;
 }
 
-export interface CviProject {
+export interface CpmProject {
   path: string;
   name: string;
   targetType: string;
-  cviDir?: string;
+  cpmDir?: string;
   folders: string[];
-  files: CviProjectFile[];
+  files: CpmProjectFile[];
 }
 
-export interface CviInstallation {
+export interface CpmInstallation {
   root: string;
   label: string;
   compileExe?: string;

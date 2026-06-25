@@ -1,0 +1,18 @@
+{
+  "status": "ok",
+  "vsix": "labwindows-cvi-project-manager-0.5.8.vsix",
+  "sha256": "dd981e0e2d12aa2eafc3a734926aaca37100ff45571f68159113d5e1cb1d20c5",
+  "files": 134,
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "version": "0.5.8",
+  "requiredFiles": {
+    "extension/out/providers/cviFileSymbolsProvider.js": true,
+    "extension/out/services/cviSymbolService.js": true,
+    "extension/out/services/cviBuildService.js": true,
+    "extension/out/views/quickActionsView.js": true,
+    "extension/PATH_COMPLETION_SYMBOLS_0.5.8_VALIDATION.json": true,
+    "extension/media/cvi-marketplace.png": true
+  },
+  "manifestContainsPublisher": true,
+  "manifestContainsVersion": true
+}

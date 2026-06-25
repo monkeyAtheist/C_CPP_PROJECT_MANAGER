@@ -1,0 +1,9 @@
+{
+  "configurationPath": "/tmp/cvi-order-QceoOT/.vscode/labwindows-cvi-build.json",
+  "order": [
+    "C",
+    "B",
+    "A"
+  ],
+  "circularDetected": true
+}

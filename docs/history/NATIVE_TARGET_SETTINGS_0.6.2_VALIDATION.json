@@ -1,0 +1,22 @@
+{
+  "root": "/tmp/cvi062-5SaDZY",
+  "exe": {
+    "applicationTitle": "UPDATED_TITLE",
+    "output": "/tmp/cvi062-5SaDZY/updated.exe",
+    "modules": [
+      "analysis.lib",
+      "toolbox.obj"
+    ]
+  },
+  "dll": {
+    "importLibBaseName": "changed.lib",
+    "exports": [
+      "Source File.h"
+    ],
+    "modules": 9
+  },
+  "lib": {
+    "output": "C:\\Users\\jerry.crozet\\Downloads\\CVI_PRJ\\LIB_PRJ\\LIB_CONFIGURED_PRJ.lib"
+  },
+  "backups": 4
+}

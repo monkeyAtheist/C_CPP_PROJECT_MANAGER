@@ -1,0 +1,16 @@
+{
+  "version": "0.5.4",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "vsix": "labwindows-cvi-project-manager-0.5.4.vsix",
+  "sha256": "29279471d8bdcc02cbd62f322d755e18331960412387ecbe510df4e2715e2dae",
+  "fileCount": 103,
+  "checks": {
+    "packageVersion054": true,
+    "publisherCorrect": true,
+    "marketplaceIconIncluded": true,
+    "homePanelCompiled": true,
+    "treeProviderCompiled": true,
+    "validationIncluded": true,
+    "manualChecklistIncluded": true
+  }
+}

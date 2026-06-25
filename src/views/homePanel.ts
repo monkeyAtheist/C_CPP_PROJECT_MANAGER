@@ -1,8 +1,8 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CviBuildService } from '../services/cviBuildService';
-import { CviInstallationService } from '../services/cviInstallationService';
-import { CviWorkspaceService } from '../services/cviWorkspaceService';
+import { CpmBuildService } from '../services/cpmBuildService';
+import { CpmInstallationService } from '../services/cpmInstallationService';
+import { CpmWorkspaceService } from '../services/cpmWorkspaceService';
 
 export class HomePanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
@@ -10,9 +10,9 @@ export class HomePanel implements vscode.Disposable {
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly workspaces: CviWorkspaceService,
-    private readonly builds: CviBuildService,
-    private readonly installations: CviInstallationService
+    private readonly workspaces: CpmWorkspaceService,
+    private readonly builds: CpmBuildService,
+    private readonly installations: CpmInstallationService
   ) {
     this.disposables.push(this.workspaces.onDidChange(() => this.update()));
   }
@@ -32,7 +32,7 @@ export class HomePanel implements vscode.Disposable {
     }
 
     this.panel = vscode.window.createWebviewPanel(
-      'labwindowsCvi.home',
+      'cpm.home',
       'C/C++ Project Manager',
       vscode.ViewColumn.One,
       { enableScripts: true, retainContextWhenHidden: true }
@@ -56,7 +56,7 @@ export class HomePanel implements vscode.Disposable {
     const workspace = this.workspaces.currentWorkspace;
     const activeProject = this.workspaces.activeProjectRef;
     const project = activeProject ? this.workspaces.getProject(activeProject) : undefined;
-    const toolchain = this.installations.getActiveInstallation(workspace?.cviDir, false);
+    const toolchain = this.installations.getActiveInstallation(workspace?.cpmDir, false);
     const detectedToolchainCount = this.installations.getConfiguredInstallations().length;
     const mode = this.builds.buildMode;
     this.panel.webview.html = renderHtml({
@@ -125,30 +125,30 @@ function renderHtml(state: HomeState): string {
           <h3>No project loaded</h3>
           <p>Open an existing C/C++ workspace or create a starter project. The selected project folder can be synchronized with the standard VS Code C/C++ IntelliSense configuration.</p>
           <div class="actions primary-row">
-            <button data-command="labwindowsCvi.openWorkspace">Open workspace</button>
-            <button data-command="labwindowsCvi.createWorkspaceProject">Create workspace and project</button>
-            <button data-command="labwindowsCvi.configureInstallation">Select toolchain</button>
+            <button data-command="cpm.openWorkspace">Open workspace</button>
+            <button data-command="cpm.createWorkspaceProject">Create workspace and project</button>
+            <button data-command="cpm.configureInstallation">Select toolchain</button>
           </div>
         </div>
       </div>` : '';
 
   const workspaceActions = hasWorkspace ? `
         <div class="actions">
-          <button data-command="labwindowsCvi.openWorkspace">Open another workspace</button>
-          <button class="secondary" data-command="labwindowsCvi.createWorkspaceProject">Create</button>
-          <button class="secondary" data-command="labwindowsCvi.openWorkspaceInCvi">Open workspace file</button>
+          <button data-command="cpm.openWorkspace">Open another workspace</button>
+          <button class="secondary" data-command="cpm.createWorkspaceProject">Create</button>
+          <button class="secondary" data-command="cpm.openWorkspaceInCpm">Open workspace file</button>
         </div>` : '';
 
   const projectActions = hasProject ? `
         <div class="actions project-actions">
-          <button data-command="labwindowsCvi.chooseBuildAction">Build / rebuild / clean</button>
-          <button class="secondary" data-command="labwindowsCvi.run">Build + run</button>
-          <button class="secondary" data-command="labwindowsCvi.debugInCvi">Build + debug</button>
-          <button class="secondary" data-command="labwindowsCvi.chooseRunAction">Run options</button>
-          <button class="secondary" data-command="labwindowsCvi.selectBuildMode">Build mode</button>
-          <button class="secondary" data-command="labwindowsCvi.selectTargetType">Target type</button>
-          <button class="secondary" data-command="labwindowsCvi.editBuildSettings">Build settings</button>
-          <button class="secondary" data-command="labwindowsCvi.createNewFile">Create file</button>
+          <button data-command="cpm.chooseBuildAction">Build / rebuild / clean</button>
+          <button class="secondary" data-command="cpm.run">Build + run</button>
+          <button class="secondary" data-command="cpm.debugInCpm">Build + debug</button>
+          <button class="secondary" data-command="cpm.chooseRunAction">Run options</button>
+          <button class="secondary" data-command="cpm.selectBuildMode">Build mode</button>
+          <button class="secondary" data-command="cpm.selectTargetType">Target type</button>
+          <button class="secondary" data-command="cpm.editBuildSettings">Build settings</button>
+          <button class="secondary" data-command="cpm.createNewFile">Create file</button>
         </div>` : '';
 
   return `<!DOCTYPE html>
@@ -255,8 +255,8 @@ function renderHtml(state: HomeState): string {
         </div>
         <p class="muted">Browse C/C++ API packs, search symbols and insert parameterized calls from the Libraries view.</p>
         <div class="actions">
-          <button data-command="labwindowsCvi.library.findFunction">Find symbol</button>
-          <button class="secondary" data-command="labwindowsCvi.library.reloadPacks">Reload packs</button>
+          <button data-command="cpm.library.findFunction">Find symbol</button>
+          <button class="secondary" data-command="cpm.library.reloadPacks">Reload packs</button>
         </div>
       </article>
 
@@ -270,10 +270,10 @@ function renderHtml(state: HomeState): string {
         </div>
         <p class="muted">Create .c, .cpp, .h, .hpp, DLL and class starters, or insert snippets at the active cursor position.</p>
         <div class="actions">
-          <button data-command="labwindowsCvi.createNewFile">Create file</button>
-          <button class="secondary" data-command="labwindowsCvi.insertSnippet">Insert snippet</button>
-          <button class="secondary" data-command="labwindowsCvi.manageFileTemplates">Manage templates</button>
-          <button class="secondary" data-command="labwindowsCvi.manageSnippets">Manage snippets</button>
+          <button data-command="cpm.createNewFile">Create file</button>
+          <button class="secondary" data-command="cpm.insertSnippet">Insert snippet</button>
+          <button class="secondary" data-command="cpm.manageFileTemplates">Manage templates</button>
+          <button class="secondary" data-command="cpm.manageSnippets">Manage snippets</button>
         </div>
       </article>
     </div>
@@ -296,10 +296,10 @@ function renderHtml(state: HomeState): string {
         <div class="path">${compilerLine}</div>
       </div>
       <div class="actions">
-        <button data-command="labwindowsCvi.configureInstallation">Detect / select toolchain</button>
-        <button class="secondary" data-command="labwindowsCvi.syncCppTools">Sync IntelliSense</button>
-        <button class="secondary" data-command="labwindowsCvi.diagnoseCppTools">Diagnose IntelliSense</button>
-        <button class="secondary" data-command="labwindowsCvi.repairCppToolsProvider">Repair provider</button>
+        <button data-command="cpm.configureInstallation">Detect / select toolchain</button>
+        <button class="secondary" data-command="cpm.syncCppTools">Sync IntelliSense</button>
+        <button class="secondary" data-command="cpm.diagnoseCppTools">Diagnose IntelliSense</button>
+        <button class="secondary" data-command="cpm.repairCppToolsProvider">Repair provider</button>
       </div>
     </article>
   </section>

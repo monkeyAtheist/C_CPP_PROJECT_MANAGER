@@ -1,0 +1,16 @@
+{
+  "version": "0.6.3",
+  "checks": {
+    "typescript_compile": "ok",
+    "javascript_syntax": "ok",
+    "quick_actions_native_tree_view": "ok",
+    "auto_loaded_quick_actions_webview_removed": "ok",
+    "full_build_settings_webview_preserved": "ok",
+    "safe_mode_build_settings_command": "ok",
+    "safe_mode_target_type": "ok",
+    "safe_mode_output_path": "ok",
+    "safe_mode_run_arguments": "ok",
+    "safe_mode_build_actions": "ok",
+    "safe_mode_load_external_module_files": "ok"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "version": "0.6.6",
+  "collapsibleSections": [
+    "Target",
+    "Project dependencies and build order",
+    "Target creation options",
+    "LoadExternalModule options",
+    "DLL options",
+    "DLL type information",
+    "Version information",
+    "Signing information",
+    "Executable command line",
+    "Build steps"
+  ],
+  "loadExternalModule": {
+    "checkboxControlsAddButtons": true,
+    "multiFileBrowser": true,
+    "acceptedExtensions": ["lib", "obj"],
+    "manualModuleNameEntry": true,
+    "previewList": true,
+    "removeIndividualEntry": true,
+    "nativeSection": "Modules Forced Into Executable"
+  },
+  "integerConversion": {
+    "submenu": "Convert selected integer to",
+    "targets": ["decimal", "hexadecimal", "binary"],
+    "usesBigInt": true,
+    "preservesSign": true,
+    "preservesSuffix": true,
+    "checks": {
+      "42_to_hex": "0x2A",
+      "0x2A_to_binary": "0b101010",
+      "minus_0b101010U_to_decimal": "-42U"
+    }
+  },
+  "compile": "OK",
+  "webviewScriptSyntax": "OK",
+  "package": "OK"
+}

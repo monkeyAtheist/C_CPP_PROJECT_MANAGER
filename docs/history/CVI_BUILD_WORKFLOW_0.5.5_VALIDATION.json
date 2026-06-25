@@ -1,0 +1,20 @@
+{
+  "initialTarget": "Executable",
+  "targetConversions": {
+    "dll": "/tmp/cvi055-DWPOOs/EditDB.dll",
+    "lib": "/tmp/cvi055-DWPOOs/EditDB.lib",
+    "exe": "/tmp/cvi055-DWPOOs/EditDB.exe"
+  },
+  "runOptionsRoundTrip": {
+    "arguments": "--file \"C:\\Debug Files\\deb.tplst\"",
+    "workingDirectory": "C:\\Work Dir",
+    "environmentOptions": "MODE=test;VALUE=42",
+    "externalProcessPath": "C:\\Tools\\host.exe"
+  },
+  "prototypeHeader": "#ifndef DEMO_H\n#define DEMO_H\n\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n\nint compute (int x, const char *name);\nvoid reset (void);\n\n#ifdef __cplusplus\n}\n#endif\n\n#endif /* DEMO_H */\n",
+  "prototypeChecks": {
+    "containsCompute": true,
+    "containsReset": true,
+    "excludesStatic": true
+  }
+}

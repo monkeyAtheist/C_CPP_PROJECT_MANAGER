@@ -1,0 +1,26 @@
+{
+  "version": "0.6.10",
+  "scope": "DLL options grid visual reorder",
+  "positions": {
+    "Custom copy directory": 32151,
+    "Where to copy DLL": 32257,
+    "Import library base name": 32383,
+    "Export mode": 32508
+  },
+  "order_ok": true,
+  "expected_grid": [
+    [
+      "Custom copy directory",
+      "Where to copy DLL"
+    ],
+    [
+      "Import library base name",
+      "Export mode"
+    ]
+  ],
+  "conditional_rules_preserved": {
+    "custom_copy_directory_only_for_custom_directory": true,
+    "import_library_base_name_disabled_when_default": true,
+    "headers_disabled_for_symbols_marked_for_export": true
+  }
+}
