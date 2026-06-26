@@ -3237,40 +3237,171 @@ const SPECIAL_TEXT_FONT: Record<string, string[]> = {
 
 const SPECIAL_TEXT_UNKNOWN_GLYPH = ['11111', '00001', '00010', '00100', '00100', '00000', '00100'];
 
+const SPECIAL_TEXT_COMPACT_FONT: Record<string, string[]> = {
+  'A': ['010', '101', '111', '101', '101'],
+  'B': ['110', '101', '110', '101', '110'],
+  'C': ['011', '100', '100', '100', '011'],
+  'D': ['110', '101', '101', '101', '110'],
+  'E': ['111', '100', '110', '100', '111'],
+  'F': ['111', '100', '110', '100', '100'],
+  'G': ['011', '100', '101', '101', '011'],
+  'H': ['101', '101', '111', '101', '101'],
+  'I': ['111', '010', '010', '010', '111'],
+  'J': ['001', '001', '001', '101', '010'],
+  'K': ['101', '110', '100', '110', '101'],
+  'L': ['100', '100', '100', '100', '111'],
+  'M': ['10001', '11011', '10101', '10001', '10001'],
+  'N': ['1001', '1101', '1011', '1001', '1001'],
+  'O': ['010', '101', '101', '101', '010'],
+  'P': ['110', '101', '110', '100', '100'],
+  'Q': ['010', '101', '101', '111', '011'],
+  'R': ['110', '101', '110', '101', '101'],
+  'S': ['011', '100', '010', '001', '110'],
+  'T': ['111', '010', '010', '010', '010'],
+  'U': ['101', '101', '101', '101', '111'],
+  'V': ['101', '101', '101', '101', '010'],
+  'W': ['10001', '10001', '10101', '10101', '01010'],
+  'X': ['101', '101', '010', '101', '101'],
+  'Y': ['101', '101', '010', '010', '010'],
+  'Z': ['111', '001', '010', '100', '111'],
+  '0': ['111', '101', '101', '101', '111'],
+  '1': ['010', '110', '010', '010', '111'],
+  '2': ['110', '001', '010', '100', '111'],
+  '3': ['110', '001', '010', '001', '110'],
+  '4': ['101', '101', '111', '001', '001'],
+  '5': ['111', '100', '110', '001', '110'],
+  '6': ['011', '100', '111', '101', '111'],
+  '7': ['111', '001', '010', '010', '010'],
+  '8': ['111', '101', '111', '101', '111'],
+  '9': ['111', '101', '111', '001', '110'],
+  ' ': ['0', '0', '0', '0', '0'],
+  '-': ['000', '000', '111', '000', '000'],
+  '_': ['000', '000', '000', '000', '111'],
+  '.': ['0', '0', '0', '0', '1'],
+  ':': ['0', '1', '0', '1', '0'],
+  '/': ['001', '001', '010', '100', '100'],
+  '\\': ['100', '100', '010', '001', '001'],
+  '+': ['000', '010', '111', '010', '000']
+};
+
+const SPECIAL_TEXT_COMPACT_UNKNOWN_GLYPH = ['111', '001', '010', '000', '010'];
+
+type SpecialTextFontName = 'compact' | 'standard';
+type SpecialTextOutputMode = 'line-comment' | 'block-comment' | 'raw';
+
+interface SpecialTextSizePreset {
+  id: string;
+  label: string;
+  description: string;
+  font: SpecialTextFontName;
+  horizontalScale: number;
+  verticalScale: number;
+  singleCharacterToken: boolean;
+}
+
+const SPECIAL_TEXT_SIZE_PRESETS: SpecialTextSizePreset[] = [
+  {
+    id: 'micro',
+    label: '1 - Micro',
+    description: 'Smallest output: compact 3x5 font and first character of the selected pattern.',
+    font: 'compact',
+    horizontalScale: 1,
+    verticalScale: 1,
+    singleCharacterToken: true
+  },
+  {
+    id: 'small',
+    label: '2 - Small',
+    description: 'Compact 3x5 font with the selected pattern.',
+    font: 'compact',
+    horizontalScale: 1,
+    verticalScale: 1,
+    singleCharacterToken: false
+  },
+  {
+    id: 'narrow',
+    label: '3 - Narrow',
+    description: 'Standard 5x7 font with a single-character stroke.',
+    font: 'standard',
+    horizontalScale: 1,
+    verticalScale: 1,
+    singleCharacterToken: true
+  },
+  {
+    id: 'standard',
+    label: '4 - Standard',
+    description: 'Previous size 1: standard 5x7 font with the selected pattern.',
+    font: 'standard',
+    horizontalScale: 1,
+    verticalScale: 1,
+    singleCharacterToken: false
+  },
+  {
+    id: 'large',
+    label: '5 - Large',
+    description: 'Previous size 2 and new maximum.',
+    font: 'standard',
+    horizontalScale: 2,
+    verticalScale: 2,
+    singleCharacterToken: false
+  }
+];
+
 function normalizeSpecialTextPattern(value: string | undefined): string {
   const cleaned = String(value ?? '').replace(/[\r\n\t]/g, '').trim();
   return cleaned.slice(0, 8) || '//';
 }
 
-function normalizeSpecialTextScale(value: string | undefined): number {
-  const numeric = Number.parseInt(String(value ?? ''), 10);
-  if (!Number.isFinite(numeric)) {
-    return 1;
-  }
-  return Math.min(5, Math.max(1, numeric));
+function getSingleCharacterToken(pattern: string): string {
+  return [...pattern][0] ?? '/';
 }
 
-function renderSpecialTextRow(row: string, pattern: string, scale: number): string {
-  const blank = ' '.repeat(pattern.length * scale);
+function normalizeSpecialTextSize(value: string | number | undefined): SpecialTextSizePreset {
+  const raw = String(value ?? '').trim().toLowerCase();
+  const byId = SPECIAL_TEXT_SIZE_PRESETS.find((preset) => preset.id === raw);
+  if (byId) {
+    return byId;
+  }
+
+  const numeric = Number.parseInt(raw, 10);
+  if (Number.isFinite(numeric)) {
+    const index = Math.min(SPECIAL_TEXT_SIZE_PRESETS.length, Math.max(1, numeric)) - 1;
+    return SPECIAL_TEXT_SIZE_PRESETS[index];
+  }
+
+  return SPECIAL_TEXT_SIZE_PRESETS.find((preset) => preset.id === 'standard') ?? SPECIAL_TEXT_SIZE_PRESETS[3];
+}
+
+function getSpecialTextGlyph(character: string, font: SpecialTextFontName): string[] {
+  if (font === 'compact') {
+    return SPECIAL_TEXT_COMPACT_FONT[character] ?? SPECIAL_TEXT_COMPACT_UNKNOWN_GLYPH;
+  }
+  return SPECIAL_TEXT_FONT[character] ?? SPECIAL_TEXT_UNKNOWN_GLYPH;
+}
+
+function renderSpecialTextRow(row: string, pattern: string, horizontalScale: number): string {
+  const blank = ' '.repeat(pattern.length * horizontalScale);
   let output = '';
   for (const cell of row) {
-    output += cell === '1' ? pattern.repeat(scale) : blank;
+    output += cell === '1' ? pattern.repeat(horizontalScale) : blank;
   }
   return output;
 }
 
-function renderSpecialCharacterText(text: string, pattern: string, scale: number, mode: 'line-comment' | 'block-comment' | 'raw'): string {
+function renderSpecialCharacterText(text: string, pattern: string, size: string | number, mode: SpecialTextOutputMode): string {
   const label = sanitizeHeaderText(text, 'CPM').toUpperCase();
   const token = normalizeSpecialTextPattern(pattern);
-  const normalizedScale = normalizeSpecialTextScale(String(scale));
-  const glyphs = [...label].map((character) => SPECIAL_TEXT_FONT[character] ?? SPECIAL_TEXT_UNKNOWN_GLYPH);
-  const separator = ' '.repeat(token.length * normalizedScale);
+  const preset = normalizeSpecialTextSize(size);
+  const strokeToken = preset.singleCharacterToken ? getSingleCharacterToken(token) : token;
+  const glyphs = [...label].map((character) => getSpecialTextGlyph(character, preset.font));
+  const rowCount = Math.max(0, ...glyphs.map((glyph) => glyph.length));
+  const separator = ' '.repeat(strokeToken.length * Math.max(1, preset.horizontalScale));
   const lines: string[] = [];
 
-  for (let glyphRow = 0; glyphRow < 7; glyphRow += 1) {
-    const rowParts = glyphs.map((glyph) => renderSpecialTextRow(glyph[glyphRow] ?? '00000', token, normalizedScale));
+  for (let glyphRow = 0; glyphRow < rowCount; glyphRow += 1) {
+    const rowParts = glyphs.map((glyph) => renderSpecialTextRow(glyph[glyphRow] ?? '0', strokeToken, preset.horizontalScale));
     const baseRow = rowParts.join(separator).trimEnd();
-    for (let verticalScale = 0; verticalScale < normalizedScale; verticalScale += 1) {
+    for (let verticalScale = 0; verticalScale < preset.verticalScale; verticalScale += 1) {
       lines.push(baseRow);
     }
   }
@@ -4233,19 +4364,11 @@ export class CpmTemplateService {
       pattern = customPattern;
     }
 
-    const scaleValue = await vscode.window.showInputBox({
-      title: commandTitle,
-      prompt: 'Size / scale factor from 1 to 5. 1 is compact, 2 and above are larger.',
-      value: '1',
-      validateInput: (value) => {
-        const numeric = Number.parseInt(value, 10);
-        if (!Number.isFinite(numeric) || numeric < 1 || numeric > 5) {
-          return 'Enter an integer from 1 to 5.';
-        }
-        return undefined;
-      }
-    });
-    if (scaleValue === undefined) return;
+    const sizeChoice = await vscode.window.showQuickPick(
+      SPECIAL_TEXT_SIZE_PRESETS.map((preset) => ({ ...preset, picked: preset.id === 'standard' })),
+      { title: commandTitle, placeHolder: 'Select the generated text size' }
+    );
+    if (!sizeChoice) return;
 
     const outputMode = await vscode.window.showQuickPick([
       { label: 'C/C++ line comments', description: 'Prefix every generated row with //', value: 'line-comment' as const },
@@ -4254,7 +4377,7 @@ export class CpmTemplateService {
     ], { title: commandTitle, placeHolder: 'Select how to insert the generated text' });
     if (!outputMode) return;
 
-    const rendered = renderSpecialCharacterText(text, pattern, normalizeSpecialTextScale(scaleValue), outputMode.value);
+    const rendered = renderSpecialCharacterText(text, pattern, sizeChoice.id, outputMode.value);
     await this.insertTextAtSelections(editor, rendered);
   }
 

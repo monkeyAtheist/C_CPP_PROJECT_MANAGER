@@ -40,7 +40,7 @@ The editor right-click menu now exposes a single **CPM** submenu. Use **CPM > Do
 - a file description header with company/contact placeholders and a `CHANGES/EVOLUTIONS` table;
 - one formatted change-table line at the cursor position;
 - reusable comment-section separators, either boxed, line-based or compact;
-- special-character text banners with selectable fill pattern, scale and output mode.
+- special-character text banners with selectable fill pattern, compact/standard size presets and output mode.
 
 The same building blocks are also available as built-in snippets from **CPM > Snippets > CPM: Insert snippet**.
 
@@ -128,7 +128,7 @@ The C++ bundle creates `Communication/can/can.cpp` and `can.h` under the selecte
 
 ### Special-character text comments
 
-`Insert special-character text` renders large characters using a selectable fill pattern such as `//`, `\\`, `||`, `**`, `##`, `==`, `--`, `++` or a custom 1 to 8 character token. The command also asks for a scale from 1 to 5 and can insert the result as C/C++ line comments, as a C block comment, or as raw generated characters.
+`Insert special-character text` renders characters using a selectable fill pattern such as `//`, `\\`, `||`, `**`, `##`, `==`, `--`, `++` or a custom 1 to 8 character token. The size picker provides five presets: Micro, Small, Narrow, Standard and Large. Micro/Small use a compact 3x5 font, Narrow/Standard use a standard 5x7 font, and Large corresponds to the previous size 2. The command can insert the result as C/C++ line comments, as a C block comment, or as raw generated characters.
 
 ### Header change entries
 

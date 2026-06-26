@@ -101,7 +101,7 @@ The default backend targets Linux SocketCAN. It supports classical CAN, CAN FD, 
 
 ### Special-character text comments
 
-`Insert special-character text` generates large ASCII-style text from a normal string. The command lets you choose the fill pattern (`//`, `\\`, `||`, `**`, `##`, `==`, `--`, `++` or custom), the scale from 1 to 5, and whether the result is inserted as C/C++ line comments, a C block comment or raw characters.
+`Insert special-character text` generates ASCII-style text from a normal string. The command lets you choose the fill pattern (`//`, `\\`, `||`, `**`, `##`, `==`, `--`, `++` or custom), one of five size presets, and whether the result is inserted as C/C++ line comments, a C block comment or raw characters. Sizes now range from Micro/Small compact 3x5 text up to Large, which corresponds to the previous size 2.
 
 ### Header change entries
 

@@ -1,3 +1,9 @@
+## 0.2.36 - Smaller special-character text sizes
+
+- Reworked `Insert special-character text` size selection as five explicit presets.
+- Added smaller outputs: Micro and Small use a compact 3x5 font, and Narrow uses the standard 5x7 font with a single-character stroke.
+- Capped the largest preset to the previous size 2, which keeps generated banners usable inside source comments.
+
 ## 0.2.35 - Special-character text comments
 
 - Added `Insert special-character text` under `CPM > Documentation / comments`.
