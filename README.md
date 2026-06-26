@@ -99,3 +99,11 @@ The bundle system now includes CAN communication helpers:
 
 The default backend targets Linux SocketCAN. It supports classical CAN, CAN FD, filters, timeouts, loopback and own-message reception. On unsupported platforms the functions return an explicit unsupported status instead of compiling into silent no-op behavior.
 
+### Special-character text comments
+
+`Insert special-character text` generates large ASCII-style text from a normal string. The command lets you choose the fill pattern (`//`, `\\`, `||`, `**`, `##`, `==`, `--`, `++` or custom), the scale from 1 to 5, and whether the result is inserted as C/C++ line comments, a C block comment or raw characters.
+
+### Header change entries
+
+`Insert header change line` keeps the CHANGES/EVOLUTIONS table width stable. Descriptions longer than the Description column are wrapped onto continuation rows, and a separator row is inserted under the generated entry.
+

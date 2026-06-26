@@ -3102,8 +3102,64 @@ function fitCell(value: string, width: number, align: 'left' | 'center' = 'left'
   return text.padEnd(width, ' ');
 }
 
+const HEADER_CHANGE_DESCRIPTION_WIDTH = 36;
+const HEADER_CHANGE_SEPARATOR = '//**__________|____________|_________|______________________________________**';
+
+function splitLongHeaderWord(word: string, width: number): string[] {
+  const chunks: string[] = [];
+  for (let index = 0; index < word.length; index += width) {
+    chunks.push(word.slice(index, index + width));
+  }
+  return chunks;
+}
+
+function wrapHeaderDescription(value: string, width = HEADER_CHANGE_DESCRIPTION_WIDTH): string[] {
+  const clean = sanitizeHeaderText(value, '').replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!clean) {
+    return [''];
+  }
+
+  const lines: string[] = [];
+  let current = '';
+
+  for (const rawWord of clean.split(' ')) {
+    const wordParts = rawWord.length > width ? splitLongHeaderWord(rawWord, width) : [rawWord];
+    for (const word of wordParts) {
+      if (!current) {
+        current = word;
+      } else if (current.length + 1 + word.length <= width) {
+        current = `${current} ${word}`;
+      } else {
+        lines.push(current);
+        current = word;
+      }
+    }
+  }
+
+  if (current) {
+    lines.push(current);
+  }
+  return lines.length > 0 ? lines : [''];
+}
+
+function renderHeaderChangeRow(date: string, author: string, version: string, description: string): string {
+  return `//** ${fitCell(date, 8)} | ${fitCell(author, 10)} | ${fitCell(version, 7, 'center')} | ${description.padEnd(HEADER_CHANGE_DESCRIPTION_WIDTH, ' ')} **`;
+}
+
 function renderHeaderChangeLine(date: string, author: string, version: string, description: string): string {
-  return `//** ${fitCell(date, 8)} | ${fitCell(author, 10)} | ${fitCell(version, 7, 'center')} | ${fitCell(description, 36)} **`;
+  const wrappedDescription = wrapHeaderDescription(description);
+  return wrappedDescription
+    .map((part, index) => renderHeaderChangeRow(
+      index === 0 ? date : '',
+      index === 0 ? author : '',
+      index === 0 ? version : '',
+      part
+    ))
+    .join('\n');
+}
+
+function renderHeaderChangeEntry(date: string, author: string, version: string, description: string): string {
+  return `${renderHeaderChangeLine(date, author, version, description)}\n${HEADER_CHANGE_SEPARATOR}`;
 }
 
 function renderFileDescriptionHeader(values: { company: string; address1: string; address2: string; tel: string; fax: string; email: string; date: string; author: string; version: string; description: string }): string {
@@ -3130,6 +3186,103 @@ function renderCommentSection(title: string, style: string): string {
   const left = Math.max(1, Math.floor((total - content.length - 2) / 2));
   const right = Math.max(1, total - content.length - left - 2);
   return `/${'*'.repeat(left)}${content}${'*'.repeat(right)}/\n/${'*'.repeat(total - 2)}/\n`;
+}
+
+const SPECIAL_TEXT_FONT: Record<string, string[]> = {
+  'A': ['01110', '10001', '10001', '11111', '10001', '10001', '10001'],
+  'B': ['11110', '10001', '10001', '11110', '10001', '10001', '11110'],
+  'C': ['01111', '10000', '10000', '10000', '10000', '10000', '01111'],
+  'D': ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
+  'E': ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
+  'F': ['11111', '10000', '10000', '11110', '10000', '10000', '10000'],
+  'G': ['01111', '10000', '10000', '10011', '10001', '10001', '01111'],
+  'H': ['10001', '10001', '10001', '11111', '10001', '10001', '10001'],
+  'I': ['11111', '00100', '00100', '00100', '00100', '00100', '11111'],
+  'J': ['00111', '00010', '00010', '00010', '00010', '10010', '01100'],
+  'K': ['10001', '10010', '10100', '11000', '10100', '10010', '10001'],
+  'L': ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
+  'M': ['10001', '11011', '10101', '10101', '10001', '10001', '10001'],
+  'N': ['10001', '11001', '10101', '10011', '10001', '10001', '10001'],
+  'O': ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+  'P': ['11110', '10001', '10001', '11110', '10000', '10000', '10000'],
+  'Q': ['01110', '10001', '10001', '10001', '10101', '10010', '01101'],
+  'R': ['11110', '10001', '10001', '11110', '10100', '10010', '10001'],
+  'S': ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
+  'T': ['11111', '00100', '00100', '00100', '00100', '00100', '00100'],
+  'U': ['10001', '10001', '10001', '10001', '10001', '10001', '01110'],
+  'V': ['10001', '10001', '10001', '10001', '01010', '01010', '00100'],
+  'W': ['10001', '10001', '10001', '10101', '10101', '10101', '01010'],
+  'X': ['10001', '10001', '01010', '00100', '01010', '10001', '10001'],
+  'Y': ['10001', '10001', '01010', '00100', '00100', '00100', '00100'],
+  'Z': ['11111', '00001', '00010', '00100', '01000', '10000', '11111'],
+  '0': ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
+  '1': ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
+  '2': ['01110', '10001', '00001', '00010', '00100', '01000', '11111'],
+  '3': ['11110', '00001', '00001', '01110', '00001', '00001', '11110'],
+  '4': ['00010', '00110', '01010', '10010', '11111', '00010', '00010'],
+  '5': ['11111', '10000', '10000', '11110', '00001', '00001', '11110'],
+  '6': ['01110', '10000', '10000', '11110', '10001', '10001', '01110'],
+  '7': ['11111', '00001', '00010', '00100', '01000', '01000', '01000'],
+  '8': ['01110', '10001', '10001', '01110', '10001', '10001', '01110'],
+  '9': ['01110', '10001', '10001', '01111', '00001', '00001', '01110'],
+  ' ': ['000', '000', '000', '000', '000', '000', '000'],
+  '-': ['00000', '00000', '00000', '11111', '00000', '00000', '00000'],
+  '_': ['00000', '00000', '00000', '00000', '00000', '00000', '11111'],
+  '.': ['000', '000', '000', '000', '000', '011', '011'],
+  ':': ['000', '011', '011', '000', '011', '011', '000'],
+  '/': ['00001', '00010', '00010', '00100', '01000', '01000', '10000'],
+  '\\': ['10000', '01000', '01000', '00100', '00010', '00010', '00001'],
+  '+': ['00000', '00100', '00100', '11111', '00100', '00100', '00000']
+};
+
+const SPECIAL_TEXT_UNKNOWN_GLYPH = ['11111', '00001', '00010', '00100', '00100', '00000', '00100'];
+
+function normalizeSpecialTextPattern(value: string | undefined): string {
+  const cleaned = String(value ?? '').replace(/[\r\n\t]/g, '').trim();
+  return cleaned.slice(0, 8) || '//';
+}
+
+function normalizeSpecialTextScale(value: string | undefined): number {
+  const numeric = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(numeric)) {
+    return 1;
+  }
+  return Math.min(5, Math.max(1, numeric));
+}
+
+function renderSpecialTextRow(row: string, pattern: string, scale: number): string {
+  const blank = ' '.repeat(pattern.length * scale);
+  let output = '';
+  for (const cell of row) {
+    output += cell === '1' ? pattern.repeat(scale) : blank;
+  }
+  return output;
+}
+
+function renderSpecialCharacterText(text: string, pattern: string, scale: number, mode: 'line-comment' | 'block-comment' | 'raw'): string {
+  const label = sanitizeHeaderText(text, 'CPM').toUpperCase();
+  const token = normalizeSpecialTextPattern(pattern);
+  const normalizedScale = normalizeSpecialTextScale(String(scale));
+  const glyphs = [...label].map((character) => SPECIAL_TEXT_FONT[character] ?? SPECIAL_TEXT_UNKNOWN_GLYPH);
+  const separator = ' '.repeat(token.length * normalizedScale);
+  const lines: string[] = [];
+
+  for (let glyphRow = 0; glyphRow < 7; glyphRow += 1) {
+    const rowParts = glyphs.map((glyph) => renderSpecialTextRow(glyph[glyphRow] ?? '00000', token, normalizedScale));
+    const baseRow = rowParts.join(separator).trimEnd();
+    for (let verticalScale = 0; verticalScale < normalizedScale; verticalScale += 1) {
+      lines.push(baseRow);
+    }
+  }
+
+  const rendered = lines.join('\n');
+  if (mode === 'raw') {
+    return `${rendered}\n`;
+  }
+  if (mode === 'block-comment') {
+    return `/*\n${rendered}\n*/\n`;
+  }
+  return `${lines.map((line) => `// ${line}`).join('\n')}\n`;
 }
 
 async function promptInput(title: string, prompt: string, value: string): Promise<string | undefined> {
@@ -3786,7 +3939,7 @@ export function getBuiltInSnippets(): BuiltInSnippet[] {
       id: 'doc-change-line',
       label: 'Documentation / header change line',
       description: 'One formatted CHANGES/EVOLUTIONS table entry.',
-      body: renderHeaderChangeLine('${1:' + formatDateDdMmYy() + '}', '${2:S.NAME}', '${3:1.0.0}', '${4:Description}') + '\n'
+      body: renderHeaderChangeEntry('${1:' + formatDateDdMmYy() + '}', '${2:S.NAME}', '${3:1.0.0}', '${4:Description}') + '\n'
     },
     {
       id: 'doc-comment-section',
@@ -4027,7 +4180,7 @@ export class CpmTemplateService {
     const description = await promptInput(title, 'Change description.', 'Description');
     if (description === undefined) return;
 
-    await this.insertTextAtSelections(editor, `${renderHeaderChangeLine(date, author, version, description)}\n`);
+    await this.insertTextAtSelections(editor, `${renderHeaderChangeEntry(date, author, version, description)}\n`);
   }
 
   async insertCommentSection(): Promise<void> {
@@ -4047,6 +4200,62 @@ export class CpmTemplateService {
     if (!style) return;
 
     await this.insertTextAtSelections(editor, renderCommentSection(title, style.value));
+  }
+
+  async insertSpecialCharacterText(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showErrorMessage('Open a C/C++ editor before inserting special-character text.');
+      return;
+    }
+
+    const commandTitle = 'CPM: Insert special-character text';
+    const text = await promptInput(commandTitle, 'Text to render as large special-character text.', 'CPM');
+    if (text === undefined) return;
+
+    const patternChoice = await vscode.window.showQuickPick([
+      { label: '//', description: 'Slash style', value: '//' },
+      { label: '\\\\', description: 'Backslash style', value: '\\\\' },
+      { label: '||', description: 'Vertical-bar style', value: '||' },
+      { label: '**', description: 'Asterisk style', value: '**' },
+      { label: '##', description: 'Hash style', value: '##' },
+      { label: '==', description: 'Equals style', value: '==' },
+      { label: '--', description: 'Dash style', value: '--' },
+      { label: '++', description: 'Plus style', value: '++' },
+      { label: 'Custom...', description: 'Use another 1 to 8 character pattern', value: 'custom' }
+    ], { title: commandTitle, placeHolder: 'Select the fill character pattern' });
+    if (!patternChoice) return;
+
+    let pattern = patternChoice.value;
+    if (patternChoice.value === 'custom') {
+      const customPattern = await promptInput(commandTitle, 'Special-character pattern. 1 to 8 characters, for example //, \\, ||, **.', '//');
+      if (customPattern === undefined) return;
+      pattern = customPattern;
+    }
+
+    const scaleValue = await vscode.window.showInputBox({
+      title: commandTitle,
+      prompt: 'Size / scale factor from 1 to 5. 1 is compact, 2 and above are larger.',
+      value: '1',
+      validateInput: (value) => {
+        const numeric = Number.parseInt(value, 10);
+        if (!Number.isFinite(numeric) || numeric < 1 || numeric > 5) {
+          return 'Enter an integer from 1 to 5.';
+        }
+        return undefined;
+      }
+    });
+    if (scaleValue === undefined) return;
+
+    const outputMode = await vscode.window.showQuickPick([
+      { label: 'C/C++ line comments', description: 'Prefix every generated row with //', value: 'line-comment' as const },
+      { label: 'C block comment', description: 'Wrap generated rows between /* and */', value: 'block-comment' as const },
+      { label: 'Raw characters', description: 'Insert only the generated special characters', value: 'raw' as const }
+    ], { title: commandTitle, placeHolder: 'Select how to insert the generated text' });
+    if (!outputMode) return;
+
+    const rendered = renderSpecialCharacterText(text, pattern, normalizeSpecialTextScale(scaleValue), outputMode.value);
+    await this.insertTextAtSelections(editor, rendered);
   }
 
   async saveSelectionAsSnippet(): Promise<void> {

@@ -1,3 +1,16 @@
+## 0.2.35 - Special-character text comments
+
+- Added `Insert special-character text` under `CPM > Documentation / comments`.
+- The command renders large ASCII-style text from a normal string, with selectable fill patterns such as `//`, `\\`, `||`, `**`, `##`, `==`, `--` and `++`, plus a custom pattern option.
+- Added a size/scale selector from 1 to 5 and insertion modes for C/C++ line comments, C block comments or raw characters.
+
+
+## 0.2.34 - Header change line wrapping
+
+- Improved `Insert header change line`: long CHANGES/EVOLUTIONS descriptions now wrap on continuation rows instead of being truncated with an ellipsis.
+- Added the table separator line automatically after each inserted change entry:
+  `//**__________|____________|_________|______________________________________**`
+
 ## 0.2.33
 
 - Added CAN communication bundles.

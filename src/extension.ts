@@ -224,6 +224,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.insertFileHeader', () => templates.insertFileDescriptionHeader()),
     register('cpm.insertHeaderChangeEntry', () => templates.insertHeaderChangeEntry()),
     register('cpm.insertCommentSection', () => templates.insertCommentSection()),
+    register('cpm.insertSpecialCharacterText', () => templates.insertSpecialCharacterText()),
     register('cpm.saveSelectionAsSnippet', () => templates.saveSelectionAsSnippet()),
     register('cpm.manageSnippets', () => templates.manageSnippets()),
     register('cpm.saveFileAsTemplate', (node?: FileNode) => templates.saveCurrentFileAsTemplate(node?.file.absolutePath)),

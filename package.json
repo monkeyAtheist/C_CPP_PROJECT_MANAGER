@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.33",
+  "version": "0.2.35",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -69,7 +69,8 @@
     "onCommand:cpm.openFunctionPanel",
     "onCommand:cpm.insertFileHeader",
     "onCommand:cpm.insertHeaderChangeEntry",
-    "onCommand:cpm.insertCommentSection"
+    "onCommand:cpm.insertCommentSection",
+    "onCommand:cpm.insertSpecialCharacterText"
   ],
   "main": "./out/extension.js",
   "scripts": {
@@ -488,6 +489,12 @@
       {
         "command": "cpm.insertCommentSection",
         "title": "Insert comment section",
+        "category": "CPM",
+        "icon": "$(symbol-string)"
+      },
+      {
+        "command": "cpm.insertSpecialCharacterText",
+        "title": "Insert special-character text",
         "category": "CPM",
         "icon": "$(symbol-string)"
       },
@@ -1241,6 +1248,10 @@
         {
           "command": "cpm.insertCommentSection",
           "group": "2_section@1"
+        },
+        {
+          "command": "cpm.insertSpecialCharacterText",
+          "group": "2_section@2"
         }
       ],
       "cpm.editorSnippets": [
