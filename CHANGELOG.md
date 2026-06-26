@@ -1,4 +1,86 @@
+## 0.2.33
+
+- Added CAN communication bundles.
+- Added `Module bundles > C > CAN communication` generating `cpm_can.c`, `cpm_can.h` and a README.
+- Added `Module bundles > C++ > CAN communication` generating the `Communication/can` SocketCAN C++ helper.
+- Updated the C full communication stack to include UART, IPC, Ethernet, Wi-Fi, Bluetooth, CAN, I2C and SPI.
+- The generated CAN modules support Linux SocketCAN, classical CAN, CAN FD, receive timeouts, loopback, own-message reception, filters and diagnostic frame formatting.
+- Unsupported platforms return a clear unsupported status by default; Windows CAN adapters are intentionally left for vendor-SDK adapters.
+
+## 0.2.32
+
+- Added C bundle equivalents for Wi-Fi and Bluetooth Classic RFCOMM communication.
+- Added `Module bundles > C > Wi-Fi communication` generating `cpm_wifi.c`, `cpm_wifi.h` and a README.
+- Added `Module bundles > C > Bluetooth RFCOMM communication` generating `cpm_bluetooth.c`, `cpm_bluetooth.h` and a README.
+- Added separate C++ bundle entries for the original MY_Util Wi-Fi and Bluetooth classes.
+- Updated the C full communication stack to include UART, IPC, Ethernet, Wi-Fi, Bluetooth, I2C and SPI.
+- Documented the scope limits: Wi-Fi uses regular TCP/UDP after OS network connection, while the generated Bluetooth C module is Windows RFCOMM-first and returns an unsupported status elsewhere.
+
+## 0.2.31
+
+- Added C bundle equivalents for I2C and SPI communication.
+- Added `Module bundles > C > I2C communication` generating `cpm_i2c.c`, `cpm_i2c.h` and a README.
+- Added `Module bundles > C > SPI communication` generating `cpm_spi.c`, `cpm_spi.h` and a README.
+- Updated the C full communication stack to include UART, IPC, Ethernet, I2C and SPI.
+- Added separate C++ bundle entries for the original MY_Util I2C and SPI classes.
+
+## 0.2.30
+
+- Split the script bundles into generic starters and project-specific demos.
+- Added `Module bundles > Scripts > Python worker protocol starter` for a minimal Python stdin/stdout worker protocol.
+- Renamed the old project-specific Python scripts to `Robot demo Python scripts`.
+- Added `Module bundles > Scripts > Minimal Web UI frontend` with a generic `/api/state` and `/api/action` frontend.
+- Renamed the old Raspberry Pi/GPIO/camera-oriented frontend to `Embedded demo Web UI frontend`.
+- Added README/API notes to generated C bundles and C communication bundles.
+- Automatically adds `ws2_32` to CPM linker libraries on Windows when socket or Web UI backend bundles are added.
+
+## 0.2.29
+
+- Added pure C communication bundle equivalents for the exposed MY_Util C++ communication bundles.
+- Added `Module bundles > C > UART communication` generating `cpm_uart.c` / `cpm_uart.h`.
+- Added `Module bundles > C > IPC communication` generating `cpm_ipc.c` / `cpm_ipc.h`.
+- Added `Module bundles > C > Ethernet TCP-UDP communication` generating `cpm_socket.c` / `cpm_socket.h`.
+- Added `Module bundles > C > Full communication stack` to create the C UART, IPC and Ethernet modules together.
+
+## 0.2.27
+
+## 0.2.28
+
+- Reworked the Web UI bundles so backend source files and frontend HTML/JS/CSS assets are selected separately.
+- Added a generated pure C Web UI backend bridge (`cpm_webui.c` / `cpm_webui.h`).
+- Changed the C++ Web UI bundle to copy only `webui.cpp` and `webui.h`; static frontend files are now in `Scripts > Web UI static frontend`.
+- Curated the complete C++ bundle to avoid copying the OpenCV real-time demo and project-specific frontend assets by default.
+
+
+- Added a generated pure C Python execution bridge bundle under `Module bundles > C > Python execution bridge`.
+- The C bridge creates `cpm_python_exec.c` and `cpm_python_exec.h` and exposes a C API for running Python scripts, maintaining a session, sending lines/JSON and reading stdout.
+- Kept the existing MY_Util C++ Python bridge under the C++ bundle group; companion Python scripts remain a separate script bundle.
+
+
+## 0.2.26
+
+- Reworked the file creation workflow into true category-based pickers: C, C++, Module bundles, Scripts and text, and Saved templates.
+- Moved the Windows DLL starter into the C creation category to keep C-related starters together.
+- Reworked module bundle selection into folder-like bundle categories: C, C++, and Scripts.
+- Changed generated bundle default target folders to `Bundle/C`, `Bundle/C++`, and `Bundle/Scripts`.
+- Added generated C++ equivalents for the generated CPM core utility and error-management bundles.
+- Kept complex communication modules as C++-only MY_Util bundles because a reliable C conversion would require a dedicated API rewrite.
+
 # Changelog
+
+## 0.2.25
+
+- Grouped the new-file/starter picker into C files, C++ files, Windows/DLL, module bundles, scripts/text and saved templates.
+- Split the MY_Util Python integration into a C++ Python execution bridge and a separate Python companion scripts bundle.
+- Renamed the C++ bundle group labels to avoid repeating MY_Util in the quick-pick list while keeping the original folder structure.
+
+## 0.2.24
+
+- Renamed the MY_Util creation entry to a generic `Module bundle...` action.
+- Grouped module bundles by language with C and C++ sections.
+- Removed repetitive `MY_Util /` prefixes from bundle labels.
+- Added generated C module bundles for core utility helpers and CPM error management.
+
 
 ## 0.2.23
 

@@ -15,6 +15,7 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Store explicit compiler paths for `gcc`, `g++`, `ar` and `gdb` or compatible alternatives.
 - Synchronize a managed `.vscode/c_cpp_properties.json` entry for Microsoft C/C++ IntelliSense.
 - Browse embedded C/C++ library packs and insert snippets.
+- Generate C and C++ utility module bundles, including pure C Python, Web UI, UART, IPC and TCP/UDP communication bridges, plus separate companion script/frontend bundles.
 
 ## Toolchain selection
 
@@ -54,3 +55,47 @@ Some internal command identifiers still use the historical `cpm` namespace to av
 ## Documentation layout
 
 Historical validation reports and migration notes are stored under `docs/history/`. The project root keeps only `README.md`, `CHANGELOG.md`, `ARCHITECTURE.md` and `TEMPLATES_AND_SNIPPETS.md` as active documentation.
+
+
+### 0.2.25 workflow update
+
+The new-file picker is grouped by category: C, C++, module bundles, scripts/text and saved templates. Module bundles are split into C, C++ and Scripts. The C group includes generated pure C core/error modules plus Python, Web UI, UART, IPC and TCP/UDP communication bridges; C++ MY_Util modules and companion assets remain separate bundles.
+
+
+
+### 0.2.29 C communication bundles
+
+The common MY_Util C++ communication bundles now have pure C equivalents for UART, IPC and Ethernet TCP/UDP. They are available under `Module bundles > C`, either individually or through `Full communication stack`.
+
+### 0.2.28 Web UI bundle split
+
+The Web UI backend and frontend assets are now separate bundle choices. C projects can generate `cpm_webui.c` / `cpm_webui.h`; C++ projects can copy only `webui.cpp` / `webui.h`; HTML, JavaScript, CSS and images are available from `Module bundles > Scripts > Minimal Web UI frontend`.
+
+### 0.2.30 bundle clarification
+
+Script bundles are now split between generic starters and project-specific demos. The Python worker protocol starter creates only a minimal `catj_py_helper.py`, `logger.py`, `example_worker.py` and README. The older Raspberry Pi / robot-oriented Python files are available separately as `Robot demo Python scripts`.
+
+The Web UI assets are split the same way: `Minimal Web UI frontend` generates a small generic HTML/JS/CSS frontend for `/api/state` and `/api/action`, while `Embedded demo Web UI frontend` keeps the original GPIO/camera/bus demo assets.
+
+C bundles now include README/API notes where useful. When a socket or Web UI backend bundle is added on Windows, CPM adds `ws2_32` to the workspace linker libraries if it is not already present.
+
+### 0.2.31 C I2C/SPI bundles
+
+The C bundle set now includes `I2C communication` and `SPI communication`. These generated modules provide pure C wrappers for Linux `/dev/i2c-*` and spidev devices, with unsupported-platform returns on Windows or non-Linux systems. The C full communication stack now creates UART, IPC, Ethernet, I2C and SPI modules together.
+
+
+
+## 0.2.32 bundle note
+
+The C communication bundle set now includes Wi-Fi and Bluetooth RFCOMM modules in addition to UART, IPC, Ethernet, I2C and SPI. The Wi-Fi module handles application TCP/UDP traffic once the operating system is connected to Wi-Fi; it does not manage SSID association. The Bluetooth C module targets Windows RFCOMM by default and reports unsupported on other platforms unless extended with a platform backend.
+
+## 0.2.33 CAN bundle note
+
+The bundle system now includes CAN communication helpers:
+
+- `Module bundles > C > CAN communication` generates `Bundle/C/Communication/CAN/cpm_can.c`, `cpm_can.h` and a README.
+- `Module bundles > C++ > CAN communication` copies the C++ `Communication/can` helper.
+- `Module bundles > C > Full communication stack` now includes CAN in addition to UART, IPC, Ethernet, Wi-Fi, Bluetooth, I2C and SPI.
+
+The default backend targets Linux SocketCAN. It supports classical CAN, CAN FD, filters, timeouts, loopback and own-message reception. On unsupported platforms the functions return an explicit unsupported status instead of compiling into silent no-op behavior.
+

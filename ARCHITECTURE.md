@@ -118,3 +118,34 @@ docs/history/
 ## Runtime deployment and OneDrive fallback
 
 CPM prepends the selected toolchain bin directory to the Run/Debug process PATH and can deploy common MinGW runtime DLLs beside generated targets. When a OneDrive-hosted project refuses object-directory creation with EPERM/EACCES/EBUSY, CPM can fall back to a local object cache under the user profile while keeping the final target path unchanged.
+
+## Generated C Python bridge bundle
+
+The template service can generate a pure C Python execution bridge (`cpm_python_exec.c/.h`) from internal templates. It is exposed as a C module bundle and intentionally remains separate from the MY_Util C++ bridge and companion Python scripts.
+
+### 0.2.30 bundle clarification
+
+Script bundles are now split between generic starters and project-specific demos. The Python worker protocol starter creates only a minimal `catj_py_helper.py`, `logger.py`, `example_worker.py` and README. The older Raspberry Pi / robot-oriented Python files are available separately as `Robot demo Python scripts`.
+
+The Web UI assets are split the same way: `Minimal Web UI frontend` generates a small generic HTML/JS/CSS frontend for `/api/state` and `/api/action`, while `Embedded demo Web UI frontend` keeps the original GPIO/camera/bus demo assets.
+
+C bundles now include README/API notes where useful. When a socket or Web UI backend bundle is added on Windows, CPM adds `ws2_32` to the workspace linker libraries if it is not already present.
+
+### 0.2.31 communication bundle parity
+
+The bundle layer continues to move toward C/C++ parity. Pure C UART, IPC, Ethernet, I2C and SPI modules are now available as separate generated modules. The I2C/SPI implementations target Linux device files by default and return explicit unsupported statuses on platforms without a backend.
+
+
+
+## 0.2.32 bundle note
+
+The C communication bundle set now includes Wi-Fi and Bluetooth RFCOMM modules in addition to UART, IPC, Ethernet, I2C and SPI. The Wi-Fi module handles application TCP/UDP traffic once the operating system is connected to Wi-Fi; it does not manage SSID association. The Bluetooth C module targets Windows RFCOMM by default and reports unsupported on other platforms unless extended with a platform backend.
+
+### 0.2.33 CAN communication bundle
+
+CAN is now modeled as a first-class communication bundle alongside UART, IPC, Ethernet, Wi-Fi, Bluetooth, I2C and SPI. The default implementation is Linux SocketCAN because it is the most portable open API for PC-side CAN tooling and embedded Linux targets.
+
+The C API is intentionally procedural and independent from the C++ MY_Util classes. The C++ helper follows the same behavior but wraps the resource lifetime in a movable `jc_can::CanLink` class.
+
+Windows CAN support is not hard-coded because common adapters use incompatible vendor SDKs such as PCAN-Basic, Kvaser CANlib, Vector XL or NI-XNET. The generated module therefore exposes a clean adapter boundary rather than pretending that one backend covers all Windows CAN hardware.
+
