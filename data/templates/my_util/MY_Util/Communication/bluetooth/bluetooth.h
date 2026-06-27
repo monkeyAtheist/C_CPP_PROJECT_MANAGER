@@ -1,3 +1,22 @@
+/**
+ * @file bluetooth.h
+ * @brief C++ Bluetooth RFCOMM communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "bluetooth.h"
+ * 
+ * jc_bluetooth::BluetoothConfig cfg;
+ * cfg.address = "00:11:22:33:44:55";
+ * cfg.channel = 1;
+ * jc_bluetooth::BluetoothLink link;
+ * if (link.open(cfg))
+ * {
+ *     link.writeString("PING\n");
+ *     link.close();
+ * }
+ * @endcode
+ */
 #pragma once
 
 #include <cstdint>
@@ -18,11 +37,11 @@ namespace jc_bluetooth {
         // Mode client : adresse MAC distante, ex: "DC:A6:32:11:22:33"
         std::string remoteAddress;
 
-        // Mode serveur : laisser vide pour écouter sur n'importe quel adaptateur local.
+        // Mode serveur : laisser vide pour ï¿½couter sur n'importe quel adaptateur local.
         // Sinon, adresse MAC locale de l'adaptateur Bluetooth.
         std::string localAddress;
 
-        // Canal RFCOMM (équivalent d'un "port" Bluetooth Classic)
+        // Canal RFCOMM (ï¿½quivalent d'un "port" Bluetooth Classic)
         uint8_t channel = 1;
 
         int readTimeoutMs = 100;
@@ -66,7 +85,7 @@ namespace jc_bluetooth {
         int readBytes(uint8_t* buffer, size_t maxSize, int timeoutMs = -1);
         bool readLine(std::string& outLine, char eol = '\n', int timeoutMs = -1, size_t maxLen = 512);
 
-        // Format de trame cohérent avec UART / Wi-Fi :
+        // Format de trame cohï¿½rent avec UART / Wi-Fi :
         // [0xAA][0x55][TYPE][LEN_L][LEN_H][PAYLOAD...][CHK]
         // CHK = checksum8(TYPE + LEN_L + LEN_H + PAYLOAD)
         bool sendPacket(uint8_t type, const std::vector<uint8_t>& payload);
@@ -86,7 +105,7 @@ namespace jc_bluetooth {
         std::vector<uint8_t> rxBuffer_;
 
         socket_handle_t socket_ = kInvalidSocket;      // socket principal
-        socket_handle_t peerSocket_ = kInvalidSocket;  // client accepté en mode serveur
+        socket_handle_t peerSocket_ = kInvalidSocket;  // client acceptï¿½ en mode serveur
         bool opened_ = false;
 
         bool openClient_();

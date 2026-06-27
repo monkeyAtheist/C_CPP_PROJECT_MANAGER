@@ -1,3 +1,22 @@
+/**
+ * @file cpm_bluetooth.h
+ * @brief CPM C Bluetooth RFCOMM communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "cpm_bluetooth.h"
+ * 
+ * CpmBluetoothLink link;
+ * CpmBluetooth_InitLibrary();
+ * CpmBluetooth_Init(&link);
+ * if (CpmBluetooth_OpenRfcommClient(&link, "00:11:22:33:44:55", 1) == 0)
+ * {
+ *     CpmBluetooth_Send(&link, "PING", 4, NULL);
+ *     CpmBluetooth_Close(&link);
+ * }
+ * CpmBluetooth_ShutdownLibrary();
+ * @endcode
+ */
 #ifndef CPM_BLUETOOTH_H
 #define CPM_BLUETOOTH_H
 

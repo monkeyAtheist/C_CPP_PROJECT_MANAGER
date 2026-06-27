@@ -1,3 +1,14 @@
+## 0.2.38 - Bundle Doxygen examples
+
+- Added Doxygen-style usage examples to generated bundle headers, including the C Python execution bridge example requested for `CpmPython_RunScript`.
+- Added generated `@file`, `@brief`, `@param` and `@return` documentation blocks to C bundle implementations and internal helpers where applicable.
+- Extended the same documentation pass to copied C/C++ MY_Util bundle files so communication, Python, Web UI, utility and error-management modules are easier to understand after insertion.
+
+## 0.2.37 - Python execution bridge MinGW compatibility
+
+- Fixed the generated C `Python execution bridge` bundle for older MinGW/MinGW32 toolchains where `GetTickCount64` is not declared by default.
+- Replaced the Windows timeout counter with a `GetTickCount`-based wrap-safe calculation so `cpm_python_exec.c` builds with the 32-bit MinGW toolchain used by CPM.
+
 ## 0.2.36 - Smaller special-character text sizes
 
 - Reworked `Insert special-character text` size selection as five explicit presets.

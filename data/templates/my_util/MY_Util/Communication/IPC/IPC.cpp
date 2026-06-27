@@ -1,3 +1,9 @@
+/**
+ * @file IPC.cpp
+ * @brief Implementation of the IPC C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "IPC.h"
 
 #include <algorithm>
@@ -216,7 +222,7 @@ namespace jc_ipc {
 
     bool IpcPipe::openAnonymous_()
     {
-        // Un pipe anonyme nécessite une paire ; utiliser createAnonymousPair().
+        // Un pipe anonyme nï¿½cessite une paire ; utiliser createAnonymousPair().
         opened_ = false;
         peerConnected_ = false;
         return false;
@@ -478,7 +484,7 @@ namespace jc_ipc {
     bool IpcPipe::openFifo_()
     {
 #if defined(_WIN32)
-        // Pas d'équivalent FIFO POSIX générique côté Windows dans ce proto.
+        // Pas d'ï¿½quivalent FIFO POSIX gï¿½nï¿½rique cï¿½tï¿½ Windows dans ce proto.
         opened_ = false;
         peerConnected_ = false;
         return false;

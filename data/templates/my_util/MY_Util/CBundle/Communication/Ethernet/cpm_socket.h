@@ -1,3 +1,22 @@
+/**
+ * @file cpm_socket.h
+ * @brief CPM C TCP/UDP socket communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "cpm_socket.h"
+ * 
+ * CpmSocket socketObj;
+ * CpmSocket_InitLibrary();
+ * CpmSocket_Init(&socketObj);
+ * if (CpmSocket_TcpConnect(&socketObj, "127.0.0.1", 8080) == 0)
+ * {
+ *     CpmSocket_Send(&socketObj, "PING", 4, NULL);
+ *     CpmSocket_Close(&socketObj);
+ * }
+ * CpmSocket_ShutdownLibrary();
+ * @endcode
+ */
 #ifndef CPM_SOCKET_H
 #define CPM_SOCKET_H
 

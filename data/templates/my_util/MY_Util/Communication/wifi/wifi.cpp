@@ -1,3 +1,9 @@
+/**
+ * @file wifi.cpp
+ * @brief Implementation of the wifi C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "wifi.h"
 
 #include <algorithm>

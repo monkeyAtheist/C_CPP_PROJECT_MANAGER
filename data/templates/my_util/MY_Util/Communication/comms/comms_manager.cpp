@@ -1,3 +1,9 @@
+/**
+ * @file comms_manager.cpp
+ * @brief Implementation of the comms_manager C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "comms_manager.h"
 
 #include <algorithm>
@@ -13,6 +19,12 @@
 
 namespace jc_comms {
 
+/**
+ * @brief Implements the toBoolLoose operation.
+ * @param s See the matching header for semantic details.
+ * @param fallback See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static bool toBoolLoose(const std::string& s, bool fallback)
 {
     std::string v;
@@ -25,12 +37,20 @@ static bool toBoolLoose(const std::string& s, bool fallback)
     return fallback;
 }
 
+/**
+ * @brief Implements the nowMs_ operation.
+ * @return See the matching header for status code or value semantics.
+ */
 uint64_t CommsManager::nowMs_()
 {
     using namespace std::chrono;
     return static_cast<uint64_t>(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
 }
 
+/**
+ * @brief Implements the pushHistory_ operation.
+ * @param it See the matching header for semantic details.
+ */
 void CommsManager::pushHistory_(HistoryItem it)
 {
     std::lock_guard<std::mutex> lk(histMutex_);
@@ -40,6 +60,11 @@ void CommsManager::pushHistory_(HistoryItem it)
     history_.push_back(std::move(it));
 }
 
+/**
+ * @brief Implements the trim_ operation.
+ * @param s See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string CommsManager::trim_(std::string s)
 {
     auto issp = [](unsigned char c) { return std::isspace(c) != 0; };
@@ -48,6 +73,13 @@ std::string CommsManager::trim_(std::string s)
     return s;
 }
 
+/**
+ * @brief Implements the parseIniSection_ operation.
+ * @param p See the matching header for semantic details.
+ * @param wantedSection See the matching header for semantic details.
+ * @param out See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::parseIniSection_(const std::filesystem::path& p,
                                    const std::string& wantedSection,
                                    std::vector<std::pair<std::string, std::string>>& out)
@@ -95,6 +127,12 @@ bool CommsManager::parseIniSection_(const std::filesystem::path& p,
     return !out.empty();
 }
 
+/**
+ * @brief Implements the parseHexBytes_ operation.
+ * @param text See the matching header for semantic details.
+ * @param out See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::parseHexBytes_(const std::string& text, std::vector<uint8_t>& out)
 {
     out.clear();
@@ -125,6 +163,11 @@ bool CommsManager::parseHexBytes_(const std::string& text, std::vector<uint8_t>&
     return !out.empty();
 }
 
+/**
+ * @brief Implements the unescapeAscii operation.
+ * @param s See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static std::string unescapeAscii(const std::string& s)
 {
     std::string out;
@@ -144,6 +187,14 @@ static std::string unescapeAscii(const std::string& s)
     return out;
 }
 
+/**
+ * @brief Implements the parseUartSpec_ operation.
+ * @param cfg See the matching header for semantic details.
+ * @param spec See the matching header for semantic details.
+ * @param outPort See the matching header for semantic details.
+ * @param outBaud See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::parseUartSpec_(const CommsConfig& cfg, const std::string& spec,
                                  std::string& outPort, int& outBaud)
 {
@@ -168,6 +219,14 @@ bool CommsManager::parseUartSpec_(const CommsConfig& cfg, const std::string& spe
     return !outPort.empty();
 }
 
+/**
+ * @brief Implements the parseBtSpec_ operation.
+ * @param cfg See the matching header for semantic details.
+ * @param spec See the matching header for semantic details.
+ * @param outMac See the matching header for semantic details.
+ * @param outChannel See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::parseBtSpec_(const CommsConfig& cfg, const std::string& spec,
                                std::string& outMac, int& outChannel)
 {
@@ -191,6 +250,13 @@ bool CommsManager::parseBtSpec_(const CommsConfig& cfg, const std::string& spec,
     return !outMac.empty();
 }
 
+/**
+ * @brief Implements the parseNetSpec_ operation.
+ * @param cfg See the matching header for semantic details.
+ * @param spec See the matching header for semantic details.
+ * @param out See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::parseNetSpec_(const CommsConfig& cfg, const std::string& spec, NetSpec& out)
 {
     std::string s = trim_(spec);
@@ -226,6 +292,13 @@ bool CommsManager::parseNetSpec_(const CommsConfig& cfg, const std::string& spec
     return !out.host.empty();
 }
 
+/**
+ * @brief Implements the parseI2cSpec_ operation.
+ * @param spec See the matching header for semantic details.
+ * @param outDev See the matching header for semantic details.
+ * @param outAddr See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::parseI2cSpec_(const std::string& spec, std::string& outDev, uint16_t& outAddr)
 {
     std::string s = trim_(spec);
@@ -250,6 +323,15 @@ bool CommsManager::parseI2cSpec_(const std::string& spec, std::string& outDev, u
     return !outDev.empty();
 }
 
+/**
+ * @brief Implements the parseSpiSpec_ operation.
+ * @param spec See the matching header for semantic details.
+ * @param outDev See the matching header for semantic details.
+ * @param outSpeed See the matching header for semantic details.
+ * @param outMode See the matching header for semantic details.
+ * @param outBits See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::parseSpiSpec_(const std::string& spec, std::string& outDev, uint32_t& outSpeed, uint8_t& outMode, uint8_t& outBits)
 {
     std::string s = trim_(spec);
@@ -290,6 +372,11 @@ bool CommsManager::parseSpiSpec_(const std::string& spec, std::string& outDev, u
     return !outDev.empty();
 }
 
+/**
+ * @brief Implements the jsonEscape_ operation.
+ * @param s See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string CommsManager::jsonEscape_(const std::string& s)
 {
     std::string out;
@@ -312,6 +399,12 @@ std::string CommsManager::jsonEscape_(const std::string& s)
     return out;
 }
 
+/**
+ * @brief Implements the bytesToHex_ operation.
+ * @param data See the matching header for semantic details.
+ * @param n See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string CommsManager::bytesToHex_(const uint8_t* data, size_t n)
 {
     static const char* kHex = "0123456789ABCDEF";
@@ -326,6 +419,12 @@ std::string CommsManager::bytesToHex_(const uint8_t* data, size_t n)
     return out;
 }
 
+/**
+ * @brief Implements the containsSpec_ operation.
+ * @param v See the matching header for semantic details.
+ * @param spec See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::containsSpec_(const std::vector<DeviceItem>& v, const std::string& spec)
 {
     for (const auto& d : v) {
@@ -334,6 +433,12 @@ bool CommsManager::containsSpec_(const std::vector<DeviceItem>& v, const std::st
     return false;
 }
 
+/**
+ * @brief Implements the loadIni operation.
+ * @param iniPath See the matching header for semantic details.
+ * @param err See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::loadIni(const std::filesystem::path& iniPath, std::string* err)
 {
     if (err) err->clear();
@@ -434,6 +539,11 @@ bool CommsManager::loadIni(const std::filesystem::path& iniPath, std::string* er
     return true;
 }
 
+/**
+ * @brief Implements the scanUart_ operation.
+ * @param out See the matching header for semantic details.
+ * @param err See the matching header for semantic details.
+ */
 void CommsManager::scanUart_(std::vector<DeviceItem>& out, std::string* err)
 {
     out.clear();
@@ -462,6 +572,11 @@ void CommsManager::scanUart_(std::vector<DeviceItem>& out, std::string* err)
 #endif
 }
 
+/**
+ * @brief Implements the scanUsb_ operation.
+ * @param out See the matching header for semantic details.
+ * @param err See the matching header for semantic details.
+ */
 void CommsManager::scanUsb_(std::vector<DeviceItem>& out, std::string* err)
 {
     out.clear();
@@ -492,6 +607,11 @@ void CommsManager::scanUsb_(std::vector<DeviceItem>& out, std::string* err)
 #endif
 }
 
+/**
+ * @brief Implements the scanBluetooth_ operation.
+ * @param out See the matching header for semantic details.
+ * @param err See the matching header for semantic details.
+ */
 void CommsManager::scanBluetooth_(std::vector<DeviceItem>& out, std::string* err)
 {
     out.clear();
@@ -534,6 +654,11 @@ void CommsManager::scanBluetooth_(std::vector<DeviceItem>& out, std::string* err
 #endif
 }
 
+/**
+ * @brief Implements the scanI2c_ operation.
+ * @param out See the matching header for semantic details.
+ * @param err See the matching header for semantic details.
+ */
 void CommsManager::scanI2c_(std::vector<DeviceItem>& out, std::string* err)
 {
     out.clear();
@@ -555,6 +680,11 @@ void CommsManager::scanI2c_(std::vector<DeviceItem>& out, std::string* err)
 #endif
 }
 
+/**
+ * @brief Implements the scanSpi_ operation.
+ * @param out See the matching header for semantic details.
+ * @param err See the matching header for semantic details.
+ */
 void CommsManager::scanSpi_(std::vector<DeviceItem>& out, std::string* err)
 {
     out.clear();
@@ -576,6 +706,10 @@ void CommsManager::scanSpi_(std::vector<DeviceItem>& out, std::string* err)
 #endif
 }
 
+/**
+ * @brief Implements the refreshDevices operation.
+ * @param err See the matching header for semantic details.
+ */
 void CommsManager::refreshDevices(std::string* err)
 {
     if (err) err->clear();
@@ -706,6 +840,11 @@ std::string CommsManager::historyJson(size_t limit) const
     return oss.str();
 }
 
+/**
+ * @brief Implements the transportToStr operation.
+ * @param t See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static std::string transportToStr(Transport t)
 {
     switch (t) {
@@ -719,6 +858,12 @@ static std::string transportToStr(Transport t)
     }
 }
 
+/**
+ * @brief Implements the send operation.
+ * @param req See the matching header for semantic details.
+ * @param err See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsManager::send(const SendRequest& req, std::string* err)
 {
     ReplyOptions ro;
@@ -728,6 +873,12 @@ bool CommsManager::send(const SendRequest& req, std::string* err)
     return r.ok;
 }
 
+/**
+ * @brief Implements the sendEx operation.
+ * @param req See the matching header for semantic details.
+ * @param ro See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 SendResult CommsManager::sendEx(const SendRequest& req, const ReplyOptions& ro)
 {
     SendResult res;
@@ -1187,6 +1338,9 @@ SendResult CommsManager::sendEx(const SendRequest& req, const ReplyOptions& ro)
     return res;
 }
 
+/**
+ * @brief Implements the closeAll operation.
+ */
 void CommsManager::closeAll()
 {
     std::lock_guard<std::mutex> lk(m_);

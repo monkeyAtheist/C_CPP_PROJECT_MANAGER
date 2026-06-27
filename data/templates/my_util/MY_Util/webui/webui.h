@@ -1,3 +1,18 @@
+/**
+ * @file webui.h
+ * @brief C++ Web UI HTTP backend API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "webui.h"
+ * 
+ * jc_webui::WebUiServer server;
+ * jc_webui::WebUiConfig cfg;
+ * cfg.port = 8080;
+ * server.setStateProvider([] { return std::string("{\"ok\":true}"); });
+ * server.start(cfg);
+ * @endcode
+ */
 #pragma once
 
 #include <atomic>

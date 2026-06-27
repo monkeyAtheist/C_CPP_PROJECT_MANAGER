@@ -1,3 +1,9 @@
+/**
+ * @file uart.cpp
+ * @brief Implementation of the uart C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "uart.h"
 
 #include <algorithm>

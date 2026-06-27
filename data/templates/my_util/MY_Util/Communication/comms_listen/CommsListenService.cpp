@@ -1,3 +1,9 @@
+/**
+ * @file CommsListenService.cpp
+ * @brief Implementation of the CommsListenService C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "CommsListenService.h"
 
 #include "../uart/uart.h"
@@ -32,6 +38,11 @@ namespace jc_comms_listen {
 
 namespace {
 
+/**
+ * @brief Implements the trim_ operation.
+ * @param s See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static std::string trim_(std::string s)
 {
     auto isSpace = [](unsigned char c) { return std::isspace(c) != 0; };
@@ -40,6 +51,11 @@ static std::string trim_(std::string s)
     return s;
 }
 
+/**
+ * @brief Implements the lower_ operation.
+ * @param s See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static std::string lower_(std::string s)
 {
     for (auto& c : s) c = (char)std::tolower((unsigned char)c);
@@ -50,6 +66,10 @@ static std::string lower_(std::string s)
 using socket_t = SOCKET;
 static constexpr socket_t kInvalidSocket = INVALID_SOCKET;
 static void closeSock(socket_t& s) { if (s != kInvalidSocket) { closesocket(s); s = kInvalidSocket; } }
+/**
+ * @brief Implements the wsaInitOnce operation.
+ * @return See the matching header for status code or value semantics.
+ */
 static bool wsaInitOnce()
 {
     static std::atomic<bool> inited{false};
@@ -68,6 +88,11 @@ static constexpr socket_t kInvalidSocket = -1;
 static void closeSock(socket_t& s) { if (s != kInvalidSocket) { ::close(s); s = kInvalidSocket; } }
 #endif
 
+/**
+ * @brief Implements the setReuseAddr operation.
+ * @param s See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static bool setReuseAddr(socket_t s)
 {
     int opt = 1;
@@ -78,6 +103,12 @@ static bool setReuseAddr(socket_t s)
 #endif
 }
 
+/**
+ * @brief Implements the setNonBlocking operation.
+ * @param s See the matching header for semantic details.
+ * @param nb See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static bool setNonBlocking(socket_t s, bool nb)
 {
 #if defined(_WIN32)
@@ -92,6 +123,12 @@ static bool setNonBlocking(socket_t s, bool nb)
 #endif
 }
 
+/**
+ * @brief Implements the waitReadable operation.
+ * @param s See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static bool waitReadable(socket_t s, int timeoutMs)
 {
     if (s == kInvalidSocket) return false;
@@ -111,6 +148,11 @@ static bool waitReadable(socket_t s, int timeoutMs)
     return ret > 0 && FD_ISSET(s, &rfds);
 }
 
+/**
+ * @brief Implements the sockaddrToString operation.
+ * @param a See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static std::string sockaddrToString(const sockaddr_in& a)
 {
     char buf[64] = {0};
@@ -120,6 +162,11 @@ static std::string sockaddrToString(const sockaddr_in& a)
     return oss.str();
 }
 
+/**
+ * @brief Implements the jsonEsc_ operation.
+ * @param s See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static std::string jsonEsc_(const std::string& s)
 {
     std::ostringstream o;
@@ -136,12 +183,22 @@ CommsListenService::~CommsListenService()
     stop();
 }
 
+/**
+ * @brief Implements the setEventCallback operation.
+ * @param cb See the matching header for semantic details.
+ */
 void CommsListenService::setEventCallback(EventCallback cb)
 {
     std::lock_guard<std::mutex> lk(m_);
     eventCb_ = std::move(cb);
 }
 
+/**
+ * @brief Implements the start operation.
+ * @param req See the matching header for semantic details.
+ * @param errOut See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsListenService::start(const ListenRequest& req, std::string* errOut)
 {
     stop();
@@ -170,6 +227,9 @@ bool CommsListenService::start(const ListenRequest& req, std::string* errOut)
     return true;
 }
 
+/**
+ * @brief Implements the stop operation.
+ */
 void CommsListenService::stop()
 {
     stopFlag_.store(true);
@@ -208,12 +268,21 @@ std::string CommsListenService::statusJson() const
     return oss.str();
 }
 
+/**
+ * @brief Implements the nowMs_ operation.
+ * @return See the matching header for status code or value semantics.
+ */
 uint64_t CommsListenService::nowMs_()
 {
     using namespace std::chrono;
     return (uint64_t)duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
 }
 
+/**
+ * @brief Implements the transportToString_ operation.
+ * @param t See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string CommsListenService::transportToString_(Transport t)
 {
     switch (t) {
@@ -228,12 +297,21 @@ std::string CommsListenService::transportToString_(Transport t)
     }
 }
 
+/**
+ * @brief Implements the setError_ operation.
+ * @param err See the matching header for semantic details.
+ */
 void CommsListenService::setError_(const std::string& err)
 {
     std::lock_guard<std::mutex> lk(m_);
     st_.error = err;
 }
 
+/**
+ * @brief Implements the setConnected_ operation.
+ * @param connected See the matching header for semantic details.
+ * @param peer See the matching header for semantic details.
+ */
 void CommsListenService::setConnected_(bool connected, const std::string& peer)
 {
     std::lock_guard<std::mutex> lk(m_);
@@ -241,6 +319,10 @@ void CommsListenService::setConnected_(bool connected, const std::string& peer)
     st_.peer = peer;
 }
 
+/**
+ * @brief Implements the bumpRx_ operation.
+ * @param tsMs See the matching header for semantic details.
+ */
 void CommsListenService::bumpRx_(uint64_t tsMs)
 {
     std::lock_guard<std::mutex> lk(m_);
@@ -248,12 +330,19 @@ void CommsListenService::bumpRx_(uint64_t tsMs)
     st_.lastRxTsMs = tsMs;
 }
 
+/**
+ * @brief Implements the bumpTx_ operation.
+ */
 void CommsListenService::bumpTx_()
 {
     std::lock_guard<std::mutex> lk(m_);
     st_.txCount++;
 }
 
+/**
+ * @brief Implements the emit_ operation.
+ * @param ev See the matching header for semantic details.
+ */
 void CommsListenService::emit_(ListenEvent ev)
 {
     EventCallback cb;
@@ -264,6 +353,13 @@ void CommsListenService::emit_(ListenEvent ev)
     if (cb) cb(ev);
 }
 
+/**
+ * @brief Implements the parseUartSpec_ operation.
+ * @param spec See the matching header for semantic details.
+ * @param portOut See the matching header for semantic details.
+ * @param baudOut See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsListenService::parseUartSpec_(const std::string& spec, std::string& portOut, int& baudOut)
 {
     auto s = trim_(spec);
@@ -279,6 +375,14 @@ bool CommsListenService::parseUartSpec_(const std::string& spec, std::string& po
     return !portOut.empty();
 }
 
+/**
+ * @brief Implements the parseBtSpec_ operation.
+ * @param spec See the matching header for semantic details.
+ * @param server See the matching header for semantic details.
+ * @param addr See the matching header for semantic details.
+ * @param channel See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsListenService::parseBtSpec_(const std::string& spec, bool& server, std::string& addr, int& channel)
 {
     std::string s = lower_(trim_(spec));
@@ -312,6 +416,14 @@ bool CommsListenService::parseBtSpec_(const std::string& spec, bool& server, std
     return channel >= 1 && channel <= 30;
 }
 
+/**
+ * @brief Implements the parseNetSpec_ operation.
+ * @param spec See the matching header for semantic details.
+ * @param proto See the matching header for semantic details.
+ * @param host See the matching header for semantic details.
+ * @param port See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsListenService::parseNetSpec_(const std::string& spec, std::string& proto, std::string& host, int& port)
 {
     std::string s = trim_(spec);
@@ -338,6 +450,13 @@ bool CommsListenService::parseNetSpec_(const std::string& spec, std::string& pro
     return true;
 }
 
+/**
+ * @brief Implements the parseI2cSpec_ operation.
+ * @param spec See the matching header for semantic details.
+ * @param deviceOut See the matching header for semantic details.
+ * @param addrOut See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsListenService::parseI2cSpec_(const std::string& spec, std::string& deviceOut, uint16_t& addrOut)
 {
     std::string s = trim_(spec);
@@ -353,6 +472,15 @@ bool CommsListenService::parseI2cSpec_(const std::string& spec, std::string& dev
     return !deviceOut.empty();
 }
 
+/**
+ * @brief Implements the parseSpiSpec_ operation.
+ * @param spec See the matching header for semantic details.
+ * @param deviceOut See the matching header for semantic details.
+ * @param speedOut See the matching header for semantic details.
+ * @param modeOut See the matching header for semantic details.
+ * @param bitsOut See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool CommsListenService::parseSpiSpec_(const std::string& spec, std::string& deviceOut, uint32_t& speedOut, uint8_t& modeOut, uint8_t& bitsOut)
 {
     std::string s = trim_(spec);
@@ -387,6 +515,12 @@ bool CommsListenService::parseSpiSpec_(const std::string& spec, std::string& dev
     return true;
 }
 
+/**
+ * @brief Implements the parseHexBytes_ operation.
+ * @param s See the matching header for semantic details.
+ * @param ok See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::vector<uint8_t> CommsListenService::parseHexBytes_(const std::string& s, bool* ok)
 {
     std::vector<uint8_t> out;
@@ -418,6 +552,12 @@ std::vector<uint8_t> CommsListenService::parseHexBytes_(const std::string& s, bo
     return out;
 }
 
+/**
+ * @brief Implements the bytesToHex_ operation.
+ * @param data See the matching header for semantic details.
+ * @param n See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string CommsListenService::bytesToHex_(const uint8_t* data, size_t n)
 {
     std::ostringstream oss;
@@ -433,6 +573,12 @@ std::string CommsListenService::bytesToHex_(const uint8_t* data, size_t n)
     return oss.str();
 }
 
+/**
+ * @brief Implements the bytesToAsciiSafe_ operation.
+ * @param data See the matching header for semantic details.
+ * @param n See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string CommsListenService::bytesToAsciiSafe_(const uint8_t* data, size_t n)
 {
     std::string out;
@@ -447,6 +593,14 @@ std::string CommsListenService::bytesToAsciiSafe_(const uint8_t* data, size_t n)
     return out;
 }
 
+/**
+ * @brief Implements the buildReply_ operation.
+ * @param r See the matching header for semantic details.
+ * @param rxData See the matching header for semantic details.
+ * @param rxSize See the matching header for semantic details.
+ * @param ok See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::vector<uint8_t> CommsListenService::buildReply_(const ListenRequest& r,
                                                      const uint8_t* rxData,
                                                      size_t rxSize,
@@ -482,6 +636,12 @@ std::vector<uint8_t> CommsListenService::buildReply_(const ListenRequest& r,
     return out;
 }
 
+/**
+ * @brief Implements the buildPollRequest_ operation.
+ * @param r See the matching header for semantic details.
+ * @param ok See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::vector<uint8_t> CommsListenService::buildPollRequest_(const ListenRequest& r, bool* ok)
 {
     if (ok) *ok = true;
@@ -497,6 +657,10 @@ std::vector<uint8_t> CommsListenService::buildPollRequest_(const ListenRequest& 
     return bytes;
 }
 
+/**
+ * @brief Implements the scanJson operation.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string CommsListenService::scanJson()
 {
     std::vector<std::string> uarts;
@@ -578,6 +742,9 @@ std::string CommsListenService::scanJson()
     return oss.str();
 }
 
+/**
+ * @brief Implements the threadMain_ operation.
+ */
 void CommsListenService::threadMain_()
 {
     ListenRequest req;

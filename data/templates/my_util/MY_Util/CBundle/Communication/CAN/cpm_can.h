@@ -1,3 +1,25 @@
+/**
+ * @file cpm_can.h
+ * @brief CPM C CAN and SocketCAN communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "cpm_can.h"
+ * 
+ * CpmCanBus bus;
+ * CpmCanFrame frame;
+ * uint8_t payload[] = { 0x11, 0x22 };
+ * CpmCan_InitBus(&bus);
+ * CpmCan_InitFrame(&frame);
+ * if (CpmCan_Open(&bus, "can0", 0) == 0)
+ * {
+ *     frame.id = CpmCan_MakeStandardId(0x123);
+ *     CpmCan_SetData(&frame, payload, sizeof(payload));
+ *     CpmCan_Send(&bus, &frame);
+ *     CpmCan_Close(&bus);
+ * }
+ * @endcode
+ */
 #ifndef CPM_CAN_H
 #define CPM_CAN_H
 

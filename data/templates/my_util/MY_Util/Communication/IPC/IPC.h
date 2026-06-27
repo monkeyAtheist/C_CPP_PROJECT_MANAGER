@@ -1,3 +1,22 @@
+/**
+ * @file IPC.h
+ * @brief C++ IPC pipe communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "IPC.h"
+ * 
+ * jc_ipc::IpcConfig cfg;
+ * cfg.name = "demo_pipe";
+ * cfg.role = jc_ipc::PipeRole::Client;
+ * jc_ipc::IpcPipe pipe;
+ * if (pipe.open(cfg))
+ * {
+ *     pipe.writeString("PING\n");
+ *     pipe.close();
+ * }
+ * @endcode
+ */
 #pragma once
 
 #include <cstdint>
@@ -9,7 +28,7 @@ namespace jc_ipc {
 
     enum class PipeType {
         NamedPipe,  // Windows: Named Pipe, Linux: socket local AF_UNIX
-        Fifo,       // Linux: paire de FIFO nommées pour full-duplex
+        Fifo,       // Linux: paire de FIFO nommï¿½es pour full-duplex
         Anonymous   // pipe anonyme local (via createAnonymousPair)
     };
 
@@ -34,7 +53,7 @@ namespace jc_ipc {
         //   Linux   -> chemin socket UNIX, ex: "/tmp/jc_pipe.sock"
         // Fifo:
         //   base de nom/path, ex: "/tmp/jc_fifo"
-        //   la lib créera automatiquement :
+        //   la lib crï¿½era automatiquement :
         //     <base>_c2s et <base>_s2c
         std::string name = "jc_IPC";
 
@@ -43,7 +62,7 @@ namespace jc_ipc {
         int connectTimeoutMs = 2000;
         bool createIfMissing = true;
         bool removeEndpointOnClose = false;
-        bool messageMode = true; // utile surtout côté Windows Named Pipe
+        bool messageMode = true; // utile surtout cï¿½tï¿½ Windows Named Pipe
     };
 
     class IpcPipe {
@@ -87,9 +106,9 @@ namespace jc_ipc {
         bool sendPacket(uint8_t type, const std::vector<uint8_t>& payload);
         bool receivePacket(Packet& packet, int timeoutMs = -1);
 
-        // Crée une paire de pipes anonymes unidirectionnelle.
+        // Crï¿½e une paire de pipes anonymes unidirectionnelle.
         // reader  : endpoint lecture seule
-        // writer  : endpoint écriture seule
+        // writer  : endpoint ï¿½criture seule
         static bool createAnonymousPair(IpcPipe& reader, IpcPipe& writer,
             int readTimeoutMs = 100,
             int writeTimeoutMs = 100);
@@ -110,7 +129,7 @@ namespace jc_ipc {
         mutable std::mutex ioMutex_;
         std::vector<uint8_t> rxBuffer_;
 
-        handle_t controlHandle_ = kInvalidHandle; // serveur/listen si nécessaire
+        handle_t controlHandle_ = kInvalidHandle; // serveur/listen si nï¿½cessaire
         handle_t readHandle_ = kInvalidHandle;
         handle_t writeHandle_ = kInvalidHandle;
 

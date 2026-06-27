@@ -1,3 +1,23 @@
+/**
+ * @file I2C.h
+ * @brief C++ I2C communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "I2C.h"
+ * 
+ * jc_i2c::I2cConfig cfg;
+ * cfg.device = "/dev/i2c-1";
+ * cfg.address = 0x48;
+ * jc_i2c::I2cDevice dev;
+ * if (dev.open(cfg))
+ * {
+ *     uint8_t value = 0;
+ *     dev.readRegister8(0x00, value);
+ *     dev.close();
+ * }
+ * @endcode
+ */
 #pragma once
 
 #include <cstdint>

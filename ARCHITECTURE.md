@@ -115,6 +115,10 @@ docs/history/
 ```
 
 
+### 0.2.38 bundle documentation pass
+
+The template service now treats documentation as part of the bundle payload. Internal generators for CPM C/C++ core utilities, error handling, Python execution and Web UI backend prepend Doxygen-style header examples and source-level implementation comments. Static MY_Util bundle assets under `data/templates/my_util/MY_Util` are also enriched before packaging, so copied C and C++ modules retain usage examples and source documentation when inserted into a project.
+
 ## Runtime deployment and OneDrive fallback
 
 CPM prepends the selected toolchain bin directory to the Run/Debug process PATH and can deploy common MinGW runtime DLLs beside generated targets. When a OneDrive-hosted project refuses object-directory creation with EPERM/EACCES/EBUSY, CPM can fall back to a local object cache under the user profile while keeping the final target path unchanged.

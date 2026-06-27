@@ -1,3 +1,9 @@
+/**
+ * @file I2C.cpp
+ * @brief Implementation of the I2C C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "I2C.h"
 
 #include <algorithm>

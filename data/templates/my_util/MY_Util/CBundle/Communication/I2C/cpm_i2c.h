@@ -1,3 +1,22 @@
+/**
+ * @file cpm_i2c.h
+ * @brief CPM C Linux I2C communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "cpm_i2c.h"
+ * 
+ * CpmI2cBus bus;
+ * uint8_t value = 0;
+ * CpmI2c_Init(&bus);
+ * if (CpmI2c_Open(&bus, "/dev/i2c-1") == 0)
+ * {
+ *     CpmI2c_SetAddress(&bus, 0x48);
+ *     CpmI2c_ReadRegister8(&bus, 0x00, &value);
+ *     CpmI2c_Close(&bus);
+ * }
+ * @endcode
+ */
 #ifndef CPM_I2C_H
 #define CPM_I2C_H
 

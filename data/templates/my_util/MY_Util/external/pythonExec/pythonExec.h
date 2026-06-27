@@ -1,3 +1,21 @@
+/**
+ * @file pythonExec.h
+ * @brief C++ Python execution bridge API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "pythonExec.h"
+ * #include <iostream>
+ * 
+ * jc_python::PythonConfig cfg;
+ * cfg.scriptPath = "worker.py";
+ * auto result = jc_python::PythonRunner::runScript(cfg, {"arg1", "arg2"}, 5000);
+ * if (result.finished)
+ * {
+ *     std::cout << result.output << std::endl;
+ * }
+ * @endcode
+ */
 #pragma once
 
 #include <cstdint>

@@ -1,3 +1,19 @@
+/**
+ * @file myUtil.h
+ * @brief C++ generic MY_Util helpers API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "myUtil.h"
+ * 
+ * jc_utility::iniReader ini;
+ * if (ini.load("utility.ini"))
+ * {
+ *     int value = ini.getOr<int>("app", "timeout_ms", 1000);
+ *     (void)value;
+ * }
+ * @endcode
+ */
 #pragma once
 
 //#include "sources/fonctions/navigation/navigation.h"

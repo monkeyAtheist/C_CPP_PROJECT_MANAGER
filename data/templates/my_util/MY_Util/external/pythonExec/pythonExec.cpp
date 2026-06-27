@@ -1,3 +1,9 @@
+/**
+ * @file pythonExec.cpp
+ * @brief Implementation of the pythonExec C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "pythonExec.h"
 
 #include <algorithm>
@@ -22,6 +28,11 @@ namespace jc_python {
 namespace {
 
 #if defined(_WIN32)
+/**
+ * @brief Implements the quoteArgWin operation.
+ * @param arg See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string quoteArgWin(const std::string& arg)
 {
     if (arg.empty()) return "\"\"";
@@ -105,6 +116,12 @@ void PythonSession::moveFrom_(PythonSession& other) noexcept
     other.cachedExitCode_ = -1;
 }
 
+/**
+ * @brief Implements the start operation.
+ * @param cfg See the matching header for semantic details.
+ * @param args See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool PythonSession::start(const PythonConfig& cfg, const std::vector<std::string>& args)
 {
     close(false);
@@ -259,6 +276,10 @@ bool PythonSession::start(const PythonConfig& cfg, const std::vector<std::string
 #endif
 }
 
+/**
+ * @brief Implements the close operation.
+ * @param forceKill See the matching header for semantic details.
+ */
 void PythonSession::close(bool forceKill)
 {
 #if defined(_WIN32)
@@ -303,6 +324,9 @@ void PythonSession::close(bool forceKill)
     rxBuffer_.clear();
 }
 
+/**
+ * @brief Implements the closeInput operation.
+ */
 void PythonSession::closeInput()
 {
     closeHandle_(stdinWrite_);
@@ -335,6 +359,11 @@ bool PythonSession::isRunning() const
 #endif
 }
 
+/**
+ * @brief Implements the wait operation.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int PythonSession::wait(int timeoutMs)
 {
     if (finished_) return cachedExitCode_;
@@ -374,6 +403,12 @@ int PythonSession::wait(int timeoutMs)
 #endif
 }
 
+/**
+ * @brief Implements the writeBytes operation.
+ * @param data See the matching header for semantic details.
+ * @param size See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int PythonSession::writeBytes(const uint8_t* data, size_t size)
 {
     if (!data || size == 0) return 0;
@@ -393,11 +428,21 @@ int PythonSession::writeBytes(const uint8_t* data, size_t size)
 #endif
 }
 
+/**
+ * @brief Implements the writeString operation.
+ * @param s See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int PythonSession::writeString(const std::string& s)
 {
     return writeBytes(reinterpret_cast<const uint8_t*>(s.data()), s.size());
 }
 
+/**
+ * @brief Implements the sendLine operation.
+ * @param line See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool PythonSession::sendLine(const std::string& line)
 {
     std::string s = line;
@@ -405,6 +450,11 @@ bool PythonSession::sendLine(const std::string& line)
     return writeString(s) == static_cast<int>(s.size());
 }
 
+/**
+ * @brief Implements the sendJson operation.
+ * @param jsonLine See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool PythonSession::sendJson(const std::string& jsonLine)
 {
     return sendLine(jsonLine);
@@ -449,6 +499,13 @@ int PythonSession::waitReadable_(int timeoutMs) const
 #endif
 }
 
+/**
+ * @brief Implements the readBytes operation.
+ * @param buffer See the matching header for semantic details.
+ * @param maxSize See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int PythonSession::readBytes(uint8_t* buffer, size_t maxSize, int timeoutMs)
 {
     if (!buffer || maxSize == 0) return 0;
@@ -484,6 +541,13 @@ int PythonSession::readBytes(uint8_t* buffer, size_t maxSize, int timeoutMs)
 #endif
 }
 
+/**
+ * @brief Implements the readLine operation.
+ * @param outLine See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @param maxLen See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool PythonSession::readLine(std::string& outLine, int timeoutMs, size_t maxLen)
 {
     outLine.clear();
@@ -521,11 +585,21 @@ bool PythonSession::readLine(std::string& outLine, int timeoutMs, size_t maxLen)
     return false;
 }
 
+/**
+ * @brief Implements the receiveJson operation.
+ * @param jsonLine See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool PythonSession::receiveJson(std::string& jsonLine, int timeoutMs)
 {
     return readLine(jsonLine, timeoutMs);
 }
 
+/**
+ * @brief Implements the closeHandle_ operation.
+ * @param h See the matching header for semantic details.
+ */
 void PythonSession::closeHandle_(handle_t& h)
 {
 #if defined(_WIN32)
@@ -541,6 +615,13 @@ void PythonSession::closeHandle_(handle_t& h)
 #endif
 }
 
+/**
+ * @brief Implements the runScript operation.
+ * @param cfg See the matching header for semantic details.
+ * @param args See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 PythonExecResult PythonRunner::runScript(const PythonConfig& cfg,
                                          const std::vector<std::string>& args,
                                          int timeoutMs)

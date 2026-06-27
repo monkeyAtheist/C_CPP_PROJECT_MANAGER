@@ -61,7 +61,22 @@ const TEXT_TEMPLATE_EXTENSIONS = new Set(['.c', '.h', '.cpp', '.hpp', '.txt', '.
 const BUNDLED_MY_UTIL_ROOT = path.join('data', 'templates', 'my_util', 'MY_Util');
 const BUNDLED_MY_UTIL_SKIP_EXTENSIONS = new Set(['.bak']);
 
-const C_CORE_UTIL_HEADER_TEMPLATE = `#ifndef {{guard}}
+const C_CORE_UTIL_HEADER_TEMPLATE = `/**
+ * @file {{headerFile}}
+ * @brief CPM C core utility API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "{{headerFile}}"
+ *
+ * char value[128];
+ * if (CpmUtil_ReadIniValue("cpm_util.ini", "logPath", value, sizeof(value)) == 0)
+ * {
+ *     /* Use value here. */
+ * }
+ * @endcode
+ */
+#ifndef {{guard}}
 #define {{guard}}
 
 #ifdef __cplusplus
@@ -86,13 +101,24 @@ int CpmUtil_ReadIniValue(const char *iniPath, const char *key, char *value, size
 #endif /* {{guard}} */
 `;
 
-const C_CORE_UTIL_SOURCE_TEMPLATE = `#include "{{headerFile}}"
+const C_CORE_UTIL_SOURCE_TEMPLATE = `/**
+ * @file {{baseName}}.c
+ * @brief Implementation of the CPM C core utility bundle.
+ */
+#include "{{headerFile}}"
 
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
+/**
+ * @brief Implements the CpmUtil_CopyString operation.
+ * @param dst See the matching header for semantic details.
+ * @param dstSize See the matching header for semantic details.
+ * @param src See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmUtil_CopyString(char *dst, size_t dstSize, const char *src)
 {
     if (dst == NULL || dstSize == 0)
@@ -108,6 +134,11 @@ int CpmUtil_CopyString(char *dst, size_t dstSize, const char *src)
     return 0;
 }
 
+/**
+ * @brief Implements the CpmUtil_Trim operation.
+ * @param text See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 char *CpmUtil_Trim(char *text)
 {
     char *end;
@@ -132,6 +163,12 @@ char *CpmUtil_Trim(char *text)
     return text;
 }
 
+/**
+ * @brief Implements the CpmUtil_GetTimestamp operation.
+ * @param buffer See the matching header for semantic details.
+ * @param bufferSize See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmUtil_GetTimestamp(char *buffer, size_t bufferSize)
 {
     time_t now;
@@ -166,6 +203,14 @@ int CpmUtil_GetTimestamp(char *buffer, size_t bufferSize)
     return 0;
 }
 
+/**
+ * @brief Implements the CpmUtil_ReadIniValue operation.
+ * @param iniPath See the matching header for semantic details.
+ * @param key See the matching header for semantic details.
+ * @param value See the matching header for semantic details.
+ * @param valueSize See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmUtil_ReadIniValue(const char *iniPath, const char *key, char *value, size_t valueSize)
 {
     FILE *file;
@@ -223,7 +268,22 @@ logPath={{baseName}}.log
 maxLogLines=1024
 `;
 
-const CPP_CORE_UTIL_HEADER_TEMPLATE = `#ifndef {{guard}}
+const CPP_CORE_UTIL_HEADER_TEMPLATE = `/**
+ * @file {{headerFile}}
+ * @brief CPM C++ core utility API.
+ *
+ * @par Example of use
+ * @code{.cpp}
+ * #include "{{headerFile}}"
+ *
+ * std::string value;
+ * if (cpm::readIniValue("cpm_util.ini", "logPath", value))
+ * {
+ *     cpm::appendLogLine(value, cpm::timestamp());
+ * }
+ * @endcode
+ */
+#ifndef {{guard}}
 #define {{guard}}
 
 #include <string>
@@ -239,7 +299,11 @@ void appendLogLine(const std::string &path, const std::string &line);
 #endif /* {{guard}} */
 `;
 
-const CPP_CORE_UTIL_SOURCE_TEMPLATE = `#include "{{headerFile}}"
+const CPP_CORE_UTIL_SOURCE_TEMPLATE = `/**
+ * @file {{baseName}}.cpp
+ * @brief Implementation of the CPM C++ core utility bundle.
+ */
+#include "{{headerFile}}"
 
 #include <algorithm>
 #include <chrono>
@@ -251,6 +315,11 @@ const CPP_CORE_UTIL_SOURCE_TEMPLATE = `#include "{{headerFile}}"
 
 namespace cpm
 {
+/**
+ * @brief Implements the trim operation.
+ * @param text See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string trim(std::string text)
 {
     auto isSpace = [](unsigned char ch) { return std::isspace(ch) != 0; };
@@ -259,6 +328,10 @@ std::string trim(std::string text)
     return text;
 }
 
+/**
+ * @brief Implements the timestamp operation.
+ * @return See the matching header for status code or value semantics.
+ */
 std::string timestamp()
 {
     const auto now = std::chrono::system_clock::now();
@@ -274,6 +347,13 @@ std::string timestamp()
     return stream.str();
 }
 
+/**
+ * @brief Implements the readIniValue operation.
+ * @param iniPath See the matching header for semantic details.
+ * @param key See the matching header for semantic details.
+ * @param value See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool readIniValue(const std::string &iniPath, const std::string &key, std::string &value)
 {
     std::ifstream file(iniPath);
@@ -308,6 +388,11 @@ bool readIniValue(const std::string &iniPath, const std::string &key, std::strin
     return false;
 }
 
+/**
+ * @brief Implements the appendLogLine operation.
+ * @param path See the matching header for semantic details.
+ * @param line See the matching header for semantic details.
+ */
 void appendLogLine(const std::string &path, const std::string &line)
 {
     std::ofstream file(path, std::ios::app);
@@ -324,7 +409,26 @@ logPath={{baseName}}.log
 maxLogLines=1024
 `;
 
-const CPP_ERROR_HEADER_TEMPLATE = `#ifndef {{guard}}
+const CPP_ERROR_HEADER_TEMPLATE = `/**
+ * @file {{headerFile}}
+ * @brief CPM C++ error management API.
+ *
+ * @par Example of use
+ * @code{.cpp}
+ * #include "{{headerFile}}"
+ *
+ * int status = -1;
+ * cpm::initErrorDefaults();
+ * CPM_ERR_INFZ(status, "operation failed");
+ *
+ * cleanup:
+ *     return status;
+ * error:
+ *     status = cpm::g_errorCode;
+ *     goto cleanup;
+ * @endcode
+ */
+#ifndef {{guard}}
 #define {{guard}}
 
 #include <string>
@@ -392,7 +496,11 @@ void reportError(int code, const std::string &message, const char *file, int lin
 #endif /* {{guard}} */
 `;
 
-const CPP_ERROR_SOURCE_TEMPLATE = `#include "{{headerFile}}"
+const CPP_ERROR_SOURCE_TEMPLATE = `/**
+ * @file {{baseName}}.cpp
+ * @brief Implementation of the CPM C++ error management bundle.
+ */
+#include "{{headerFile}}"
 
 #include <fstream>
 #include <iostream>
@@ -403,6 +511,11 @@ namespace cpm
 int g_errorCode = 0;
 ErrorConfig g_errorConfig{};
 
+/**
+ * @brief Implements the trim operation.
+ * @param text See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static std::string trim(std::string text)
 {
     const auto first = text.find_first_not_of(" \t\r\n");
@@ -414,12 +527,20 @@ static std::string trim(std::string text)
     return text.substr(first, last - first + 1);
 }
 
+/**
+ * @brief Implements the initErrorDefaults operation.
+ */
 void initErrorDefaults()
 {
     g_errorCode = 0;
     g_errorConfig = ErrorConfig{};
 }
 
+/**
+ * @brief Implements the loadErrorConfig operation.
+ * @param iniPath See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 bool loadErrorConfig(const std::string &iniPath)
 {
     std::ifstream file(iniPath);
@@ -465,16 +586,28 @@ bool loadErrorConfig(const std::string &iniPath)
     return true;
 }
 
+/**
+ * @brief Implements the setErrorEnabled operation.
+ * @param enabled See the matching header for semantic details.
+ */
 void setErrorEnabled(bool enabled)
 {
     g_errorConfig.enabled = enabled;
 }
 
+/**
+ * @brief Implements the setErrorLogFile operation.
+ * @param filePath See the matching header for semantic details.
+ */
 void setErrorLogFile(const std::string &filePath)
 {
     g_errorConfig.logPath = filePath;
 }
 
+/**
+ * @brief Implements the logError operation.
+ * @param message See the matching header for semantic details.
+ */
 void logError(const std::string &message)
 {
     if (!g_errorConfig.enabled)
@@ -494,6 +627,14 @@ void logError(const std::string &message)
     }
 }
 
+/**
+ * @brief Implements the reportError operation.
+ * @param code See the matching header for semantic details.
+ * @param message See the matching header for semantic details.
+ * @param file See the matching header for semantic details.
+ * @param line See the matching header for semantic details.
+ * @param functionName See the matching header for semantic details.
+ */
 void reportError(int code, const std::string &message, const char *file, int line, const char *functionName)
 {
     std::ostringstream stream;
@@ -515,7 +656,41 @@ maxLogLines=1024
 logPath={{baseName}}.log
 `;
 
-const C_PYTHON_EXEC_HEADER_TEMPLATE = String.raw`#ifndef {{guard}}
+const C_PYTHON_EXEC_HEADER_TEMPLATE = String.raw`/**
+ * @file {{headerFile}}
+ * @brief CPM C Python execution bridge API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "{{headerFile}}"
+ * #include <stdio.h>
+ *
+ * CpmPythonConfig config;
+ * CpmPython_InitConfig(&config);
+ * snprintf(config.scriptPath, sizeof(config.scriptPath), "script.py");
+ *
+ * CpmPythonResult result;
+ * CpmPython_ResultInit(&result);
+ *
+ * const char *args[] = { "arg1", "arg2" };
+ * int rc = CpmPython_RunScript(&config, args, 2, 5000, &result);
+ * if (rc == 0)
+ * {
+ *     printf("Script finished with exit code: %d\n", result.exitCode);
+ *     printf("Output:\n%s\n", result.output != NULL ? result.output : "");
+ * }
+ * else if (rc == 1)
+ * {
+ *     printf("Script timed out.\n");
+ * }
+ * else
+ * {
+ *     printf("Failed to run script.\n");
+ * }
+ * CpmPython_ResultFree(&result);
+ * @endcode
+ */
+#ifndef {{guard}}
 #define {{guard}}
 
 #ifdef __cplusplus
@@ -591,7 +766,11 @@ int CpmPythonSession_ReceiveJson(CpmPythonSession *session, char *jsonLine, size
 #endif /* {{guard}} */
 `;
 
-const C_PYTHON_EXEC_SOURCE_TEMPLATE = String.raw`#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+const C_PYTHON_EXEC_SOURCE_TEMPLATE = String.raw`/**
+ * @file {{baseName}}.c
+ * @brief Implementation of the CPM C Python execution bridge.
+ */
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
 #define _POSIX_C_SOURCE 200809L
 #endif
 
@@ -636,6 +815,12 @@ struct CpmPythonSession
     size_t rxCapacity;
 };
 
+/**
+ * @brief Implements the CpmPy_CopyString operation.
+ * @param dst See the matching header for semantic details.
+ * @param dstSize See the matching header for semantic details.
+ * @param src See the matching header for semantic details.
+ */
 static void CpmPy_CopyString(char *dst, size_t dstSize, const char *src)
 {
     if (dst == NULL || dstSize == 0)
@@ -650,6 +835,15 @@ static void CpmPy_CopyString(char *dst, size_t dstSize, const char *src)
     dst[dstSize - 1] = '\0';
 }
 
+/**
+ * @brief Implements the CpmPy_AppendBytes operation.
+ * @param buffer See the matching header for semantic details.
+ * @param size See the matching header for semantic details.
+ * @param capacity See the matching header for semantic details.
+ * @param data See the matching header for semantic details.
+ * @param dataSize See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmPy_AppendBytes(uint8_t **buffer, size_t *size, size_t *capacity, const uint8_t *data, size_t dataSize)
 {
     uint8_t *newBuffer;
@@ -686,6 +880,13 @@ static int CpmPy_AppendBytes(uint8_t **buffer, size_t *size, size_t *capacity, c
     return 0;
 }
 
+/**
+ * @brief Implements the CpmPy_AppendOutput operation.
+ * @param result See the matching header for semantic details.
+ * @param data See the matching header for semantic details.
+ * @param dataSize See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmPy_AppendOutput(CpmPythonResult *result, const uint8_t *data, size_t dataSize)
 {
     char *newOutput;
@@ -710,6 +911,10 @@ static int CpmPy_AppendOutput(CpmPythonResult *result, const uint8_t *data, size
     return 0;
 }
 
+/**
+ * @brief Implements the CpmPython_InitConfig operation.
+ * @param config See the matching header for semantic details.
+ */
 void CpmPython_InitConfig(CpmPythonConfig *config)
 {
     if (config == NULL)
@@ -728,6 +933,10 @@ void CpmPython_InitConfig(CpmPythonConfig *config)
     config->writeTimeoutMs = 100;
 }
 
+/**
+ * @brief Implements the CpmPython_ResultInit operation.
+ * @param result See the matching header for semantic details.
+ */
 void CpmPython_ResultInit(CpmPythonResult *result)
 {
     if (result == NULL)
@@ -738,6 +947,10 @@ void CpmPython_ResultInit(CpmPythonResult *result)
     result->exitCode = -1;
 }
 
+/**
+ * @brief Implements the CpmPython_ResultFree operation.
+ * @param result See the matching header for semantic details.
+ */
 void CpmPython_ResultFree(CpmPythonResult *result)
 {
     if (result == NULL)
@@ -749,6 +962,10 @@ void CpmPython_ResultFree(CpmPythonResult *result)
 }
 
 #if defined(_WIN32)
+/**
+ * @brief Implements the CpmPy_CloseHandle operation.
+ * @param handle See the matching header for semantic details.
+ */
 static void CpmPy_CloseHandle(HANDLE *handle)
 {
     if (handle != NULL && *handle != NULL)
@@ -758,6 +975,11 @@ static void CpmPy_CloseHandle(HANDLE *handle)
     }
 }
 
+/**
+ * @brief Implements the CpmPy_QuoteArgWin operation.
+ * @param arg See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static char *CpmPy_QuoteArgWin(const char *arg)
 {
     size_t len;
@@ -844,6 +1066,14 @@ static char *CpmPy_QuoteArgWin(const char *arg)
     return out;
 }
 
+/**
+ * @brief Implements the CpmPy_AppendCommandPart operation.
+ * @param commandLine See the matching header for semantic details.
+ * @param size See the matching header for semantic details.
+ * @param capacity See the matching header for semantic details.
+ * @param part See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmPy_AppendCommandPart(char **commandLine, size_t *size, size_t *capacity, const char *part)
 {
     char *quoted;
@@ -887,6 +1117,10 @@ static int CpmPy_AppendCommandPart(char **commandLine, size_t *size, size_t *cap
     return 0;
 }
 #else
+/**
+ * @brief Implements the CpmPy_CloseFd operation.
+ * @param fd See the matching header for semantic details.
+ */
 static void CpmPy_CloseFd(int *fd)
 {
     if (fd != NULL && *fd >= 0)
@@ -897,6 +1131,10 @@ static void CpmPy_CloseFd(int *fd)
 }
 #endif
 
+/**
+ * @brief Implements the CpmPy_FreeSession operation.
+ * @param session See the matching header for semantic details.
+ */
 static void CpmPy_FreeSession(CpmPythonSession *session)
 {
     if (session == NULL)
@@ -907,6 +1145,14 @@ static void CpmPy_FreeSession(CpmPythonSession *session)
     free(session);
 }
 
+/**
+ * @brief Implements the CpmPythonSession_Start operation.
+ * @param sessionPtr See the matching header for semantic details.
+ * @param config See the matching header for semantic details.
+ * @param args See the matching header for semantic details.
+ * @param argCount See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_Start(CpmPythonSession **sessionPtr,
                            const CpmPythonConfig *config,
                            const char *const *args,
@@ -1142,6 +1388,10 @@ int CpmPythonSession_Start(CpmPythonSession **sessionPtr,
 #endif
 }
 
+/**
+ * @brief Implements the CpmPythonSession_CloseInput operation.
+ * @param session See the matching header for semantic details.
+ */
 void CpmPythonSession_CloseInput(CpmPythonSession *session)
 {
     if (session == NULL)
@@ -1155,6 +1405,11 @@ void CpmPythonSession_CloseInput(CpmPythonSession *session)
 #endif
 }
 
+/**
+ * @brief Implements the CpmPythonSession_IsRunning operation.
+ * @param session See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_IsRunning(CpmPythonSession *session)
 {
     if (session == NULL || session->finished)
@@ -1210,6 +1465,12 @@ int CpmPythonSession_IsRunning(CpmPythonSession *session)
 #endif
 }
 
+/**
+ * @brief Implements the CpmPythonSession_Wait operation.
+ * @param session See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_Wait(CpmPythonSession *session, int timeoutMs)
 {
     if (session == NULL)
@@ -1284,6 +1545,11 @@ int CpmPythonSession_Wait(CpmPythonSession *session, int timeoutMs)
 #endif
 }
 
+/**
+ * @brief Implements the CpmPythonSession_Close operation.
+ * @param sessionPtr See the matching header for semantic details.
+ * @param forceKill See the matching header for semantic details.
+ */
 void CpmPythonSession_Close(CpmPythonSession **sessionPtr, int forceKill)
 {
     CpmPythonSession *session;
@@ -1326,6 +1592,13 @@ void CpmPythonSession_Close(CpmPythonSession **sessionPtr, int forceKill)
     *sessionPtr = NULL;
 }
 
+/**
+ * @brief Implements the CpmPythonSession_WriteBytes operation.
+ * @param session See the matching header for semantic details.
+ * @param data See the matching header for semantic details.
+ * @param size See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_WriteBytes(CpmPythonSession *session, const uint8_t *data, size_t size)
 {
     if (session == NULL || data == NULL || size == 0)
@@ -1358,6 +1631,12 @@ int CpmPythonSession_WriteBytes(CpmPythonSession *session, const uint8_t *data, 
 #endif
 }
 
+/**
+ * @brief Implements the CpmPythonSession_WriteString operation.
+ * @param session See the matching header for semantic details.
+ * @param text See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_WriteString(CpmPythonSession *session, const char *text)
 {
     if (text == NULL)
@@ -1367,6 +1646,12 @@ int CpmPythonSession_WriteString(CpmPythonSession *session, const char *text)
     return CpmPythonSession_WriteBytes(session, (const uint8_t *)text, strlen(text));
 }
 
+/**
+ * @brief Implements the CpmPythonSession_SendLine operation.
+ * @param session See the matching header for semantic details.
+ * @param line See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_SendLine(CpmPythonSession *session, const char *line)
 {
     size_t len;
@@ -1386,20 +1671,32 @@ int CpmPythonSession_SendLine(CpmPythonSession *session, const char *line)
     return 0;
 }
 
+/**
+ * @brief Implements the CpmPythonSession_SendJson operation.
+ * @param session See the matching header for semantic details.
+ * @param jsonLine See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_SendJson(CpmPythonSession *session, const char *jsonLine)
 {
     return CpmPythonSession_SendLine(session, jsonLine);
 }
 
+/**
+ * @brief Implements the CpmPy_WaitReadable operation.
+ * @param session See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmPy_WaitReadable(CpmPythonSession *session, int timeoutMs)
 {
 #if defined(_WIN32)
-    ULONGLONG startTick;
+    DWORD startTick;
     if (session == NULL || session->stdoutRead == NULL)
     {
         return -1;
     }
-    startTick = GetTickCount64();
+    startTick = GetTickCount();
     while (1)
     {
         DWORD available = 0;
@@ -1419,7 +1716,7 @@ static int CpmPy_WaitReadable(CpmPythonSession *session, int timeoutMs)
         {
             return 0;
         }
-        if (timeoutMs > 0 && (int)(GetTickCount64() - startTick) >= timeoutMs)
+        if (timeoutMs > 0 && (DWORD)(GetTickCount() - startTick) >= (DWORD)timeoutMs)
         {
             return 0;
         }
@@ -1448,6 +1745,14 @@ static int CpmPy_WaitReadable(CpmPythonSession *session, int timeoutMs)
 #endif
 }
 
+/**
+ * @brief Implements the CpmPythonSession_ReadBytes operation.
+ * @param session See the matching header for semantic details.
+ * @param buffer See the matching header for semantic details.
+ * @param maxSize See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_ReadBytes(CpmPythonSession *session, uint8_t *buffer, size_t maxSize, int timeoutMs)
 {
     if (session == NULL || buffer == NULL || maxSize == 0)
@@ -1502,6 +1807,14 @@ int CpmPythonSession_ReadBytes(CpmPythonSession *session, uint8_t *buffer, size_
 #endif
 }
 
+/**
+ * @brief Implements the CpmPythonSession_ReadLine operation.
+ * @param session See the matching header for semantic details.
+ * @param outLine See the matching header for semantic details.
+ * @param outLineSize See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_ReadLine(CpmPythonSession *session, char *outLine, size_t outLineSize, int timeoutMs)
 {
     size_t outSize = 0;
@@ -1576,11 +1889,28 @@ int CpmPythonSession_ReadLine(CpmPythonSession *session, char *outLine, size_t o
     return -1;
 }
 
+/**
+ * @brief Implements the CpmPythonSession_ReceiveJson operation.
+ * @param session See the matching header for semantic details.
+ * @param jsonLine See the matching header for semantic details.
+ * @param jsonLineSize See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPythonSession_ReceiveJson(CpmPythonSession *session, char *jsonLine, size_t jsonLineSize, int timeoutMs)
 {
     return CpmPythonSession_ReadLine(session, jsonLine, jsonLineSize, timeoutMs);
 }
 
+/**
+ * @brief Implements the CpmPython_RunScript operation.
+ * @param config See the matching header for semantic details.
+ * @param args See the matching header for semantic details.
+ * @param argCount See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @param result See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmPython_RunScript(const CpmPythonConfig *config,
                         const char *const *args,
                         size_t argCount,
@@ -1640,7 +1970,27 @@ int CpmPython_RunScript(const CpmPythonConfig *config,
 `;
 
 
-const C_WEBUI_HEADER_TEMPLATE = String.raw`#ifndef {{guard}}
+const C_WEBUI_HEADER_TEMPLATE = String.raw`/**
+ * @file {{headerFile}}
+ * @brief CPM C Web UI HTTP backend API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "{{headerFile}}"
+ *
+ * CpmWebUiServer server;
+ * CpmWebUiConfig config;
+ * CpmWebUi_InitConfig(&config);
+ * config.port = 8080;
+ * CpmWebUiServer_Init(&server);
+ * if (CpmWebUiServer_Start(&server, &config) == 0)
+ * {
+ *     /* Serve /api/state and /api/action while your program runs. */
+ *     CpmWebUiServer_Stop(&server);
+ * }
+ * @endcode
+ */
+#ifndef {{guard}}
 #define {{guard}}
 
 #ifdef __cplusplus
@@ -1732,7 +2082,11 @@ void CpmWebUi_MakeOkJson(char *dst, size_t dstSize, int ok, const char *message)
 #endif /* {{guard}} */
 `;
 
-const C_WEBUI_SOURCE_TEMPLATE = String.raw`#include "{{headerFile}}"
+const C_WEBUI_SOURCE_TEMPLATE = String.raw`/**
+ * @file {{baseName}}.c
+ * @brief Implementation of the CPM C Web UI HTTP backend bundle.
+ */
+#include "{{headerFile}}"
 
 #include <ctype.h>
 #include <errno.h>
@@ -1795,6 +2149,12 @@ struct CpmWebUiServer
 #endif
 };
 
+/**
+ * @brief Implements the CpmWebUi_CopyString operation.
+ * @param dst See the matching header for semantic details.
+ * @param dstSize See the matching header for semantic details.
+ * @param src See the matching header for semantic details.
+ */
 static void CpmWebUi_CopyString(char *dst, size_t dstSize, const char *src)
 {
     if (dst == NULL || dstSize == 0)
@@ -1805,6 +2165,12 @@ static void CpmWebUi_CopyString(char *dst, size_t dstSize, const char *src)
     dst[dstSize - 1] = '\0';
 }
 
+/**
+ * @brief Implements the CpmWebUi_EqualsIgnoreCase operation.
+ * @param a See the matching header for semantic details.
+ * @param b See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_EqualsIgnoreCase(const char *a, const char *b)
 {
     if (a == NULL || b == NULL)
@@ -1819,6 +2185,12 @@ static int CpmWebUi_EqualsIgnoreCase(const char *a, const char *b)
     return *a == '\0' && *b == '\0';
 }
 
+/**
+ * @brief Implements the CpmWebUi_NormalizeRoute operation.
+ * @param dst See the matching header for semantic details.
+ * @param dstSize See the matching header for semantic details.
+ * @param route See the matching header for semantic details.
+ */
 static void CpmWebUi_NormalizeRoute(char *dst, size_t dstSize, const char *route)
 {
     if (route == NULL || route[0] == '\0')
@@ -1831,6 +2203,10 @@ static void CpmWebUi_NormalizeRoute(char *dst, size_t dstSize, const char *route
     }
 }
 
+/**
+ * @brief Implements the CpmWebUi_Lock operation.
+ * @param server See the matching header for semantic details.
+ */
 static void CpmWebUi_Lock(CpmWebUiServer *server)
 {
 #if defined(_WIN32)
@@ -1840,6 +2216,10 @@ static void CpmWebUi_Lock(CpmWebUiServer *server)
 #endif
 }
 
+/**
+ * @brief Implements the CpmWebUi_Unlock operation.
+ * @param server See the matching header for semantic details.
+ */
 static void CpmWebUi_Unlock(CpmWebUiServer *server)
 {
 #if defined(_WIN32)
@@ -1849,6 +2229,10 @@ static void CpmWebUi_Unlock(CpmWebUiServer *server)
 #endif
 }
 
+/**
+ * @brief Implements the CpmWebUi_CloseSocket operation.
+ * @param sock See the matching header for semantic details.
+ */
 static void CpmWebUi_CloseSocket(CpmWebUiSocket sock)
 {
     if (sock == CPM_WEBUI_INVALID_SOCKET)
@@ -1860,6 +2244,12 @@ static void CpmWebUi_CloseSocket(CpmWebUiSocket sock)
 #endif
 }
 
+/**
+ * @brief Implements the CpmWebUi_WaitReadable operation.
+ * @param sock See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_WaitReadable(CpmWebUiSocket sock, int timeoutMs)
 {
     fd_set set;
@@ -1875,6 +2265,10 @@ static int CpmWebUi_WaitReadable(CpmWebUiSocket sock, int timeoutMs)
 #endif
 }
 
+/**
+ * @brief Implements the CpmWebUi_InitConfig operation.
+ * @param config See the matching header for semantic details.
+ */
 void CpmWebUi_InitConfig(CpmWebUiConfig *config)
 {
     if (config == NULL)
@@ -1888,6 +2282,10 @@ void CpmWebUi_InitConfig(CpmWebUiConfig *config)
     config->allowDirectoryListing = 0;
 }
 
+/**
+ * @brief Implements the CpmWebUi_Create operation.
+ * @return See the matching header for status code or value semantics.
+ */
 CpmWebUiServer *CpmWebUi_Create(void)
 {
     CpmWebUiServer *server = (CpmWebUiServer *)calloc(1, sizeof(CpmWebUiServer));
@@ -1903,6 +2301,10 @@ CpmWebUiServer *CpmWebUi_Create(void)
     return server;
 }
 
+/**
+ * @brief Implements the CpmWebUi_Destroy operation.
+ * @param serverPtr See the matching header for semantic details.
+ */
 void CpmWebUi_Destroy(CpmWebUiServer **serverPtr)
 {
     CpmWebUiServer *server;
@@ -1919,11 +2321,21 @@ void CpmWebUi_Destroy(CpmWebUiServer **serverPtr)
     *serverPtr = NULL;
 }
 
+/**
+ * @brief Implements the CpmWebUi_IsRunning operation.
+ * @param server See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmWebUi_IsRunning(const CpmWebUiServer *server)
 {
     return server != NULL && server->running;
 }
 
+/**
+ * @brief Implements the CpmWebUi_CreateListenSocket operation.
+ * @param server See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_CreateListenSocket(CpmWebUiServer *server)
 {
     struct sockaddr_in addr;
@@ -1957,6 +2369,13 @@ static int CpmWebUi_CreateListenSocket(CpmWebUiServer *server)
     return 0;
 }
 
+/**
+ * @brief Implements the CpmWebUi_ReadRequest operation.
+ * @param client See the matching header for semantic details.
+ * @param request See the matching header for semantic details.
+ * @param timeoutMs See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_ReadRequest(CpmWebUiSocket client, CpmWebUiRequest *request, int timeoutMs)
 {
     char buffer[CPM_WEBUI_RECV_BUFFER_SIZE];
@@ -1999,6 +2418,13 @@ static int CpmWebUi_ReadRequest(CpmWebUiSocket client, CpmWebUiRequest *request,
     return request->method[0] != '\0' && request->path[0] != '\0' ? 0 : -1;
 }
 
+/**
+ * @brief Implements the CpmWebUi_SetTextResponse operation.
+ * @param response See the matching header for semantic details.
+ * @param status See the matching header for semantic details.
+ * @param contentType See the matching header for semantic details.
+ * @param body See the matching header for semantic details.
+ */
 void CpmWebUi_SetTextResponse(CpmWebUiResponse *response, int status, const char *contentType, const char *body)
 {
     if (response == NULL)
@@ -2008,6 +2434,11 @@ void CpmWebUi_SetTextResponse(CpmWebUiResponse *response, int status, const char
     CpmWebUi_CopyString(response->body, sizeof(response->body), body ? body : "");
 }
 
+/**
+ * @brief Implements the CpmWebUi_StatusText operation.
+ * @param status See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 const char *CpmWebUi_StatusText(int status)
 {
     switch (status)
@@ -2023,6 +2454,12 @@ const char *CpmWebUi_StatusText(int status)
     }
 }
 
+/**
+ * @brief Implements the CpmWebUi_JsonEscape operation.
+ * @param dst See the matching header for semantic details.
+ * @param dstSize See the matching header for semantic details.
+ * @param src See the matching header for semantic details.
+ */
 void CpmWebUi_JsonEscape(char *dst, size_t dstSize, const char *src)
 {
     size_t out = 0;
@@ -2058,6 +2495,13 @@ void CpmWebUi_JsonEscape(char *dst, size_t dstSize, const char *src)
     dst[out] = '\0';
 }
 
+/**
+ * @brief Implements the CpmWebUi_MakeOkJson operation.
+ * @param dst See the matching header for semantic details.
+ * @param dstSize See the matching header for semantic details.
+ * @param ok See the matching header for semantic details.
+ * @param message See the matching header for semantic details.
+ */
 void CpmWebUi_MakeOkJson(char *dst, size_t dstSize, int ok, const char *message)
 {
     char escaped[512];
@@ -2065,6 +2509,13 @@ void CpmWebUi_MakeOkJson(char *dst, size_t dstSize, int ok, const char *message)
     snprintf(dst, dstSize, "{\"ok\":%s,\"message\":\"%s\"}", ok ? "true" : "false", escaped);
 }
 
+/**
+ * @brief Implements the CpmWebUi_SendAll operation.
+ * @param sock See the matching header for semantic details.
+ * @param data See the matching header for semantic details.
+ * @param length See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_SendAll(CpmWebUiSocket sock, const char *data, size_t length)
 {
     size_t sentTotal = 0;
@@ -2078,6 +2529,12 @@ static int CpmWebUi_SendAll(CpmWebUiSocket sock, const char *data, size_t length
     return 0;
 }
 
+/**
+ * @brief Implements the CpmWebUi_SendResponse operation.
+ * @param sock See the matching header for semantic details.
+ * @param response See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_SendResponse(CpmWebUiSocket sock, const CpmWebUiResponse *response)
 {
     char header[512];
@@ -2095,6 +2552,11 @@ static int CpmWebUi_SendResponse(CpmWebUiSocket sock, const CpmWebUiResponse *re
     return CpmWebUi_SendAll(sock, response->body, bodyLen);
 }
 
+/**
+ * @brief Implements the CpmWebUi_ContentTypeFromPath operation.
+ * @param path See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static const char *CpmWebUi_ContentTypeFromPath(const char *path)
 {
     const char *ext = strrchr(path, '.');
@@ -2108,6 +2570,12 @@ static const char *CpmWebUi_ContentTypeFromPath(const char *path)
     return "application/octet-stream";
 }
 
+/**
+ * @brief Implements the CpmWebUi_SendFile operation.
+ * @param sock See the matching header for semantic details.
+ * @param filePath See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_SendFile(CpmWebUiSocket sock, const char *filePath)
 {
     FILE *f = fopen(filePath, "rb");
@@ -2141,6 +2609,13 @@ static int CpmWebUi_SendFile(CpmWebUiSocket sock, const char *filePath)
     return 0;
 }
 
+/**
+ * @brief Implements the CpmWebUi_TryStaticFile operation.
+ * @param server See the matching header for semantic details.
+ * @param sock See the matching header for semantic details.
+ * @param request See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_TryStaticFile(CpmWebUiServer *server, CpmWebUiSocket sock, const CpmWebUiRequest *request)
 {
     char relative[512];
@@ -2161,6 +2636,12 @@ static int CpmWebUi_TryStaticFile(CpmWebUiServer *server, CpmWebUiSocket sock, c
     return CpmWebUi_SendFile(sock, filePath) == 0;
 }
 
+/**
+ * @brief Implements the CpmWebUi_HandleRequest operation.
+ * @param server See the matching header for semantic details.
+ * @param sock See the matching header for semantic details.
+ * @param request See the matching header for semantic details.
+ */
 static void CpmWebUi_HandleRequest(CpmWebUiServer *server, CpmWebUiSocket sock, const CpmWebUiRequest *request)
 {
     CpmWebUiResponse response;
@@ -2207,6 +2688,11 @@ static void CpmWebUi_HandleRequest(CpmWebUiServer *server, CpmWebUiSocket sock, 
     CpmWebUi_SendResponse(sock, &response);
 }
 
+/**
+ * @brief Implements the CpmWebUi_HandleClient operation.
+ * @param server See the matching header for semantic details.
+ * @param client See the matching header for semantic details.
+ */
 static void CpmWebUi_HandleClient(CpmWebUiServer *server, CpmWebUiSocket client)
 {
     CpmWebUiRequest request;
@@ -2214,6 +2700,10 @@ static void CpmWebUi_HandleClient(CpmWebUiServer *server, CpmWebUiSocket client)
         CpmWebUi_HandleRequest(server, client, &request);
 }
 
+/**
+ * @brief Implements the CpmWebUi_AcceptLoop operation.
+ * @param server See the matching header for semantic details.
+ */
 static void CpmWebUi_AcceptLoop(CpmWebUiServer *server)
 {
     while (server->running)
@@ -2230,12 +2720,21 @@ static void CpmWebUi_AcceptLoop(CpmWebUiServer *server)
 }
 
 #if defined(_WIN32)
+/**
+ * @brief Implements the CpmWebUi_ThreadProc operation.
+ * @param arg See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static unsigned __stdcall CpmWebUi_ThreadProc(void *arg)
 {
     CpmWebUi_AcceptLoop((CpmWebUiServer *)arg);
     return 0;
 }
 #else
+/**
+ * @brief Implements the CpmWebUi_ThreadProc operation.
+ * @param arg See the matching header for semantic details.
+ */
 static void *CpmWebUi_ThreadProc(void *arg)
 {
     CpmWebUi_AcceptLoop((CpmWebUiServer *)arg);
@@ -2243,6 +2742,12 @@ static void *CpmWebUi_ThreadProc(void *arg)
 }
 #endif
 
+/**
+ * @brief Implements the CpmWebUi_Start operation.
+ * @param server See the matching header for semantic details.
+ * @param config See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmWebUi_Start(CpmWebUiServer *server, const CpmWebUiConfig *config)
 {
 #if defined(_WIN32)
@@ -2286,6 +2791,10 @@ int CpmWebUi_Start(CpmWebUiServer *server, const CpmWebUiConfig *config)
     return 0;
 }
 
+/**
+ * @brief Implements the CpmWebUi_Stop operation.
+ * @param server See the matching header for semantic details.
+ */
 void CpmWebUi_Stop(CpmWebUiServer *server)
 {
     if (server == NULL)
@@ -2312,6 +2821,15 @@ void CpmWebUi_Stop(CpmWebUiServer *server)
 #endif
 }
 
+/**
+ * @brief Implements the CpmWebUi_RegisterRoute operation.
+ * @param server See the matching header for semantic details.
+ * @param method See the matching header for semantic details.
+ * @param route See the matching header for semantic details.
+ * @param handler See the matching header for semantic details.
+ * @param userData See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmWebUi_RegisterRoute(CpmWebUiServer *server, const char *method, const char *route,
                                   CpmWebUiRouteHandler handler, void *userData)
 {
@@ -2333,18 +2851,40 @@ static int CpmWebUi_RegisterRoute(CpmWebUiServer *server, const char *method, co
     return 0;
 }
 
+/**
+ * @brief Implements the CpmWebUi_RegisterGet operation.
+ * @param server See the matching header for semantic details.
+ * @param route See the matching header for semantic details.
+ * @param handler See the matching header for semantic details.
+ * @param userData See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmWebUi_RegisterGet(CpmWebUiServer *server, const char *route,
                          CpmWebUiRouteHandler handler, void *userData)
 {
     return CpmWebUi_RegisterRoute(server, "GET", route, handler, userData);
 }
 
+/**
+ * @brief Implements the CpmWebUi_RegisterPost operation.
+ * @param server See the matching header for semantic details.
+ * @param route See the matching header for semantic details.
+ * @param handler See the matching header for semantic details.
+ * @param userData See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmWebUi_RegisterPost(CpmWebUiServer *server, const char *route,
                           CpmWebUiRouteHandler handler, void *userData)
 {
     return CpmWebUi_RegisterRoute(server, "POST", route, handler, userData);
 }
 
+/**
+ * @brief Implements the CpmWebUi_SetStateProvider operation.
+ * @param server See the matching header for semantic details.
+ * @param provider See the matching header for semantic details.
+ * @param userData See the matching header for semantic details.
+ */
 void CpmWebUi_SetStateProvider(CpmWebUiServer *server, CpmWebUiStateProvider provider, void *userData)
 {
     if (server == NULL)
@@ -2355,6 +2895,12 @@ void CpmWebUi_SetStateProvider(CpmWebUiServer *server, CpmWebUiStateProvider pro
     CpmWebUi_Unlock(server);
 }
 
+/**
+ * @brief Implements the CpmWebUi_SetActionHandler operation.
+ * @param server See the matching header for semantic details.
+ * @param handler See the matching header for semantic details.
+ * @param userData See the matching header for semantic details.
+ */
 void CpmWebUi_SetActionHandler(CpmWebUiServer *server, CpmWebUiActionHandler handler, void *userData)
 {
     if (server == NULL)
@@ -2698,7 +3244,26 @@ int CPMCALLBACK panelCB (int panel, int event, void *callbackData,
 }
 `;
 
-const ERROR_HEADER_TEMPLATE = `#ifndef {{guard}}
+const ERROR_HEADER_TEMPLATE = `/**
+ * @file {{headerFile}}
+ * @brief CPM C error management API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "{{headerFile}}"
+ *
+ * int status = -1;
+ * CpmError_InitDefaults();
+ * CPM_ERR_INFZ(status, "operation failed");
+ *
+ * cleanup:
+ *     return status;
+ * error:
+ *     status = g_cpmErrorCode;
+ *     goto cleanup;
+ * @endcode
+ */
+#ifndef {{guard}}
 #define {{guard}}
 
 #ifdef __cplusplus
@@ -2784,7 +3349,11 @@ void CpmError_Report(int code, const char *message, const char *file,
 #endif /* {{guard}} */
 `;
 
-const ERROR_SOURCE_TEMPLATE = `#include "{{headerFile}}"
+const ERROR_SOURCE_TEMPLATE = `/**
+ * @file {{baseName}}.c
+ * @brief Implementation of the CPM C error management bundle.
+ */
+#include "{{headerFile}}"
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -2802,6 +3371,12 @@ const ERROR_SOURCE_TEMPLATE = `#include "{{headerFile}}"
 int g_cpmErrorCode = 0;
 CpmErrorConfig g_cpmErrorConfig;
 
+/**
+ * @brief Implements the CpmError_CopyString operation.
+ * @param dst See the matching header for semantic details.
+ * @param dstSize See the matching header for semantic details.
+ * @param src See the matching header for semantic details.
+ */
 static void CpmError_CopyString(char *dst, size_t dstSize, const char *src)
 {
     if (dst == NULL || dstSize == 0)
@@ -2812,6 +3387,11 @@ static void CpmError_CopyString(char *dst, size_t dstSize, const char *src)
     dst[dstSize - 1] = '\\0';
 }
 
+/**
+ * @brief Implements the CpmError_Trim operation.
+ * @param text See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static char *CpmError_Trim(char *text)
 {
     char *end;
@@ -2824,6 +3404,12 @@ static char *CpmError_Trim(char *text)
     return text;
 }
 
+/**
+ * @brief Implements the CpmError_ParseBool operation.
+ * @param text See the matching header for semantic details.
+ * @param defaultValue See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 static int CpmError_ParseBool(const char *text, int defaultValue)
 {
     if (text == NULL)
@@ -2835,6 +3421,9 @@ static int CpmError_ParseBool(const char *text, int defaultValue)
     return defaultValue;
 }
 
+/**
+ * @brief Implements the CpmError_TrimLogIfNeeded operation.
+ */
 static void CpmError_TrimLogIfNeeded(void)
 {
     FILE *file;
@@ -2860,6 +3449,9 @@ static void CpmError_TrimLogIfNeeded(void)
     }
 }
 
+/**
+ * @brief Implements the CpmError_InitDefaults operation.
+ */
 void CpmError_InitDefaults(void)
 {
     g_cpmErrorConfig.enabled = 1;
@@ -2868,6 +3460,11 @@ void CpmError_InitDefaults(void)
     CpmError_CopyString(g_cpmErrorConfig.logPath, sizeof(g_cpmErrorConfig.logPath), "logs/error.log");
 }
 
+/**
+ * @brief Implements the CpmError_LoadConfig operation.
+ * @param iniPath See the matching header for semantic details.
+ * @return See the matching header for status code or value semantics.
+ */
 int CpmError_LoadConfig(const char *iniPath)
 {
     FILE *file;
@@ -2910,16 +3507,28 @@ int CpmError_LoadConfig(const char *iniPath)
     return 0;
 }
 
+/**
+ * @brief Implements the CpmError_SetEnabled operation.
+ * @param enabled See the matching header for semantic details.
+ */
 void CpmError_SetEnabled(int enabled)
 {
     g_cpmErrorConfig.enabled = enabled ? 1 : 0;
 }
 
+/**
+ * @brief Implements the CpmError_SetLogFile operation.
+ * @param filePath See the matching header for semantic details.
+ */
 void CpmError_SetLogFile(const char *filePath)
 {
     CpmError_CopyString(g_cpmErrorConfig.logPath, sizeof(g_cpmErrorConfig.logPath), filePath);
 }
 
+/**
+ * @brief Implements the CpmError_Log operation.
+ * @param format See the matching header for semantic details.
+ */
 void CpmError_Log(const char *format, ...)
 {
     char message[2048];
@@ -2947,6 +3556,14 @@ void CpmError_Log(const char *format, ...)
         fputs(message, stderr);
 }
 
+/**
+ * @brief Implements the CpmError_Report operation.
+ * @param code See the matching header for semantic details.
+ * @param message See the matching header for semantic details.
+ * @param file See the matching header for semantic details.
+ * @param line See the matching header for semantic details.
+ * @param functionName See the matching header for semantic details.
+ */
 void CpmError_Report(int code, const char *message, const char *file,
                      int line, const char *functionName)
 {

@@ -1,3 +1,17 @@
+/**
+ * @file comms_manager.h
+ * @brief C++ high-level communication manager API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "comms_manager.h"
+ * 
+ * jc_comms::CommsManager manager;
+ * std::string err;
+ * manager.loadIni("comms.ini", &err);
+ * manager.refreshDevices(&err);
+ * @endcode
+ */
 #pragma once
 
 #include <cstdint>

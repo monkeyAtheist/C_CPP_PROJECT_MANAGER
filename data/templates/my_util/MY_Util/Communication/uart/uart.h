@@ -1,3 +1,22 @@
+/**
+ * @file uart.h
+ * @brief C++ UART communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "uart.h"
+ * 
+ * jc_uart::UartConfig cfg;
+ * cfg.port = "COM3";
+ * cfg.baudrate = 115200;
+ * jc_uart::Uart uart;
+ * if (uart.open(cfg))
+ * {
+ *     uart.writeString("PING\n");
+ *     uart.close();
+ * }
+ * @endcode
+ */
 #pragma once
 
 #include <cstdint>

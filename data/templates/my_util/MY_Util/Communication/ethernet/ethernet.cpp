@@ -1,3 +1,9 @@
+/**
+ * @file ethernet.cpp
+ * @brief Implementation of the ethernet C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "ethernet.h"
 
 #include <algorithm>

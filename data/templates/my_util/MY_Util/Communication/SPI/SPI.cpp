@@ -1,3 +1,9 @@
+/**
+ * @file SPI.cpp
+ * @brief Implementation of the SPI C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "SPI.h"
 
 #include <algorithm>

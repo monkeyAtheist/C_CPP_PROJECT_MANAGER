@@ -1,3 +1,9 @@
+/**
+ * @file webui.cpp
+ * @brief Implementation of the webui C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "webui.h"
 
 #include <algorithm>

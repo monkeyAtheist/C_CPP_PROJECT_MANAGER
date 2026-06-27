@@ -1,3 +1,9 @@
+/**
+ * @file myUtil.cpp
+ * @brief Implementation of the myUtil C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "myUtil.h"
 #include <algorithm> // Pour std::min
 
@@ -70,7 +76,7 @@ namespace jc_utility {
 
             // key=value
             auto eq = line.find('=');
-            if (eq == std::string::npos) continue; // ligne invalide -> ignorée
+            if (eq == std::string::npos) continue; // ligne invalide -> ignorï¿½e
 
             std::string key = trim_(line.substr(0, eq));
             std::string val = trim_(line.substr(eq + 1));

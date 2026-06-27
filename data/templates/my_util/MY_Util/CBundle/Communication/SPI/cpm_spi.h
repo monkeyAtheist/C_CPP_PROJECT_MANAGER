@@ -1,3 +1,22 @@
+/**
+ * @file cpm_spi.h
+ * @brief CPM C Linux SPI communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "cpm_spi.h"
+ * 
+ * CpmSpiDevice spi;
+ * uint8_t tx[] = { 0x9F, 0x00, 0x00, 0x00 };
+ * uint8_t rx[sizeof(tx)];
+ * CpmSpi_Init(&spi);
+ * if (CpmSpi_Open(&spi, "/dev/spidev0.0", 1000000, 0, 8) == 0)
+ * {
+ *     CpmSpi_Transfer(&spi, tx, rx, sizeof(tx));
+ *     CpmSpi_Close(&spi);
+ * }
+ * @endcode
+ */
 #ifndef CPM_SPI_H
 #define CPM_SPI_H
 

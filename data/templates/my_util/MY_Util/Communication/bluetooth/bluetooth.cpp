@@ -1,3 +1,9 @@
+/**
+ * @file bluetooth.cpp
+ * @brief Implementation of the bluetooth C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #include "bluetooth.h"
 
 #include <algorithm>

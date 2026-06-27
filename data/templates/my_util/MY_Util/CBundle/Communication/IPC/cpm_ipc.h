@@ -1,3 +1,20 @@
+/**
+ * @file cpm_ipc.h
+ * @brief CPM C IPC named-pipe/FIFO communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "cpm_ipc.h"
+ * 
+ * CpmIpcPipe pipeObj;
+ * CpmIpc_Init(&pipeObj);
+ * if (CpmIpc_ConnectClient(&pipeObj, "demo_pipe", 5000) == 0)
+ * {
+ *     CpmIpc_Write(&pipeObj, "PING", 4, NULL);
+ *     CpmIpc_Close(&pipeObj);
+ * }
+ * @endcode
+ */
 #ifndef CPM_IPC_H
 #define CPM_IPC_H
 

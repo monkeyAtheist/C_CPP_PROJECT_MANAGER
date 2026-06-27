@@ -1,3 +1,22 @@
+/**
+ * @file ethernet.h
+ * @brief C++ TCP/UDP Ethernet communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "ethernet.h"
+ * 
+ * jc_ethernet::EthernetConfig cfg;
+ * cfg.host = "127.0.0.1";
+ * cfg.port = 8080;
+ * jc_ethernet::EthernetLink link;
+ * if (link.open(cfg))
+ * {
+ *     link.writeString("PING\n");
+ *     link.close();
+ * }
+ * @endcode
+ */
 #pragma once
 
 #include <cstdint>
@@ -76,11 +95,11 @@ namespace jc_ethernet {
         int writeString(const std::string& s);
         bool readLine(std::string& outLine, char eol = '\n', int timeoutMs = -1, size_t maxLen = 512);
 
-        // UDP uniquement : émission/réception avec endpoint explicite
+        // UDP uniquement : ï¿½mission/rï¿½ception avec endpoint explicite
         int sendTo(const Endpoint& endpoint, const uint8_t* data, size_t size);
         int receiveFrom(Endpoint& endpoint, uint8_t* buffer, size_t maxSize, int timeoutMs = -1);
 
-        // Format de trame cohérent avec l'UART :
+        // Format de trame cohï¿½rent avec l'UART :
         // [0xAA][0x55][TYPE][LEN_L][LEN_H][PAYLOAD...][CHK]
         // CHK = checksum8(TYPE + LEN_L + LEN_H + PAYLOAD)
         bool sendPacket(uint8_t type, const std::vector<uint8_t>& payload);
@@ -106,7 +125,7 @@ namespace jc_ethernet {
         std::vector<uint8_t> rxBuffer_;
 
         socket_handle_t socket_ = kInvalidSocket;      // socket principal
-        socket_handle_t peerSocket_ = kInvalidSocket;  // client accepté TCP serveur
+        socket_handle_t peerSocket_ = kInvalidSocket;  // client acceptï¿½ TCP serveur
         bool opened_ = false;
 
         bool initSockets_();

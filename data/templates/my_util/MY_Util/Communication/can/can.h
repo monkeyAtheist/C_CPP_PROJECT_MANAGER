@@ -1,3 +1,20 @@
+/**
+ * @file can.h
+ * @brief C++ CAN and SocketCAN communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "can.h"
+ * 
+ * jc_can::CanLink can;
+ * if (can.open("can0") == jc_can::CanStatus::Ok)
+ * {
+ *     auto frame = jc_can::CanFrame::Standard(0x123, {0x11, 0x22});
+ *     can.send(frame);
+ *     can.close();
+ * }
+ * @endcode
+ */
 #ifndef JC_CAN_LINK_H
 #define JC_CAN_LINK_H
 

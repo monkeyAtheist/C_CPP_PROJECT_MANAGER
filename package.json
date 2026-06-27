@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.36",
+  "version": "0.2.38",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -545,7 +545,7 @@
       },
       {
         "command": "cpm.editBuildSettingsSafeMode",
-        "title": "Project Build Settings (Safe Mode)…",
+        "title": "Project Build Settings (Safe Mode)\u2026",
         "icon": "$(shield)",
         "category": "C/C++ Project Manager"
       },

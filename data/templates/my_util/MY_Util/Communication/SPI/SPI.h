@@ -1,3 +1,22 @@
+/**
+ * @file SPI.h
+ * @brief C++ SPI communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "SPI.h"
+ * 
+ * jc_spi::SpiConfig cfg;
+ * cfg.device = "/dev/spidev0.0";
+ * jc_spi::SpiDevice spi;
+ * if (spi.open(cfg))
+ * {
+ *     std::vector<uint8_t> rx;
+ *     spi.transfer({0x9F, 0, 0, 0}, rx);
+ *     spi.close();
+ * }
+ * @endcode
+ */
 #pragma once
 
 #include <cstdint>
@@ -11,18 +30,18 @@ namespace jc_spi {
         // Sous Linux / Raspberry Pi : /dev/spidev0.0, /dev/spidev0.1, ...
         std::string device = "/dev/spidev0.0";
 
-        // Paramètres SPI classiques
+        // Paramï¿½tres SPI classiques
         uint32_t speedHz = 1000000;   // 1 MHz
         uint8_t mode = 0;             // SPI mode 0..3
         uint8_t bitsPerWord = 8;
         bool lsbFirst = false;
 
         // Options de transfert
-        bool csChange = false;        // Demande au driver de relâcher / modifier le CS après transfert
-        uint16_t delayUsec = 0;       // Délai entre messages SPI
-        uint8_t dummyByte = 0xFF;     // Octet envoyé lors des lectures pures
+        bool csChange = false;        // Demande au driver de relï¿½cher / modifier le CS aprï¿½s transfert
+        uint16_t delayUsec = 0;       // Dï¿½lai entre messages SPI
+        uint8_t dummyByte = 0xFF;     // Octet envoyï¿½ lors des lectures pures
 
-        // Convention utilisée par les helpers de registres 16 bits
+        // Convention utilisï¿½e par les helpers de registres 16 bits
         bool registerMsbFirst = true;
     };
 
@@ -65,9 +84,9 @@ namespace jc_spi {
         int readBytes(uint8_t* data, size_t size, uint8_t fillByte = 0xFF);
         bool readBytes(std::vector<uint8_t>& data, size_t size, uint8_t fillByte = 0xFF);
 
-        // Helpers registre génériques.
-        // Important : la sémantique exacte du bit de lecture/écriture dépend du composant SPI.
-        // Ici, le byte / mot de registre est envoyé tel quel.
+        // Helpers registre gï¿½nï¿½riques.
+        // Important : la sï¿½mantique exacte du bit de lecture/ï¿½criture dï¿½pend du composant SPI.
+        // Ici, le byte / mot de registre est envoyï¿½ tel quel.
         bool writeRegister8(uint8_t reg, uint8_t value);
         bool readRegister8(uint8_t reg, uint8_t& value, uint8_t fillByte = 0xFF);
         bool writeRegister16(uint16_t reg, uint8_t value);
@@ -78,12 +97,12 @@ namespace jc_spi {
         bool writeRegisterBlock16(uint16_t reg, const std::vector<uint8_t>& data);
         bool readRegisterBlock16(uint16_t reg, std::vector<uint8_t>& data, size_t size, uint8_t fillByte = 0xFF);
 
-        // Petit protocole de trame cohérent avec UART / Wi-Fi / Bluetooth.
+        // Petit protocole de trame cohï¿½rent avec UART / Wi-Fi / Bluetooth.
         // [0xAA][0x55][TYPE][LEN_L][LEN_H][PAYLOAD...][CHK]
         // CHK = checksum8(TYPE + LEN_L + LEN_H + PAYLOAD)
         bool sendPacket(uint8_t type, const std::vector<uint8_t>& payload);
 
-        // En SPI, le maître doit générer l'horloge pour recevoir des données.
+        // En SPI, le maï¿½tre doit gï¿½nï¿½rer l'horloge pour recevoir des donnï¿½es.
         // Cette fonction envoie fillByte tant qu'elle cherche une trame valide.
         bool receivePacket(Packet& packet,
             size_t maxSearchBytes = 4096,

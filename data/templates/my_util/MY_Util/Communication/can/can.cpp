@@ -1,3 +1,9 @@
+/**
+ * @file can.cpp
+ * @brief Implementation of the can C++ bundle.
+ *
+ * Generated bundle implementation. Public API semantics are documented in the matching header file.
+ */
 #define _DEFAULT_SOURCE
 #include "can.h"
 

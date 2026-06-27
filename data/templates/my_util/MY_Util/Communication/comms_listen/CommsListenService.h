@@ -1,3 +1,15 @@
+/**
+ * @file CommsListenService.h
+ * @brief C++ communication listener service API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "CommsListenService.h"
+ * 
+ * jc_comms::CommsListenService listener;
+ * // Configure a listen request, start the service, then poll events from the queue.
+ * @endcode
+ */
 #pragma once
 
 #include <atomic>

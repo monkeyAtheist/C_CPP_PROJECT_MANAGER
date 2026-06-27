@@ -1,3 +1,16 @@
+/**
+ * @file errorManagement.h
+ * @brief C++ error management helpers API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "errorManagement.h"
+ * 
+ * jc_error::error erreur;
+ * erreur.path = "errorLog.txt";
+ * // Use the provided check/set macros around operations that return status codes.
+ * @endcode
+ */
 #pragma once
 
 #include <iostream>

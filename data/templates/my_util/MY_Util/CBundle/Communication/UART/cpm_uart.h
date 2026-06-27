@@ -1,3 +1,20 @@
+/**
+ * @file cpm_uart.h
+ * @brief CPM C UART communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "cpm_uart.h"
+ * 
+ * CpmUartPort port;
+ * CpmUart_Init(&port);
+ * if (CpmUart_Open(&port, "COM3", 115200) == 0)
+ * {
+ *     CpmUart_WriteText(&port, "PING\n");
+ *     CpmUart_Close(&port);
+ * }
+ * @endcode
+ */
 #ifndef CPM_UART_H
 #define CPM_UART_H
 

@@ -126,7 +126,13 @@ The C bundle creates `cpm_can.c`, `cpm_can.h` and `README.md` under `Bundle/C/Co
 
 The C++ bundle creates `Communication/can/can.cpp` and `can.h` under the selected C++ bundle folder. The default implementation is a SocketCAN wrapper.
 
+### 0.2.38 bundle Doxygen examples
+
+Bundle generation now writes usage examples into the generated headers as Doxygen `@par Example of use` blocks. For the C Python bridge, `cpm_python_exec.h` includes a complete `CpmPythonConfig`, `CpmPythonResult`, `CpmPython_RunScript` and `CpmPython_ResultFree` example. The C sources generated or copied by the bundle system also receive Doxygen-style comments on implementation helpers and API functions, so the generated files can be read or processed by Doxygen without adding documentation manually first.
+
 ### Special-character text comments
+
+The C `Python execution bridge` bundle generates `cpm_python_exec.c` / `cpm_python_exec.h` and keeps the Windows wait/timeout code compatible with older MinGW/MinGW32 headers.
 
 `Insert special-character text` renders characters using a selectable fill pattern such as `//`, `\\`, `||`, `**`, `##`, `==`, `--`, `++` or a custom 1 to 8 character token. The size picker provides five presets: Micro, Small, Narrow, Standard and Large. Micro/Small use a compact 3x5 font, Narrow/Standard use a standard 5x7 font, and Large corresponds to the previous size 2. The command can insert the result as C/C++ line comments, as a C block comment, or as raw generated characters.
 

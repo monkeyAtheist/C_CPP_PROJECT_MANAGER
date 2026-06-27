@@ -1,3 +1,22 @@
+/**
+ * @file cpm_wifi.h
+ * @brief CPM C Wi-Fi TCP/UDP application-layer communication API.
+ *
+ * @par Example of use
+ * @code{.c}
+ * #include "cpm_wifi.h"
+ * 
+ * CpmWifiLink link;
+ * CpmWifi_InitLibrary();
+ * CpmWifi_Init(&link);
+ * if (CpmWifi_OpenTcpClient(&link, "192.168.1.10", 5000) == 0)
+ * {
+ *     CpmWifi_Send(&link, "PING", 4, NULL);
+ *     CpmWifi_Close(&link);
+ * }
+ * CpmWifi_ShutdownLibrary();
+ * @endcode
+ */
 #ifndef CPM_WIFI_H
 #define CPM_WIFI_H
 
