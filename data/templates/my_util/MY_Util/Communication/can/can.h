@@ -1,17 +1,37 @@
 /**
  * @file can.h
- * @brief C++ CAN and SocketCAN communication API.
+ * @brief C++ SocketCAN helper class.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - wraps Linux SocketCAN open/close/send/receive operations;
+ * - supports classical CAN and CAN FD fields;
+ * - provides helpers for standard and extended identifiers;
+ * - offers timeout and filter configuration.
+ *
+ * @par Typical applications
+ * - C++ CAN diagnostic tools on Linux;
+ * - communication with ECUs, sensors or embedded boards;
+ * - bench tools that need a compact SocketCAN abstraction.
+ *
+ * @par Usage notes
+ * - The default implementation targets Linux interfaces such as can0.
+ * - Configure bitrate and bring the interface up before opening it in the application.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "can.h"
  * 
- * jc_can::CanLink can;
- * if (can.open("can0") == jc_can::CanStatus::Ok)
+ * jc_can::CanLink bus;
+ * jc_can::CanFrame frame = jc_can::CanFrame::Standard(0x123, { 0x11, 0x22 });
+ * if (bus.open("can0") == jc_can::CanStatus::Ok)
  * {
- *     auto frame = jc_can::CanFrame::Standard(0x123, {0x11, 0x22});
- *     can.send(frame);
- *     can.close();
+ *     bus.send(frame);
+ *     bus.close();
  * }
  * @endcode
  */

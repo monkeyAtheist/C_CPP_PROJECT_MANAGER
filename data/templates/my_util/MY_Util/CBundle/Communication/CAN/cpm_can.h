@@ -2,6 +2,28 @@
  * @file cpm_can.h
  * @brief CPM C CAN and SocketCAN communication API.
  *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - opens a CAN interface and optionally enables CAN FD;
+ * - builds standard and extended frame identifiers;
+ * - sends and receives classic CAN or CAN FD frames;
+ * - configures timeouts, loopback, own-message reception and filters;
+ * - formats frames for diagnostics and logs.
+ *
+ * @par Typical applications
+ * - Linux SocketCAN test utilities;
+ * - communication with ECUs, embedded boards and CAN sensors;
+ * - bench diagnostics where a small C wrapper is preferable to vendor tooling.
+ *
+ * @par Usage notes
+ * - The default backend targets Linux SocketCAN interfaces such as "can0".
+ * - Configure bitrate and bring the interface up outside the program, for example with ip link.
+ * - Windows adapters normally require vendor-specific SDK glue code.
+ *
  * @par Example of use
  * @code{.c}
  * #include "cpm_can.h"

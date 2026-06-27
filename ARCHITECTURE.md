@@ -153,3 +153,14 @@ The C API is intentionally procedural and independent from the C++ MY_Util class
 
 Windows CAN support is not hard-coded because common adapters use incompatible vendor SDKs such as PCAN-Basic, Kvaser CANlib, Vector XL or NI-XNET. The generated module therefore exposes a clean adapter boundary rather than pretending that one backend covers all Windows CAN hardware.
 
+
+
+## 0.2.39 Lua bridge generator
+
+The bundle generator now has a `c-lua-bridge` path. It reuses the same cross-platform process/pipe model as the C Python bridge but targets the external `lua` interpreter and omits Python-specific unbuffered interpreter flags. The generated C header uses an `extern "C"` ABI guard so the bridge can be inserted from either the C or C++ bundle menus.
+
+## Bundle header documentation policy
+
+From version 0.2.40, bundle headers are treated as user-facing documentation. A bundle header should contain a Doxygen `@file` block with four practical sections: main features, typical applications, usage notes and a minimal example. This applies both to files generated from TypeScript templates and to files copied from `data/templates/my_util/MY_Util`.
+
+When a new bundle is added, the header should explain non-obvious runtime behavior directly in the file. For example, script execution bridges must state where command-line arguments are retrieved on the script side and where stdout/stderr is captured on the C/C++ side.

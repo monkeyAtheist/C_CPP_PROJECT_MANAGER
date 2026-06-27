@@ -1,18 +1,40 @@
 /**
  * @file SPI.h
- * @brief C++ SPI communication API.
+ * @brief C++ Linux SPI communication helper.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - opens spidev devices;
+ * - configures mode, bits per word and speed;
+ * - performs full-duplex transfers;
+ * - offers convenience read/write helpers.
+ *
+ * @par Typical applications
+ * - ADC/DAC/display/sensor communication from Linux SBCs;
+ * - Raspberry Pi prototypes;
+ * - C++ validation tools for SPI peripherals.
+ *
+ * @par Usage notes
+ * - The default backend targets Linux spidev.
+ * - SPI reads usually require dummy bytes on MOSI.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "SPI.h"
  * 
  * jc_spi::SpiConfig cfg;
  * cfg.device = "/dev/spidev0.0";
+ * cfg.speedHz = 1000000U;
  * jc_spi::SpiDevice spi;
+ * std::vector<uint8_t> tx = { 0x9F, 0x00 };
+ * std::vector<uint8_t> rx;
  * if (spi.open(cfg))
  * {
- *     std::vector<uint8_t> rx;
- *     spi.transfer({0x9F, 0, 0, 0}, rx);
+ *     spi.transfer(tx, rx);
  *     spi.close();
  * }
  * @endcode

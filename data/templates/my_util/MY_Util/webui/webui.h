@@ -1,9 +1,30 @@
 /**
  * @file webui.h
- * @brief C++ Web UI HTTP backend API.
+ * @brief C++ lightweight Web UI HTTP backend API.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - starts a small HTTP server from the C++ application;
+ * - serves static files or in-memory static routes;
+ * - registers GET and POST API handlers;
+ * - exposes state/action callbacks for simple browser-based control panels;
+ * - queues UI events for processing by the application loop.
+ *
+ * @par Typical applications
+ * - quick Web UI panels for test benches;
+ * - local dashboards for embedded prototypes;
+ * - operator controls without building a native GUI.
+ *
+ * @par Usage notes
+ * - This is a compact development/bench helper, not a hardened public internet server.
+ * - Keep long hardware actions outside the HTTP handler and process them from the event queue.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "webui.h"
  * 
  * jc_webui::WebUiServer server;

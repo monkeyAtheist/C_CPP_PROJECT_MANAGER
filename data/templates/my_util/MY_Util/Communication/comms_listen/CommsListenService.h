@@ -1,13 +1,38 @@
 /**
  * @file CommsListenService.h
- * @brief C++ communication listener service API.
+ * @brief C++ background communication listener service.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - runs receive operations in a background service object;
+ * - stores received frames/events for polling by the application;
+ * - supports transport configuration through the common communication layer;
+ * - keeps listener lifecycle separate from UI code.
+ *
+ * @par Typical applications
+ * - monitoring UART/network traffic in a bench tool;
+ * - background acquisition of device replies;
+ * - bridging communication events into a Web UI or desktop UI.
+ *
+ * @par Usage notes
+ * - Start the service after configuring the transport and stop it before destroying the application.
+ * - Poll or consume queued events regularly to avoid unbounded queues.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "CommsListenService.h"
  * 
- * jc_comms::CommsListenService listener;
- * // Configure a listen request, start the service, then poll events from the queue.
+ * jc_comms_listen::ListenRequest req;
+ * req.transport = jc_comms_listen::Transport::Uart;
+ * req.deviceSpec = "COM3@115200";
+ * jc_comms_listen::CommsListenService service;
+ * service.start(req);
+ * auto status = service.status();
+ * service.stop();
  * @endcode
  */
 #pragma once

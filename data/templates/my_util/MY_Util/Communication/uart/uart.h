@@ -1,9 +1,29 @@
 /**
  * @file uart.h
- * @brief C++ UART communication API.
+ * @brief C++ UART/serial-port helper class.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - wraps serial-port open/close logic in an RAII-style class;
+ * - supports configurable baud rate, parity, data bits and stop bits;
+ * - offers byte, string, line and framed-packet helpers;
+ * - keeps receive buffering inside the class.
+ *
+ * @par Typical applications
+ * - serial communication with embedded boards and instruments;
+ * - C++ test applications requiring a richer API than the C bundle;
+ * - packet protocols over RS-232, RS-485 or USB-serial.
+ *
+ * @par Usage notes
+ * - Use UartConfig for all port settings instead of scattering constants in the application.
+ * - readLine is convenient for text protocols; sendPacket/receivePacket are better for binary payloads.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "uart.h"
  * 
  * jc_uart::UartConfig cfg;
@@ -13,6 +33,8 @@
  * if (uart.open(cfg))
  * {
  *     uart.writeString("PING\n");
+ *     std::string line;
+ *     uart.readLine(line, '\n', 1000);
  *     uart.close();
  * }
  * @endcode

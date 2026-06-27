@@ -15,7 +15,7 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Store explicit compiler paths for `gcc`, `g++`, `ar` and `gdb` or compatible alternatives.
 - Synchronize a managed `.vscode/c_cpp_properties.json` entry for Microsoft C/C++ IntelliSense.
 - Browse embedded C/C++ library packs and insert snippets.
-- Generate C and C++ utility module bundles, including pure C Python, Web UI, UART, IPC and TCP/UDP communication bridges, plus separate companion script/frontend bundles.
+- Generate C and C++ utility module bundles, including pure C Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges, plus separate companion script/frontend bundles.
 
 ## Toolchain selection
 
@@ -59,7 +59,7 @@ Historical validation reports and migration notes are stored under `docs/history
 
 ### 0.2.25 workflow update
 
-The new-file picker is grouped by category: C, C++, module bundles, scripts/text and saved templates. Module bundles are split into C, C++ and Scripts. The C group includes generated pure C core/error modules plus Python, Web UI, UART, IPC and TCP/UDP communication bridges; C++ MY_Util modules and companion assets remain separate bundles.
+The new-file picker is grouped by category: C, C++, module bundles, scripts/text and saved templates. Module bundles are split into C, C++ and Scripts. The C group includes generated pure C core/error modules plus Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges; C++ MY_Util modules and companion assets remain separate bundles.
 
 
 
@@ -103,6 +103,16 @@ The default backend targets Linux SocketCAN. It supports classical CAN, CAN FD, 
 
 Generated and copied bundle headers now include Doxygen-style usage examples directly in the inserted `.h` / `.hpp` files. The generated C implementation files also include `@file`, `@brief`, `@param` and `@return` documentation blocks on helpers and API functions where applicable. This covers the CPM-native C bundles and the copied MY_Util C/C++ communication, Python, Web UI, utility and error-management modules.
 
+### 0.2.39 Lua execution bridge
+
+The module bundle system now includes Lua execution helpers:
+
+- `Module bundles > C > Lua execution bridge` generates `cpm_lua_exec.c`, `cpm_lua_exec.h` and a README.
+- `Module bundles > C++ > Lua execution bridge` generates the same C ABI bridge in a C++ bundle folder. The header is protected with `extern "C"`, so it can be called from C++ code.
+- `Module bundles > Scripts > Lua worker protocol starter` generates a minimal `example_worker.lua`.
+
+The bridge launches the external `lua` interpreter, passes C/C++ string arguments to the script command line, captures `print(...)` output in `CpmLuaResult.output`, and also supports interactive stdin/stdout sessions. In Lua, arguments are read through the global `arg` table: `arg[1]`, `arg[2]`, etc.
+
 ### Special-character text comments
 
 The C `Python execution bridge` bundle is compatible with older MinGW/MinGW32 headers and avoids Windows APIs that are not declared by default in those toolchains.
@@ -113,3 +123,7 @@ The C `Python execution bridge` bundle is compatible with older MinGW/MinGW32 he
 
 `Insert header change line` keeps the CHANGES/EVOLUTIONS table width stable. Descriptions longer than the Description column are wrapped onto continuation rows, and a separator row is inserted under the generated entry.
 
+
+### Bundle header documentation
+
+As of 0.2.40, generated and copied module bundles include fuller Doxygen header notes. The header of each audited bundle summarizes its features, suitable applications, usage constraints and a minimal example. Script bridges also document how arguments and console output move between C/C++ and Python or Lua.

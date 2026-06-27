@@ -1,18 +1,38 @@
 /**
  * @file ethernet.h
- * @brief C++ TCP/UDP Ethernet communication API.
+ * @brief C++ Ethernet TCP/UDP communication helper.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - supports TCP client, TCP server and UDP modes;
+ * - encapsulates socket initialization and timeout configuration;
+ * - provides string, byte, endpoint and packet helpers;
+ * - offers local and peer endpoint information for diagnostics.
+ *
+ * @par Typical applications
+ * - instrument control over LAN;
+ * - C++ network simulators and local test servers;
+ * - UDP telemetry or command links.
+ *
+ * @par Usage notes
+ * - TCP does not preserve message boundaries; use line or packet helpers for structured messages.
+ * - On Windows, the implementation uses Winsock and requires ws2_32 at link time.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "ethernet.h"
  * 
  * jc_ethernet::EthernetConfig cfg;
- * cfg.host = "127.0.0.1";
- * cfg.port = 8080;
+ * cfg.host = "192.168.1.10";
+ * cfg.port = 5000;
  * jc_ethernet::EthernetLink link;
  * if (link.open(cfg))
  * {
- *     link.writeString("PING\n");
+ *     link.writeString("*IDN?\n");
  *     link.close();
  * }
  * @endcode

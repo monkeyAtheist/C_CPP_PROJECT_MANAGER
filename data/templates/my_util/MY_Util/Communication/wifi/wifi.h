@@ -1,13 +1,33 @@
 /**
  * @file wifi.h
- * @brief C++ Wi-Fi TCP/UDP application-layer communication API.
+ * @brief C++ Wi-Fi TCP/UDP application-layer communication helper.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - uses standard TCP/UDP sockets over the active Wi-Fi network;
+ * - supports client, server and UDP modes;
+ * - offers string, byte, endpoint and framed-packet helpers;
+ * - keeps OS Wi-Fi association separate from application data exchange.
+ *
+ * @par Typical applications
+ * - communication with ESP32/Raspberry Pi services over Wi-Fi;
+ * - wireless telemetry and command channels;
+ * - C++ test tools that should work over Ethernet-like sockets.
+ *
+ * @par Usage notes
+ * - Connect to the SSID with the operating system before opening this API.
+ * - Use packet helpers for binary protocols and readLine for text protocols.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "wifi.h"
  * 
  * jc_wifi::WifiConfig cfg;
- * cfg.host = "192.168.1.10";
+ * cfg.host = "192.168.1.42";
  * cfg.port = 5000;
  * jc_wifi::WifiLink link;
  * if (link.open(cfg))

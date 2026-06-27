@@ -1,16 +1,36 @@
 /**
  * @file myUtil.h
- * @brief C++ generic MY_Util helpers API.
+ * @brief C++ generic MY_Util helper API.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - reads simple INI files with typed accessors;
+ * - provides string helpers for trimming and formatting;
+ * - offers filesystem/path utilities used by several MY_Util modules;
+ * - groups small cross-platform helpers that do not justify a dedicated module.
+ *
+ * @par Typical applications
+ * - configuration loading for small C++ tools;
+ * - shared utility layer for communication and Web UI examples;
+ * - quick prototypes where a compact helper collection is acceptable.
+ *
+ * @par Usage notes
+ * - Prefer dedicated modules for transport-specific work; this file contains generic helpers.
+ * - Keep utility.ini close to the executable when using relative paths.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "myUtil.h"
  * 
  * jc_utility::iniReader ini;
  * if (ini.load("utility.ini"))
  * {
- *     int value = ini.getOr<int>("app", "timeout_ms", 1000);
- *     (void)value;
+ *     int timeoutMs = ini.getOr<int>("app", "timeout_ms", 1000);
+ *     std::cout << "Timeout: " << timeoutMs << std::endl;
  * }
  * @endcode
  */

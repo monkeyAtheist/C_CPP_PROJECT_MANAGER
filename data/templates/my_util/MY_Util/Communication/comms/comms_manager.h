@@ -1,15 +1,37 @@
 /**
  * @file comms_manager.h
- * @brief C++ high-level communication manager API.
+ * @brief C++ high-level multi-transport communication manager.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - loads devices and presets from an INI configuration;
+ * - groups UART, USB, Bluetooth, Wi-Fi, Ethernet, I2C, SPI and CAN-style transports;
+ * - refreshes discoverable devices where supported;
+ * - sends text or hexadecimal payloads and stores a JSON-friendly history.
+ *
+ * @par Typical applications
+ * - generic bench communication panels;
+ * - quick manual control of several transports from one application;
+ * - debug tools where operators choose a device and a preset command.
+ *
+ * @par Usage notes
+ * - Use this manager when you need a UI-friendly abstraction, not the lowest-level transport API.
+ * - The individual transport bundles remain better for deterministic protocol implementations.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "comms_manager.h"
  * 
  * jc_comms::CommsManager manager;
- * std::string err;
- * manager.loadIni("comms.ini", &err);
- * manager.refreshDevices(&err);
+ * std::string error;
+ * if (manager.loadIni("comms.ini", &error))
+ * {
+ *     manager.refreshDevices(&error);
+ * }
  * @endcode
  */
 #pragma once

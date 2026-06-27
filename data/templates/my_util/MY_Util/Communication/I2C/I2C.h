@@ -1,20 +1,40 @@
 /**
  * @file I2C.h
- * @brief C++ I2C communication API.
+ * @brief C++ Linux I2C communication helper.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - opens i2c-dev bus devices;
+ * - selects slave addresses and performs raw reads/writes;
+ * - provides register-oriented helpers;
+ * - uses a simple C++ object to hold bus state.
+ *
+ * @par Typical applications
+ * - sensor, EEPROM and GPIO expander access from Linux SBCs;
+ * - Raspberry Pi prototypes;
+ * - C++ test utilities for I2C peripherals.
+ *
+ * @par Usage notes
+ * - The default backend targets Linux i2c-dev.
+ * - Enable I2C and permissions before running the application.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "I2C.h"
  * 
  * jc_i2c::I2cConfig cfg;
  * cfg.device = "/dev/i2c-1";
- * cfg.address = 0x48;
- * jc_i2c::I2cDevice dev;
- * if (dev.open(cfg))
+ * cfg.slaveAddress = 0x48;
+ * jc_i2c::I2cDevice i2c;
+ * uint8_t value = 0;
+ * if (i2c.open(cfg))
  * {
- *     uint8_t value = 0;
- *     dev.readRegister8(0x00, value);
- *     dev.close();
+ *     i2c.readRegister8(0x00, value);
+ *     i2c.close();
  * }
  * @endcode
  */

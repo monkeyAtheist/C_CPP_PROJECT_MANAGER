@@ -1,6 +1,27 @@
 /**
  * @file cpm_ipc.h
- * @brief CPM C IPC named-pipe/FIFO communication API.
+ * @brief CPM C named-pipe/FIFO inter-process communication API.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - creates a local server endpoint and waits for a client;
+ * - connects to an existing endpoint as a client;
+ * - exchanges raw bytes with simple read/write calls;
+ * - wraps Windows named pipes and POSIX FIFO-style handles behind one C structure.
+ *
+ * @par Typical applications
+ * - communication between a C test executable and a helper process;
+ * - local supervision channels for GUIs, workers or test sequencers;
+ * - small command/reply protocols when sockets are unnecessary.
+ *
+ * @par Usage notes
+ * - Use the same pipe name on the server and client side.
+ * - Frame your own messages when several commands can be sent on the same connection.
+ * - Close both sides cleanly to release the pipe handle before rebuilding.
  *
  * @par Example of use
  * @code{.c}

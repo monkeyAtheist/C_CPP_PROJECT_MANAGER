@@ -1,19 +1,41 @@
 /**
  * @file IPC.h
- * @brief C++ IPC pipe communication API.
+ * @brief C++ local IPC helper for process-to-process exchanges.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - creates server-side and client-side local communication endpoints;
+ * - exchanges bytes, strings and line-based messages;
+ * - wraps native pipe/socket handles behind a C++ class;
+ * - supports timeout-oriented reads for worker protocols.
+ *
+ * @par Typical applications
+ * - communication between a C++ GUI and a worker process;
+ * - test sequencer to helper process control;
+ * - local command/reply protocols without opening network ports.
+ *
+ * @par Usage notes
+ * - Define message framing explicitly when multiple commands share one session.
+ * - Close sessions before rebuilding to avoid locked handles on Windows.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "IPC.h"
  * 
  * jc_ipc::IpcConfig cfg;
  * cfg.name = "demo_pipe";
  * cfg.role = jc_ipc::PipeRole::Client;
- * jc_ipc::IpcPipe pipe;
- * if (pipe.open(cfg))
+ * jc_ipc::IpcPipe client;
+ * if (client.open(cfg))
  * {
- *     pipe.writeString("PING\n");
- *     pipe.close();
+ *     client.writeString("PING\n");
+ *     std::string reply;
+ *     client.readLine(reply, '\n', 1000);
+ *     client.close();
  * }
  * @endcode
  */

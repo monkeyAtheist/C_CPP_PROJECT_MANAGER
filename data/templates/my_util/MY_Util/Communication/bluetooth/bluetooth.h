@@ -1,9 +1,29 @@
 /**
  * @file bluetooth.h
- * @brief C++ Bluetooth RFCOMM communication API.
+ * @brief C++ Bluetooth Classic RFCOMM helper.
+ *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - opens RFCOMM client links to paired Bluetooth Classic devices;
+ * - provides byte, string, line and packet helpers;
+ * - wraps platform socket handles in a move-only C++ object;
+ * - reports detailed connection and transport errors.
+ *
+ * @par Typical applications
+ * - serial-like links to HC-05/HC-06 style modules;
+ * - wireless debug channels for embedded prototypes;
+ * - C++ applications needing Bluetooth Classic rather than BLE.
+ *
+ * @par Usage notes
+ * - Pair the remote device at OS level before opening the connection.
+ * - The default implementation is Windows-oriented; other platforms may need backend extension.
  *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "bluetooth.h"
  * 
  * jc_bluetooth::BluetoothConfig cfg;

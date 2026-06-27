@@ -2,8 +2,30 @@
  * @file pythonExec.h
  * @brief C++ Python execution bridge API.
  *
+ * @details
+ * This bundle is intended to be readable immediately after insertion into a
+ * CPM project. The comments below summarize what the module provides, when it
+ * is useful and how to start using the public API.
+ *
+ * @par Main features
+ * - launches Python as an external process;
+ * - passes C++ string arguments to the script command line;
+ * - captures stdout and optionally stderr into PythonExecResult.output;
+ * - supports one-shot execution and persistent stdin/stdout sessions;
+ * - offers line and JSON-style text exchange helpers.
+ *
+ * @par Typical applications
+ * - calling Python analysis scripts from a C++ test program;
+ * - delegating image processing, automation or data formatting to Python;
+ * - keeping a long-running Python worker connected to a C++ application.
+ *
+ * @par Usage notes
+ * - Python receives arguments through sys.argv[1:].
+ * - print(...) output is captured in result.output for one-shot calls.
+ * - Use unbuffered mode or flush=True for interactive sessions.
+ *
  * @par Example of use
- * @code{.c}
+ * @code{.cpp}
  * #include "pythonExec.h"
  * #include <iostream>
  * 

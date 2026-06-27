@@ -1,3 +1,20 @@
+## 0.2.40 - Bundle header documentation audit
+
+- Audited generated and copied module-bundle headers for C and C++ bundles.
+- Expanded header Doxygen blocks with explicit feature lists, typical applications, usage notes and minimal examples.
+- Covered C communication bundles: UART, IPC, Ethernet TCP/UDP, Wi-Fi TCP/UDP, Bluetooth RFCOMM, CAN/SocketCAN, I2C and SPI.
+- Covered C++ MY_Util bundles: generic utilities, error management, Python bridge, Web UI, UART, IPC, Ethernet, Wi-Fi, Bluetooth, CAN, I2C, SPI, CommsManager and CommsListenService.
+- Covered generated CPM bundles in the creation workflow: C/C++ core utilities, C/C++ error management, C Python execution bridge, C Lua execution bridge and C Web UI backend.
+- Corrected several header examples so they use the actual public API names exposed by the generated/copied headers.
+
+## 0.2.39 - Lua execution bridge and bundle API notes
+
+- Added `Module bundles > C > Lua execution bridge`, generating `cpm_lua_exec.c`, `cpm_lua_exec.h` and a README.
+- Added `Module bundles > C++ > Lua execution bridge`, generating the same C ABI bridge in a C++ bundle folder so it can be linked from C++ projects.
+- Added `Module bundles > Scripts > Lua worker protocol starter` with an `example_worker.lua` showing command-line argument access through `arg[1]`, `arg[2]`, etc.
+- Expanded the generated Python bridge header with explicit feature notes: arguments are available through `sys.argv[1:]`, and `print(...)` output is captured in `CpmPythonResult.output`.
+- Added matching Lua bridge header documentation explaining `CpmLuaResult.output`, command-line arguments and interactive stdout flushing.
+
 ## 0.2.38 - Bundle Doxygen examples
 
 - Added Doxygen-style usage examples to generated bundle headers, including the C Python execution bridge example requested for `CpmPython_RunScript`.

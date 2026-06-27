@@ -140,3 +140,20 @@ The C `Python execution bridge` bundle generates `cpm_python_exec.c` / `cpm_pyth
 
 `Insert header change line` keeps the CHANGES/EVOLUTIONS table width stable. Descriptions longer than the Description column are wrapped onto continuation rows, and a separator row is inserted under the generated entry.
 
+
+
+## 0.2.39 Lua execution bridge
+
+New module bundles:
+
+- `Module bundles > C > Lua execution bridge`: generates `cpm_lua_exec.c`, `cpm_lua_exec.h` and README notes.
+- `Module bundles > C++ > Lua execution bridge`: generates the same C ABI bridge in a C++ bundle folder.
+- `Module bundles > Scripts > Lua worker protocol starter`: generates `example_worker.lua` and a short protocol README.
+
+The Lua header documents the main API directly in Doxygen form: one-shot execution with `CpmLua_RunScript`, stdout/stderr capture through `CpmLuaResult.output`, command-line arguments through Lua `arg[]`, and interactive line/JSON-style text exchanges through `CpmLuaSession_*`.
+
+### 0.2.40 bundle header documentation audit
+
+The bundle headers now include a stronger self-contained documentation block. Each audited header starts with Doxygen sections for main features, typical applications, usage notes and a short example using the public API. This was applied to the generated C bundles, the generated C++ bundles and the copied MY_Util communication/external/Web UI bundles.
+
+This avoids missing important runtime behavior such as script argument passing or stdout capture: the Python and Lua execution bridge headers now explicitly document both argument access on the script side and output capture in the C/C++ result structures.
