@@ -1,0 +1,31 @@
+{
+  "version": "0.2.48",
+  "feature": "CPM editor context-menu color value picker",
+  "checks": [
+    {
+      "name": "Command registration",
+      "status": "passed",
+      "details": "cpm.insertColorValue is declared in package.json activation events and commands, and registered by src/extension.ts."
+    },
+    {
+      "name": "Context-menu integration",
+      "status": "passed",
+      "details": "The command is exposed under the CPM editor context menu for C/C++ files."
+    },
+    {
+      "name": "Webview picker",
+      "status": "passed",
+      "details": "The webview includes native color input, RGB channels, alpha value/range, alpha preview, brightness slider, preset swatches and insert/copy actions."
+    },
+    {
+      "name": "Output formats",
+      "status": "passed",
+      "details": "The picker supports #RRGGBB, 0xRRGGBB, decimal RGB integer, rgb(), rgba(), raw RGB/RGBA channel lists, SDL_Color initializer, RGB() and QColor()."
+    },
+    {
+      "name": "Compile",
+      "status": "passed",
+      "details": "npm run compile completed successfully after integration."
+    }
+  ]
+}

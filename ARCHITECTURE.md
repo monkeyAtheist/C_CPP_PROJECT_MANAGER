@@ -10,6 +10,7 @@
 - `src/services/cpmProjectSettingsService.ts`: project build actions, run options and build-order dependencies. Current files are stored in `.vscode/cpm-build.json`; legacy `.vscode/labwindows-cvi-build.json` is still readable for migration.
 - `src/services/cpmCppToolsService.ts`: optional Microsoft C/C++ IntelliSense synchronization and lightweight toolchain include-path discovery.
 - `src/services/cpmTemplateService.ts`: C/C++ starter files, snippets, DLL helpers, error/logging modules and MY_Util bundle integration.
+- `src/services/cpmColorValueService.ts`: editor context-menu color picker webview and color value insertion/copy helpers.
 - `src/services/cpmLibraryPackService.ts`: embedded JC Lib / CPM library-pack seeding and migration.
 - `src/providers/cpmTreeProvider.ts`: native VS Code tree views for workspaces, actions, file symbols and libraries.
 - `src/jcLibEmbedded.ts`: embedded library explorer and structured prototype/snippet UI.

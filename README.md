@@ -20,6 +20,7 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Store explicit compiler paths for `gcc`, `g++`, `ar` and `gdb` or compatible alternatives.
 - Synchronize a managed `.vscode/c_cpp_properties.json` entry for Microsoft C/C++ IntelliSense.
 - Browse embedded C/C++ library packs and insert snippets.
+- Insert color values from the editor context menu in C/C++ friendly formats, including SDL and Qt initializers.
 - Generate C and C++ utility module bundles, including pure C Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges, plus separate companion script/frontend bundles.
 
 ## Toolchain selection

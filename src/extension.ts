@@ -18,6 +18,7 @@ import { QuickActionsView } from './views/quickActionsView';
 import { CpmCompletionProvider, CpmSourceSymbol, CpmSymbolService, isSourceOrHeader } from './services/cpmSymbolService';
 import { CpmFunctionPanelService } from './services/cpmFunctionPanelService';
 import { CpmWorkspace } from './model/types';
+import { CpmColorValueService } from './services/cpmColorValueService';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
@@ -38,6 +39,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   fileSymbolsProvider.attachView(fileSymbolsView);
   const completionProvider = new CpmCompletionProvider(symbols);
   const functionPanels = new CpmFunctionPanelService();
+  const colorValues = new CpmColorValueService();
   const completionRegistration = vscode.languages.registerCompletionItemProvider(
     [{ language: 'c', scheme: 'file' }, { language: 'cpp', scheme: 'file' }],
     completionProvider
@@ -236,6 +238,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.insertHeaderChangeEntry', () => templates.insertHeaderChangeEntry()),
     register('cpm.insertCommentSection', () => templates.insertCommentSection()),
     register('cpm.insertSpecialCharacterText', () => templates.insertSpecialCharacterText()),
+    register('cpm.insertColorValue', () => colorValues.openColorValuePicker()),
     register('cpm.saveSelectionAsSnippet', () => templates.saveSelectionAsSnippet()),
     register('cpm.manageSnippets', () => templates.manageSnippets()),
     register('cpm.saveFileAsTemplate', (node?: FileNode) => templates.saveCurrentFileAsTemplate(node?.file.absolutePath)),

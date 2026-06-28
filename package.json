@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.47",
+  "version": "0.2.48",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -71,6 +71,7 @@
     "onCommand:cpm.insertHeaderChangeEntry",
     "onCommand:cpm.insertCommentSection",
     "onCommand:cpm.insertSpecialCharacterText",
+    "onCommand:cpm.insertColorValue",
     "onCommand:cpm.configureSdl",
     "onCommand:cpm.createSdlWorkspaceProject",
     "onCommand:cpm.createSdlProjectInWorkspace"
@@ -500,6 +501,12 @@
         "title": "Insert special-character text",
         "category": "CPM",
         "icon": "$(symbol-string)"
+      },
+      {
+        "command": "cpm.insertColorValue",
+        "title": "Insert color value",
+        "category": "CPM",
+        "icon": "$(symbol-color)"
       },
       {
         "command": "cpm.saveFileAsTemplate",
@@ -1257,6 +1264,10 @@
         {
           "submenu": "cpm.editorSnippets",
           "group": "2_snippets@1"
+        },
+        {
+          "command": "cpm.insertColorValue",
+          "group": "3_tools@0"
         },
         {
           "submenu": "cpm.convertSelectedInteger",

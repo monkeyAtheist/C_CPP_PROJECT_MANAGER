@@ -42,6 +42,8 @@ The editor right-click menu now exposes a single **CPM** submenu. Use **CPM > Do
 - reusable comment-section separators, either boxed, line-based or compact;
 - special-character text banners with selectable fill pattern, compact/standard size presets and output mode.
 
+Use **CPM > Insert color value** for the context-menu color helper. It opens a VS Code webview color picker and can insert `#RRGGBB`, `0xRRGGBB`, decimal RGB, CSS-style `rgb(...)` / `rgba(...)`, raw C channel lists, `SDL_Color` initializers and `QColor(...)`.
+
 The same building blocks are also available as built-in snippets from **CPM > Snippets > CPM: Insert snippet**.
 
 ## Error-managed main starter
@@ -158,16 +160,31 @@ The bundle headers now include a stronger self-contained documentation block. Ea
 
 This avoids missing important runtime behavior such as script argument passing or stdout capture: the Python and Lua execution bridge headers now explicitly document both argument access on the script side and output capture in the C/C++ result structures.
 
-## SDL2 project starter
+## SDL2 / SDL3 project starter
 
-Version 0.2.41 adds dedicated SDL project creation commands rather than only a loose file template. The generated SDL project contains:
+Version 0.2.44 extends the dedicated SDL project creation commands to SDL2 and SDL3. The generated SDL project contains:
 
-- `main.c` or `main.cpp` with an SDL initialization path, window creation, renderer creation, event loop and cleanup;
+- `main.c` or `main.cpp` with an SDL2 or SDL3 initialization path, window creation, renderer creation, event loop and cleanup;
 - `assets/` for images, fonts or audio;
 - `README_SDL.md` describing the SDL workspace settings.
 
-The starter is intended for graphical applications. CPM configures SDL through `cpm.sdlRootPath`, `cpm.sdlPackages`, `cpm.sdlRuntimeMode`, `cpm.sdlSubsystem` and `cpm.sdlCopyAllRuntimeDlls`.
+The starter is intended for graphical applications. CPM configures SDL through `cpm.sdlVersion`, `cpm.sdlRootPath`, `cpm.sdlPackages`, `cpm.sdlRuntimeMode`, `cpm.sdlSubsystem` and `cpm.sdlCopyAllRuntimeDlls`. SDL3 starters include `<SDL3/SDL.h>` and `<SDL3/SDL_main.h>` and use the SDL3 event constants.
 
 ## Generic toolchain runtime dependency modes
 
 The build settings page includes a `Generic toolchain runtime dependencies` section for normal C/C++ builds. Use `copy-dlls` when the executable must also launch from Explorer, `path-only` when the executable is only launched through CPM run/debug, and `static-link` when the selected GCC/Clang-compatible toolchain provides suitable static runtime libraries. CPM can deploy GCC/MinGW/MSYS2 and LLVM/Clang runtime DLLs found in the selected toolchain `bin` directory, and it records copied DLLs in `.cpm-runtime-dlls.json` for cleanup.
+
+
+## SDL SDK path selection
+
+When using SDL2/SDL3 templates, the build settings `SDL SDK root` field can point either to the SDK root or to a nested architecture folder such as `i686-w64-mingw32`, `x86_64-w64-mingw32`, `bin`, `lib`, `include` or `include/SDL2`. CPM normalizes the selected folder during build resolution.
+
+### 0.2.47 embedded library synchronization
+
+The embedded library manager imports the JC Lib 0.8.9 SDL2 / SDL3 pack routing and enum-backed multi-select picker fix. SDL content is now available as combined SDL2 / SDL3, SDL2-only, or SDL3-only bundled packs.
+
+## Color value picker
+
+`Insert color value` is available from the **CPM** editor context menu. It provides a native color selector, editable RGB channels, alpha control, alpha preview over a checkerboard, brightness/value adjustment and preset swatches. The current selection is reused as the initial color when it matches `#RRGGBB` or `0xRRGGBB`.
+
+Supported output formats are `#RRGGBB`, `0xRRGGBB`, decimal RGB integer, `rgb(r, g, b)`, `rgba(r, g, b, a)`, `r, g, b`, `r, g, b, a`, `{ r, g, b, a }` for `SDL_Color`, `RGB(r, g, b)` and `QColor(r, g, b, a)`.

@@ -1,3 +1,10 @@
+## 0.2.48 - Context-menu color value picker
+
+- Added `CPM: Insert color value` to the editor context menu.
+- Integrated the JC Lib color picker workflow into CPM with a VS Code webview color selector, RGB channel editing, alpha control, brightness slider and presets.
+- The generated value can be inserted or copied in several C/C++-oriented formats: `#RRGGBB`, `0xRRGGBB`, decimal RGB integer, `rgb(...)`, `rgba(...)`, raw RGB/RGBA channel lists, `SDL_Color` initializer, `RGB(...)` helper and `QColor(...)`.
+- Current selections such as `#RRGGBB` or `0xRRGGBB` are used as the initial color when opening the picker.
+
 ## 0.2.47
 
 - Integrated JC Lib 0.8.9 embedded-library fixes for enum-backed multi-select pickers. Combined values such as `SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL` are now injected into enum/select parameter fields and update the generated-call preview.
