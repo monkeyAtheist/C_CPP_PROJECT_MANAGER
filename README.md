@@ -103,6 +103,28 @@ The default backend targets Linux SocketCAN. It supports classical CAN, CAN FD, 
 
 Generated and copied bundle headers now include Doxygen-style usage examples directly in the inserted `.h` / `.hpp` files. The generated C implementation files also include `@file`, `@brief`, `@param` and `@return` documentation blocks on helpers and API functions where applicable. This covers the CPM-native C bundles and the copied MY_Util C/C++ communication, Python, Web UI, utility and error-management modules.
 
+
+### 0.2.43 Generic toolchain runtime handling
+
+Classic C/C++ builds use the same runtime-dependency strategy as SDL projects, now generalized for the toolchains detected by CPM rather than only MinGW. In the build settings page, open `Generic toolchain runtime dependencies` and select one of the following modes:
+
+- `copy-dlls`: copy detected compiler/runtime DLLs beside the generated executable or DLL. CPM handles common GCC/MinGW/MSYS2 DLLs such as `libgcc_s_*.dll`, `libstdc++-6.dll` and `libwinpthread-1.dll`, and also LLVM/Clang runtime DLLs such as `libc++.dll`, `libunwind.dll`, `libomp.dll` and `clang_rt.*.dll` when they are found in the selected toolchain `bin` directory.
+- `path-only`: do not copy DLLs. CPM prepends the selected compiler toolchain `bin` directory to `PATH` only when using the extension's Run or Debug commands. Launching the `.exe` manually from Explorer may still fail if the toolchain `bin` directory is not in the system PATH.
+- `static-link`: inject GCC/Clang static runtime flags when the selected toolchain supports them. This can produce a more standalone executable for classic C/C++ programs, but it can fail when third-party libraries are only available as dynamic/import libraries.
+
+When `copy-dlls` is active, CPM traces the PE import table of the generated target and recursively follows copied toolchain DLL dependencies. A `.cpm-runtime-dlls.json` manifest is written beside the target so stale CPM-managed DLLs can be removed safely when changing architecture, compiler or runtime mode. The setting behind this section is `cpm.runtimeDependencyMode`. The old `cpm.deployRuntimeDlls` setting remains supported for existing workspaces.
+
+### 0.2.41 SDL2 project support
+
+CPM can now detect and use SDL2 SDK folders such as `C:\Program Files\SDL64`. Use `C/C++ Project Manager: Detect / Select SDL SDK` to select the SDK, packages and runtime mode. The build pipeline can inject SDL include paths, SDL libraries and Windows subsystem flags without manually editing the normal include/linker lists.
+
+New project commands are available for SDL applications:
+
+- `C/C++ Project Manager: Create SDL Workspace and Project` creates a workspace, an executable project and a minimal SDL event/render loop.
+- `Create New SDL Project in Workspace...` adds the same kind of SDL executable project to an existing `.cws` workspace.
+
+Supported package switches include `SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_net` and `SDL2_gfx`. Runtime handling can copy SDL DLLs beside the executable, use PATH only at run/debug time, or attempt static linking when the SDK provides suitable static libraries. The recommended Windows mode is DLL copying.
+
 ### 0.2.39 Lua execution bridge
 
 The module bundle system now includes Lua execution helpers:

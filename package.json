@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.40",
+  "version": "0.2.43",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -70,7 +70,10 @@
     "onCommand:cpm.insertFileHeader",
     "onCommand:cpm.insertHeaderChangeEntry",
     "onCommand:cpm.insertCommentSection",
-    "onCommand:cpm.insertSpecialCharacterText"
+    "onCommand:cpm.insertSpecialCharacterText",
+    "onCommand:cpm.configureSdl",
+    "onCommand:cpm.createSdlWorkspaceProject",
+    "onCommand:cpm.createSdlProjectInWorkspace"
   ],
   "main": "./out/extension.js",
   "scripts": {
@@ -122,7 +125,7 @@
     "viewsWelcome": [
       {
         "view": "cpm.workspaceExplorer",
-        "contents": "No C/C++ workspace is currently loaded.\n[Open a workspace](command:cpm.openWorkspace)\n[Create a workspace and project](command:cpm.createWorkspaceProject)\n[Open the home page](command:cpm.openHome)"
+        "contents": "No C/C++ workspace is currently loaded.\n[Open a workspace](command:cpm.openWorkspace)\n[Create a workspace and project](command:cpm.createWorkspaceProject)\n[Open the home page](command:cpm.openHome)\n[Create SDL workspace and project](command:cpm.createSdlWorkspaceProject)"
       }
     ],
     "commands": [
@@ -631,6 +634,21 @@
         "command": "cpm.convertSelectedIntegerToBinary",
         "title": "Convert Selected Integer to Binary",
         "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.configureSdl",
+        "title": "C/C++ Project Manager: Detect / Select SDL SDK",
+        "icon": "$(window)"
+      },
+      {
+        "command": "cpm.createSdlWorkspaceProject",
+        "title": "C/C++ Project Manager: Create SDL Workspace and Project",
+        "icon": "$(window)"
+      },
+      {
+        "command": "cpm.createSdlProjectInWorkspace",
+        "title": "Create New SDL Project in Workspace...",
+        "icon": "$(window)"
       }
     ],
     "menus": {
@@ -734,6 +752,11 @@
           "command": "cpm.refresh",
           "when": "view == cpm.workspaceExplorer",
           "group": "navigation@9"
+        },
+        {
+          "command": "cpm.configureSdl",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@8.5"
         }
       ],
       "view/item/context": [
@@ -1021,6 +1044,11 @@
           "command": "cpm.prepareDllImportLibraryGeneration",
           "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.header\\./",
           "group": "build@5"
+        },
+        {
+          "command": "cpm.createSdlProjectInWorkspace",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
+          "group": "modification@1.5"
         }
       ],
       "commandPalette": [
@@ -1541,14 +1569,28 @@
           "default": false,
           "description": "When enabled, x86 modes add -m32 and x64 modes add -m64. Keep disabled if you select architecture by choosing a specific compiler path."
         },
+        "cpm.runtimeDependencyMode": {
+          "type": "string",
+          "enum": [
+            "copy-dlls",
+            "path-only",
+            "static-link"
+          ],
+          "default": "copy-dlls",
+          "description": "Generic toolchain runtime dependency handling for normal C/C++ builds. copy-dlls copies detected GCC/MinGW/MSYS2 and LLVM/Clang runtime DLLs beside the target; path-only prepends the selected toolchain bin directory to PATH for CPM run/debug; static-link injects GCC/Clang static runtime link flags when supported by the toolchain."
+        },
         "cpm.deployRuntimeDlls": {
           "type": "string",
           "enum": [
             "auto",
-            "never"
+            "never",
+            "copy-dlls",
+            "path-only",
+            "static-link"
           ],
           "default": "auto",
-          "description": "Deploy MinGW runtime DLLs such as libgcc_s_*.dll, libstdc++-6.dll and libwinpthread-1.dll beside generated executables/DLLs. auto copies only DLLs found in the selected toolchain bin directory."
+          "description": "Legacy setting for toolchain runtime DLL deployment. Prefer cpm.runtimeDependencyMode.",
+          "deprecationMessage": "Use cpm.runtimeDependencyMode instead. Legacy auto maps to copy-dlls and never maps to path-only."
         },
         "cpm.useLocalBuildCacheForOneDrive": {
           "type": "boolean",
@@ -1558,7 +1600,72 @@
         "cpm.cleanRuntimeDllsOnDeploy": {
           "type": "boolean",
           "default": true,
-          "description": "Before deploying MinGW runtime DLLs beside the target, remove stale or architecture-mismatched MinGW runtime DLLs from the target directory. This prevents x86/x64 runtime DLL mix-ups when switching build modes."
+          "description": "Before deploying toolchain runtime DLLs beside the target, remove stale or architecture-mismatched runtime DLLs managed by CPM from the target directory. This prevents x86/x64 runtime DLL mix-ups when switching build modes or toolchains."
+        },
+        "cpm.sdlInstallations": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Known SDL SDK root directories detected or added manually."
+        },
+        "cpm.sdlRootPath": {
+          "type": "string",
+          "default": "",
+          "description": "Selected SDL SDK root directory, for example C:\\Program Files\\SDL64. Leave empty to disable automatic SDL include/link injection."
+        },
+        "cpm.sdlEnabled": {
+          "type": "string",
+          "enum": [
+            "off",
+            "auto",
+            "on"
+          ],
+          "default": "auto",
+          "description": "SDL build integration mode. off disables SDL flags; auto injects SDL only for projects that include or call SDL; on always injects SDL for active builds."
+        },
+        "cpm.sdlPackages": {
+          "type": "array",
+          "default": [
+            "SDL2"
+          ],
+          "items": {
+            "type": "string",
+            "enum": [
+              "SDL2",
+              "SDL2_image",
+              "SDL2_mixer",
+              "SDL2_ttf",
+              "SDL2_net",
+              "SDL2_gfx"
+            ]
+          },
+          "description": "SDL packages linked by the generic build pipeline. SDL2 core is always included; extension packages are added when selected and present in the SDK."
+        },
+        "cpm.sdlRuntimeMode": {
+          "type": "string",
+          "enum": [
+            "copy-dlls",
+            "path-only",
+            "static-link"
+          ],
+          "default": "copy-dlls",
+          "description": "How SDL runtime dependencies are handled. copy-dlls copies SDL DLLs beside the executable; path-only prepends SDL bin to PATH at run/debug; static-link uses static SDL libraries when available."
+        },
+        "cpm.sdlSubsystem": {
+          "type": "string",
+          "enum": [
+            "windows",
+            "console"
+          ],
+          "default": "windows",
+          "description": "Windows subsystem used for SDL executable linking. windows hides the console with -mwindows; console keeps terminal output visible with -mconsole."
+        },
+        "cpm.sdlCopyAllRuntimeDlls": {
+          "type": "boolean",
+          "default": true,
+          "description": "When SDL runtime mode is copy-dlls, copy every DLL from the SDL bin directory. This helps SDL2_image, SDL2_ttf and similar packages that may depend on companion DLLs."
         }
       }
     },

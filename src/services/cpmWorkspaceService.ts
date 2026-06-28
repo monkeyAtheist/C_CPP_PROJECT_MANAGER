@@ -5,6 +5,7 @@ import { CpmParser, defaultFolderForType } from '../model/cpmParser';
 import { CpmProject, CpmProjectFile, CpmWorkspace, CpmWorkspaceProjectRef } from '../model/types';
 import { CpmInstallationService } from './cpmInstallationService';
 import { CpmTemplateService } from './cpmTemplateService';
+import { CpmSdlService, CpmSdlInstallation, CpmSdlRuntimeMode } from './cpmSdlService';
 
 const LAST_WORKSPACE_KEY = 'cpm.lastWorkspace';
 
@@ -19,6 +20,7 @@ export class CpmWorkspaceService implements vscode.Disposable {
     private readonly parser: CpmParser,
     private readonly installations: CpmInstallationService,
     private readonly templates: CpmTemplateService,
+    private readonly sdl: CpmSdlService,
     private readonly output: vscode.OutputChannel
   ) {
     this.disposables.push(
@@ -209,6 +211,142 @@ export class CpmWorkspaceService implements vscode.Disposable {
     const result = this.parser.createWorkspaceAndProject(folder[0].fsPath, workspaceName, projectName, target.value, undefined, formatVersion);
     await this.load(result.workspacePath);
     vscode.window.showInformationMessage(`Created ${path.basename(result.workspacePath)} and ${path.basename(result.projectPath)}.`);
+  }
+
+  async createSdlWorkspaceProject(): Promise<void> {
+    const folder = await vscode.window.showOpenDialog({
+      title: 'Select the directory for the new SDL C/C++ workspace',
+      canSelectFolders: true,
+      canSelectFiles: false,
+      canSelectMany: false
+    });
+    if (!folder?.[0]) {
+      return;
+    }
+
+    const workspaceName = await vscode.window.showInputBox({
+      title: 'Create an SDL C/C++ workspace',
+      prompt: 'Workspace file name without the .cws extension',
+      value: 'SDL_Workspace',
+      validateInput: validateBaseName
+    });
+    if (!workspaceName) {
+      return;
+    }
+
+    const projectName = await vscode.window.showInputBox({
+      title: 'Create an SDL C/C++ project',
+      prompt: 'Project file name without the .prj extension',
+      value: 'SDL_App',
+      validateInput: validateBaseName
+    });
+    if (!projectName) {
+      return;
+    }
+
+    const installation = await this.sdl.selectInstallation();
+    if (!installation) {
+      return;
+    }
+    const language = await this.pickSdlLanguage();
+    if (!language) {
+      return;
+    }
+
+    const formatVersion = vscode.workspace.getConfiguration('cpm').get<number>('projectFormatVersion', 1200);
+    const result = this.parser.createWorkspaceAndProject(folder[0].fsPath, workspaceName, projectName, 'Executable', undefined, formatVersion);
+    const files = await this.writeSdlStarterFiles(path.dirname(result.projectPath), projectName, language);
+    this.parser.addFilesToProject(result.projectPath, files, 'Source Files');
+    await this.applySdlProjectConfiguration(installation, path.dirname(result.projectPath));
+    await this.load(result.workspacePath);
+    vscode.window.showInformationMessage(`Created SDL project ${path.basename(result.projectPath)} with ${installation.label}.`);
+  }
+
+  async createSdlProjectInWorkspace(): Promise<void> {
+    const workspace = this.workspace;
+    if (!workspace || path.extname(workspace.path).toLowerCase() !== '.cws') {
+      vscode.window.showErrorMessage('Open a .cws C/C++ workspace before creating an SDL project.');
+      return;
+    }
+
+    const workspaceDirectory = path.dirname(workspace.path);
+    const folders = await vscode.window.showOpenDialog({
+      title: 'Select the directory for the new SDL C/C++ project',
+      defaultUri: vscode.Uri.file(workspaceDirectory),
+      canSelectFolders: true,
+      canSelectFiles: false,
+      canSelectMany: false
+    });
+    if (!folders?.[0]) {
+      return;
+    }
+
+    const projectName = await vscode.window.showInputBox({
+      title: 'Create an SDL C/C++ project in the current workspace',
+      prompt: 'Project file name without the .prj extension',
+      value: 'SDL_App',
+      validateInput: validateBaseName
+    });
+    if (!projectName) {
+      return;
+    }
+
+    const installation = await this.sdl.selectInstallation();
+    if (!installation) {
+      return;
+    }
+    const language = await this.pickSdlLanguage();
+    if (!language) {
+      return;
+    }
+
+    const formatVersion = vscode.workspace.getConfiguration('cpm').get<number>('projectFormatVersion', 1200);
+    const projectPath = this.parser.createProject(folders[0].fsPath, projectName, 'Executable', undefined, formatVersion);
+    const files = await this.writeSdlStarterFiles(path.dirname(projectPath), projectName, language);
+    this.parser.addFilesToProject(projectPath, files, 'Source Files');
+    const projectIndex = this.parser.addProjectToWorkspace(workspace.path, projectPath);
+    this.parser.setWorkspaceActiveProject(workspace.path, projectIndex);
+    await this.applySdlProjectConfiguration(installation, path.dirname(projectPath));
+    this.refresh();
+    vscode.window.showInformationMessage(`Created SDL project ${path.basename(projectPath)} and added it to ${path.basename(workspace.path)}.`);
+  }
+
+  private async pickSdlLanguage(): Promise<'c' | 'cpp' | undefined> {
+    const selected = await vscode.window.showQuickPick([
+      { label: 'C', value: 'c' as const, description: 'Generate main.c using the SDL2 C API.' },
+      { label: 'C++', value: 'cpp' as const, description: 'Generate main.cpp using the SDL2 C API from C++.' }
+    ], { title: 'SDL starter language' });
+    return selected?.value;
+  }
+
+  private async applySdlProjectConfiguration(installation: CpmSdlInstallation, projectDirectory: string): Promise<void> {
+    const config = vscode.workspace.getConfiguration('cpm');
+    const target = vscode.ConfigurationTarget.Workspace;
+    await config.update('sdlEnabled', 'on', target);
+    await config.update('sdlRootPath', installation.root, target);
+    await config.update('sdlRuntimeMode', config.get<CpmSdlRuntimeMode>('sdlRuntimeMode', 'copy-dlls'), target);
+    await config.update('sdlSubsystem', 'windows', target);
+    if (installation.architecture === 'x64') {
+      await config.update('buildMode', 'debug64', target);
+      await config.update('architectureMode', 'auto', target);
+    } else if (installation.architecture === 'x86') {
+      await config.update('buildMode', 'debug', target);
+      await config.update('architectureMode', 'auto', target);
+    }
+    await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.join(projectDirectory, 'assets')));
+  }
+
+  private async writeSdlStarterFiles(projectDirectory: string, projectName: string, language: 'c' | 'cpp'): Promise<string[]> {
+    const sourcePath = path.join(projectDirectory, language === 'cpp' ? 'main.cpp' : 'main.c');
+    const readmePath = path.join(projectDirectory, 'README_SDL.md');
+    if (fs.existsSync(sourcePath)) {
+      throw new Error(`${path.basename(sourcePath)} already exists in ${projectDirectory}.`);
+    }
+    const source = renderSdlStarterSource(projectName, language);
+    const readme = renderSdlReadme(projectName);
+    fs.writeFileSync(sourcePath, toCrlf(source), 'utf8');
+    fs.writeFileSync(readmePath, toCrlf(readme), 'utf8');
+    return [sourcePath, readmePath];
   }
 
   async setActiveProject(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
@@ -666,6 +804,140 @@ export class CpmWorkspaceService implements vscode.Disposable {
     }
     return result;
   }
+}
+
+function renderSdlStarterSource(projectName: string, language: 'c' | 'cpp'): string {
+  const commentPrefix = language === 'cpp' ? '// C++ SDL2 starter generated by CPM' : '// C SDL2 starter generated by CPM';
+  return `${commentPrefix}
+// Project: ${projectName}
+//
+// Features demonstrated:
+// - SDL initialization and shutdown;
+// - window + accelerated renderer creation;
+// - keyboard/window event loop;
+// - simple color rendering;
+// - optional SDL_image initialization when SDL2_image is selected in CPM settings.
+
+#include <stdio.h>
+#include <stdbool.h>
+#include <SDL.h>
+#if defined(CPM_USE_SDL_IMAGE)
+#include <SDL_image.h>
+#endif
+
+#define WINDOW_WIDTH  960
+#define WINDOW_HEIGHT 540
+
+int main(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    bool running = true;
+    int status = 0;
+
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
+    {
+        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+        return -1;
+    }
+
+#if defined(CPM_USE_SDL_IMAGE)
+    if ((IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG) & (IMG_INIT_PNG | IMG_INIT_JPG)) == 0)
+    {
+        fprintf(stderr, "IMG_Init warning: %s\n", IMG_GetError());
+    }
+#endif
+
+    window = SDL_CreateWindow(
+        "${projectName}",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+
+    if (window == NULL)
+    {
+        fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
+        status = -2;
+        goto Cleanup;
+    }
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (renderer == NULL)
+    {
+        fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+        status = -3;
+        goto Cleanup;
+    }
+
+    while (running)
+    {
+        SDL_Event event;
+        while (SDL_PollEvent(&event) != 0)
+        {
+            if (event.type == SDL_QUIT)
+            {
+                running = false;
+            }
+            else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
+            {
+                running = false;
+            }
+        }
+
+        SDL_SetRenderDrawColor(renderer, 20, 24, 35, 255);
+        SDL_RenderClear(renderer);
+
+        SDL_Rect rect = { WINDOW_WIDTH / 2 - 120, WINDOW_HEIGHT / 2 - 60, 240, 120 };
+        SDL_SetRenderDrawColor(renderer, 90, 170, 255, 255);
+        SDL_RenderFillRect(renderer, &rect);
+
+        SDL_RenderPresent(renderer);
+    }
+
+Cleanup:
+    if (renderer != NULL)
+    {
+        SDL_DestroyRenderer(renderer);
+    }
+    if (window != NULL)
+    {
+        SDL_DestroyWindow(window);
+    }
+#if defined(CPM_USE_SDL_IMAGE)
+    IMG_Quit();
+#endif
+    SDL_Quit();
+    return status;
+}
+`;
+}
+
+function renderSdlReadme(projectName: string): string {
+  return `# ${projectName} SDL starter
+
+This project was generated by CPM as an SDL2 graphical application.
+
+CPM injects SDL include paths, SDL libraries and runtime handling from the workspace settings:
+
+- cpm.sdlEnabled
+- cpm.sdlRootPath
+- cpm.sdlPackages
+- cpm.sdlRuntimeMode
+- cpm.sdlSubsystem
+
+On Windows, the recommended mode is 'copy-dlls'. The build copies SDL runtime DLLs from the selected SDK bin directory beside the executable so the program can run from the build folder.
+
+If you enable SDL2_image in cpm.sdlPackages, CPM automatically defines CPM_USE_SDL2_IMAGE and CPM_USE_SDL_IMAGE so the optional image initialization block in main is compiled without extra manual symbols.
+`;
+}
+
+function toCrlf(value: string): string {
+  return value.replace(/\r?\n/g, '\r\n');
 }
 
 function validateBaseName(value: string): string | undefined {

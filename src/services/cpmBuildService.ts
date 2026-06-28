@@ -9,6 +9,9 @@ import { CpmParser } from '../model/cpmParser';
 import { CpmWorkspaceService } from './cpmWorkspaceService';
 import { CpmProjectSettingsService } from './cpmProjectSettingsService';
 import { normalizeRuntimePath } from '../utils/pathUtils';
+import { CpmSdlConfiguration, createSdlBuildPlan } from './cpmSdlService';
+
+type CpmRuntimeDependencyMode = 'copy-dlls' | 'path-only' | 'static-link';
 
 interface GenericCompilerConfiguration {
   cCompilerPath: string;
@@ -32,8 +35,10 @@ interface GenericCompilerConfiguration {
   defineSymbols: string[];
   useBuildModeArchitectureFlags: boolean;
   deployRuntimeDlls: string;
+  runtimeDependencyMode: CpmRuntimeDependencyMode;
   cleanRuntimeDllsOnDeploy: boolean;
   useLocalBuildCacheForOneDrive: boolean;
+  sdl: CpmSdlConfiguration;
 }
 
 
@@ -275,6 +280,8 @@ export class CpmBuildService {
     }
     const config = this.getCompilerConfiguration();
     this.deployToolchainRuntimeDlls(executablePath, config);
+    const sdlPlan = project ? this.resolveSdlPlan(ref, project.files, project.targetType) : undefined;
+    this.deploySdlRuntimeDlls(executablePath, sdlPlan);
     const env = this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(run.environmentOptions), config, executablePath);
     const child = spawn(executablePath, args, { cwd, env, detached: true, shell: false, stdio: 'ignore' });
     child.unref();
@@ -315,6 +322,8 @@ export class CpmBuildService {
     const runSettings = this.projectSettings.getSettings(ref).run;
     const config = this.getCompilerConfiguration();
     this.deployToolchainRuntimeDlls(targetPath, config);
+    const sdlPlan = project ? this.resolveSdlPlan(ref, project.files, project.targetType) : undefined;
+    this.deploySdlRuntimeDlls(targetPath, sdlPlan);
     const args = runSettings.arguments.trim() ? this.projectSettings.parseArguments(runSettings.arguments) : [];
     const cwd = runSettings.workingDirectory.trim() ? normalizeRuntimePath(runSettings.workingDirectory.trim()) : path.dirname(targetPath);
     const debugEnvironment = this.debugEnvironmentFromProcessEnv(this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(runSettings.environmentOptions), config, targetPath));
@@ -432,12 +441,24 @@ export class CpmBuildService {
       this.output.appendLine('');
     }
 
+    const sdlPlan = this.resolveSdlPlan(ref, files, targetType);
+    if (sdlPlan) {
+      this.output.appendLine(`[C/C++ SDL] SDK: ${sdlPlan.rootPath}`);
+      this.output.appendLine(`[C/C++ SDL] Packages: ${sdlPlan.packages.join(', ')} · runtime: ${sdlPlan.runtimeMode}`);
+      if (sdlPlan.architecture) {
+        this.output.appendLine(`[C/C++ SDL] SDK architecture: ${sdlPlan.architecture}`);
+      }
+      this.output.appendLine('');
+    }
+
     const args = [
       ...this.modeFlags(config),
+      ...this.runtimeLinkFlags(config, targetType, sdlPlan),
       ...(targetType === 'Dynamic Link Library' ? ['-shared'] : []),
       ...artifacts.objectFiles,
       ...fileLibraries,
       ...config.libraryPaths.flatMap((value) => ['-L', resolveAgainstProject(value, ref.absolutePath)]),
+      ...(sdlPlan?.linkArgs ?? []),
       ...config.libraries.map((name) => name.startsWith('-l') ? name : `-l${name}`),
       ...config.linkerFlags,
       '-o', artifacts.targetPath
@@ -445,6 +466,7 @@ export class CpmBuildService {
     const success = await this.spawnTool(config.cppCompilerPath || 'g++', args, path.dirname(ref.absolutePath), `Link ${path.basename(artifacts.targetPath)}`);
     if (success) {
       this.deployToolchainRuntimeDlls(artifacts.targetPath, config);
+      this.deploySdlRuntimeDlls(artifacts.targetPath, sdlPlan);
     }
     return success;
   }
@@ -487,10 +509,12 @@ export class CpmBuildService {
   }
 
   private compileArguments(sourcePath: string, objectPath: string, ref: CpmWorkspaceProjectRef, projectFiles: CpmProjectFile[], config: GenericCompilerConfiguration): string[] {
+    const sdlPlan = this.resolveSdlPlan(ref, projectFiles, 'Executable');
     const includePaths = unique([
       path.dirname(ref.absolutePath),
       ...projectFiles.filter((file) => isHeader(file.absolutePath)).map((file) => path.dirname(file.absolutePath)),
-      ...config.includePaths.map((value) => resolveAgainstProject(value, ref.absolutePath))
+      ...config.includePaths.map((value) => resolveAgainstProject(value, ref.absolutePath)),
+      ...(sdlPlan?.includeDirectories ?? [])
     ]);
     const standard = isCSource(sourcePath) ? config.cStandard : config.cppStandard;
     return [
@@ -500,6 +524,7 @@ export class CpmBuildService {
       ...(standard && standard !== 'auto' ? [`-std=${standard}`] : []),
       ...config.defineSymbols.map((name) => `-D${name}`),
       ...includePaths.flatMap((value) => ['-I', value]),
+      ...(sdlPlan?.compileFlags ?? []),
       ...config.compilerFlags,
       ...(isCSource(sourcePath) ? config.cCompilerFlags : config.cppCompilerFlags),
       '-o', objectPath
@@ -688,9 +713,13 @@ export class CpmBuildService {
   }
 
   private runtimeSearchDirectories(config: GenericCompilerConfiguration, executablePath: string): string[] {
+    const ref = this.workspaces.activeProjectRef;
+    const project = ref?.exists ? this.workspaces.getProject(ref) : undefined;
+    const sdlPlan = ref?.exists && project ? this.resolveSdlPlan(ref, project.files, project.targetType) : undefined;
     return unique([
       path.dirname(executablePath),
       ...this.toolchainBinDirectories(config),
+      ...(sdlPlan?.binaryDirectory ? [sdlPlan.binaryDirectory] : []),
       ...this.linkedDllDirectories(path.dirname(executablePath))
     ]);
   }
@@ -705,6 +734,40 @@ export class CpmBuildService {
     }
   }
 
+  private runtimeLinkFlags(config: GenericCompilerConfiguration, targetType: string, sdlPlan?: ReturnType<typeof createSdlBuildPlan>): string[] {
+    if (config.runtimeDependencyMode !== 'static-link' || targetType === 'Static Library') {
+      return [];
+    }
+
+    const flags = ['-static-libgcc', '-static-libstdc++'];
+    if (!sdlPlan || sdlPlan.runtimeMode === 'static-link') {
+      flags.push('-static');
+    } else {
+      const winpthreadStatic = this.findToolchainStaticLibrary(config, 'libwinpthread.a');
+      if (winpthreadStatic) {
+        flags.push('-Wl,-Bstatic', '-lwinpthread', '-Wl,-Bdynamic');
+      }
+    }
+    this.output.appendLine(`[C/C++] Toolchain runtime handling: static-link flags ${flags.join(' ')}.`);
+    return flags;
+  }
+
+  private findToolchainStaticLibrary(config: GenericCompilerConfiguration, libraryName: string): string | undefined {
+    for (const binDirectory of this.toolchainBinDirectories(config)) {
+      const rootDirectory = path.basename(binDirectory).toLowerCase() === 'bin' ? path.dirname(binDirectory) : binDirectory;
+      const candidates = [
+        path.join(rootDirectory, 'lib', libraryName),
+        path.join(rootDirectory, 'x86_64-w64-mingw32', 'lib', libraryName),
+        path.join(rootDirectory, 'i686-w64-mingw32', 'lib', libraryName)
+      ];
+      const found = candidates.find((candidate) => fs.existsSync(candidate));
+      if (found) {
+        return found;
+      }
+    }
+    return undefined;
+  }
+
   private toolchainBinDirectories(config: GenericCompilerConfiguration): string[] {
     const candidates = [config.cppCompilerPath, config.cCompilerPath, config.debuggerPath]
       .map((value) => resolveExecutableFromPath(value || ''))
@@ -715,7 +778,7 @@ export class CpmBuildService {
   }
 
   private deployToolchainRuntimeDlls(targetPath: string, config: GenericCompilerConfiguration): void {
-    if (config.deployRuntimeDlls === 'never' || process.platform !== 'win32') {
+    if (process.platform !== 'win32') {
       return;
     }
     const targetDirectory = path.dirname(targetPath);
@@ -723,12 +786,14 @@ export class CpmBuildService {
       return;
     }
 
-    const runtimeSources = new Map<string, string>();
-    for (const binDirectory of this.toolchainBinDirectories(config)) {
-      for (const name of listMinGwRuntimeDlls(binDirectory)) {
-        const sourcePath = path.join(binDirectory, name);
-        runtimeSources.set(name.toLowerCase(), sourcePath);
+    const runtimeSources = this.collectToolchainRuntimeDlls(targetPath, config);
+
+    if (config.runtimeDependencyMode !== 'copy-dlls') {
+      if (config.cleanRuntimeDllsOnDeploy) {
+        this.cleanStaleRuntimeDlls(targetDirectory, new Map());
       }
+      this.output.appendLine(`[C/C++] Toolchain runtime DLL deployment: disabled (${config.runtimeDependencyMode}).`);
+      return;
     }
 
     if (config.cleanRuntimeDllsOnDeploy) {
@@ -737,6 +802,7 @@ export class CpmBuildService {
 
     let copied = 0;
     let unchanged = 0;
+    const deployedNames: string[] = [];
     for (const sourcePath of runtimeSources.values()) {
       const destinationPath = path.join(targetDirectory, path.basename(sourcePath));
       try {
@@ -746,25 +812,107 @@ export class CpmBuildService {
         } else {
           unchanged++;
         }
+        deployedNames.push(path.basename(sourcePath));
       } catch (error) {
-        this.output.appendLine(`[C/C++] Warning: unable to deploy runtime DLL ${path.basename(sourcePath)}: ${error instanceof Error ? error.message : String(error)}`);
+        this.output.appendLine(`[C/C++] Warning: unable to deploy toolchain runtime DLL ${path.basename(sourcePath)}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
+    writeRuntimeDeployManifest(targetDirectory, deployedNames);
     if (runtimeSources.size > 0) {
-      this.output.appendLine(`[C/C++] MinGW runtime DLL deployment: ${copied} copied, ${unchanged} already up to date.`);
+      this.output.appendLine(`[C/C++] Toolchain runtime DLL deployment: ${copied} copied, ${unchanged} already up to date.`);
+      this.output.appendLine(`[C/C++] Toolchain runtime DLLs: ${[...runtimeSources.values()].map((value) => path.basename(value)).join(', ')}`);
+    } else {
+      this.output.appendLine('[C/C++] Toolchain runtime DLL deployment: no compiler/runtime DLL detected beside the selected toolchain.');
     }
+  }
+
+  private collectToolchainRuntimeDlls(targetPath: string, config: GenericCompilerConfiguration): Map<string, string> {
+    const binDirectories = this.toolchainBinDirectories(config);
+    const availableDlls = indexToolchainDlls(binDirectories);
+    const runtimeSources = new Map<string, string>();
+
+    const addRuntimeSource = (dllName: string): boolean => {
+      const key = dllName.toLowerCase();
+      if (runtimeSources.has(key) || !isToolchainRuntimeImportCandidate(dllName)) {
+        return false;
+      }
+      const sourcePath = availableDlls.get(key);
+      if (!sourcePath) {
+        return false;
+      }
+      runtimeSources.set(key, sourcePath);
+      return true;
+    };
+
+    for (const [name, sourcePath] of availableDlls) {
+      if (isKnownToolchainRuntimeDllName(name)) {
+        runtimeSources.set(name, sourcePath);
+      }
+    }
+
+    const queue = fs.existsSync(targetPath) ? [targetPath] : [];
+    const visited = new Set<string>();
+    while (queue.length > 0 && visited.size < 96) {
+      const current = queue.shift()!;
+      const normalized = normalizeRuntimePath(current).toLowerCase();
+      if (visited.has(normalized)) {
+        continue;
+      }
+      visited.add(normalized);
+      for (const importedName of readImportedDllNames(current)) {
+        if (addRuntimeSource(importedName)) {
+          const dependencySource = runtimeSources.get(importedName.toLowerCase());
+          if (dependencySource) {
+            queue.push(dependencySource);
+          }
+        }
+      }
+    }
+
+    return runtimeSources;
+  }
+
+  private deploySdlRuntimeDlls(targetPath: string, sdlPlan: ReturnType<typeof createSdlBuildPlan> | undefined): void {
+    if (!sdlPlan || sdlPlan.runtimeMode !== 'copy-dlls' || sdlPlan.runtimeDlls.length === 0) {
+      return;
+    }
+    const targetDirectory = path.dirname(targetPath);
+    let copied = 0;
+    let unchanged = 0;
+    for (const sourcePath of sdlPlan.runtimeDlls) {
+      const destinationPath = path.join(targetDirectory, path.basename(sourcePath));
+      try {
+        if (shouldCopyRuntimeDll(sourcePath, destinationPath)) {
+          fs.copyFileSync(sourcePath, destinationPath);
+          copied++;
+        } else {
+          unchanged++;
+        }
+      } catch (error) {
+        this.output.appendLine(`[C/C++ SDL] Warning: unable to deploy SDL runtime DLL ${path.basename(sourcePath)}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    this.output.appendLine(`[C/C++ SDL] Runtime DLL deployment: ${copied} copied, ${unchanged} already up to date.`);
+  }
+
+  private resolveSdlPlan(ref: CpmWorkspaceProjectRef, files: CpmProjectFile[], targetType: string): ReturnType<typeof createSdlBuildPlan> | undefined {
+    const config = this.getCompilerConfiguration();
+    return createSdlBuildPlan(config.sdl, path.dirname(ref.absolutePath), files.map((file) => file.absolutePath), targetType);
   }
 
   private cleanStaleRuntimeDlls(targetDirectory: string, runtimeSources: Map<string, string>): void {
     let removed = 0;
     let refreshed = 0;
     try {
+      const manifestNames = readRuntimeDeployManifest(targetDirectory);
       for (const name of fs.readdirSync(targetDirectory)) {
-        if (!isMinGwRuntimeDllName(name)) {
+        const lower = name.toLowerCase();
+        const wasManaged = manifestNames.has(lower) || isKnownToolchainRuntimeDllName(name);
+        if (!wasManaged) {
           continue;
         }
         const destinationPath = path.join(targetDirectory, name);
-        const sourcePath = runtimeSources.get(name.toLowerCase());
+        const sourcePath = runtimeSources.get(lower);
         if (!sourcePath) {
           fs.rmSync(destinationPath, { force: true });
           removed++;
@@ -778,11 +926,11 @@ export class CpmBuildService {
         }
       }
     } catch (error) {
-      this.output.appendLine(`[C/C++] Warning: unable to clean deployed MinGW runtime DLLs: ${error instanceof Error ? error.message : String(error)}`);
+      this.output.appendLine(`[C/C++] Warning: unable to clean deployed toolchain runtime DLLs: ${error instanceof Error ? error.message : String(error)}`);
       return;
     }
     if (removed > 0 || refreshed > 0) {
-      this.output.appendLine(`[C/C++] MinGW runtime DLL cleanup: ${removed} stale removed, ${refreshed} architecture-mismatched removed before redeploy.`);
+      this.output.appendLine(`[C/C++] Toolchain runtime DLL cleanup: ${removed} stale removed, ${refreshed} architecture-mismatched removed before redeploy.`);
     }
   }
 
@@ -810,10 +958,45 @@ export class CpmBuildService {
       defineSymbols: config.get<string[]>('defineSymbols', []),
       useBuildModeArchitectureFlags: config.get<boolean>('useBuildModeArchitectureFlags', false),
       deployRuntimeDlls: config.get<string>('deployRuntimeDlls', 'auto'),
+      runtimeDependencyMode: normalizeRuntimeDependencyMode(config.get<string>('runtimeDependencyMode', ''), config.get<string>('deployRuntimeDlls', 'auto')),
       cleanRuntimeDllsOnDeploy: config.get<boolean>('cleanRuntimeDllsOnDeploy', true),
-      useLocalBuildCacheForOneDrive: config.get<boolean>('useLocalBuildCacheForOneDrive', true)
+      useLocalBuildCacheForOneDrive: config.get<boolean>('useLocalBuildCacheForOneDrive', true),
+      sdl: {
+        enabled: normalizeSdlEnabled(config.get<string>('sdlEnabled', 'auto')),
+        rootPath: config.get<string>('sdlRootPath', '').trim(),
+        packages: config.get<string[]>('sdlPackages', ['SDL2']),
+        runtimeMode: normalizeSdlRuntimeMode(config.get<string>('sdlRuntimeMode', 'copy-dlls')),
+        subsystem: normalizeSdlSubsystem(config.get<string>('sdlSubsystem', 'windows')),
+        copyAllRuntimeDlls: config.get<boolean>('sdlCopyAllRuntimeDlls', true)
+      }
     };
   }
+}
+
+
+function normalizeRuntimeDependencyMode(value: string | undefined, legacyValue: string | undefined): CpmRuntimeDependencyMode {
+  if (value === 'copy-dlls' || value === 'path-only' || value === 'static-link') {
+    return value;
+  }
+  if (legacyValue === 'never') {
+    return 'path-only';
+  }
+  if (legacyValue === 'static-link') {
+    return 'static-link';
+  }
+  return 'copy-dlls';
+}
+
+function normalizeSdlEnabled(value: string | undefined): CpmSdlConfiguration['enabled'] {
+  return value === 'on' || value === 'off' || value === 'auto' ? value : 'auto';
+}
+
+function normalizeSdlRuntimeMode(value: string | undefined): CpmSdlConfiguration['runtimeMode'] {
+  return value === 'copy-dlls' || value === 'path-only' || value === 'static-link' ? value : 'copy-dlls';
+}
+
+function normalizeSdlSubsystem(value: string | undefined): CpmSdlConfiguration['subsystem'] {
+  return value === 'console' || value === 'windows' ? value : 'windows';
 }
 
 
@@ -1094,15 +1277,29 @@ function isInsideOneDrive(value: string): boolean {
   return /(^|\/)onedrive(\/|$)/i.test(normalized) || /\/onedrive[ -]/i.test(normalized);
 }
 
-function listMinGwRuntimeDlls(binDirectory: string): string[] {
-  try {
-    return fs.readdirSync(binDirectory).filter(isMinGwRuntimeDllName);
-  } catch {
-    return [];
+const RUNTIME_DEPLOY_MANIFEST = '.cpm-runtime-dlls.json';
+
+function indexToolchainDlls(binDirectories: string[]): Map<string, string> {
+  const result = new Map<string, string>();
+  for (const binDirectory of binDirectories) {
+    try {
+      for (const name of fs.readdirSync(binDirectory)) {
+        if (!/\.dll$/i.test(name)) {
+          continue;
+        }
+        const key = name.toLowerCase();
+        if (!result.has(key)) {
+          result.set(key, path.join(binDirectory, name));
+        }
+      }
+    } catch {
+      // Ignore unreadable toolchain directories.
+    }
   }
+  return result;
 }
 
-function isMinGwRuntimeDllName(name: string): boolean {
+function isKnownToolchainRuntimeDllName(name: string): boolean {
   const lower = name.toLowerCase();
   return /^libgcc_s_.*\.dll$/.test(lower)
     || lower === 'libstdc++-6.dll'
@@ -1111,7 +1308,172 @@ function isMinGwRuntimeDllName(name: string): boolean {
     || lower === 'libquadmath-0.dll'
     || lower === 'libssp-0.dll'
     || lower === 'libatomic-1.dll'
-    || /^libgfortran-.*\.dll$/.test(lower);
+    || /^libgfortran-.*\.dll$/.test(lower)
+    || lower === 'libc++.dll'
+    || lower === 'libc++abi.dll'
+    || lower === 'libunwind.dll'
+    || lower === 'libomp.dll'
+    || lower === 'libiomp5md.dll'
+    || /^clang_rt\..*\.dll$/.test(lower)
+    || lower === 'msys-2.0.dll'
+    || /^msys-gcc_s_.*\.dll$/.test(lower)
+    || lower === 'msys-stdc++-6.dll'
+    || lower === 'msys-winpthread-1.dll';
+}
+
+function isToolchainRuntimeImportCandidate(name: string): boolean {
+  const lower = path.basename(name).toLowerCase();
+  if (!/\.dll$/.test(lower)) {
+    return false;
+  }
+  if (/^(?:api-ms-win-|ext-ms-)/.test(lower)) {
+    return false;
+  }
+  return !WINDOWS_SYSTEM_DLLS.has(lower);
+}
+
+const WINDOWS_SYSTEM_DLLS = new Set([
+  'advapi32.dll', 'bcrypt.dll', 'cfgmgr32.dll', 'combase.dll', 'comctl32.dll', 'comdlg32.dll',
+  'crypt32.dll', 'dwmapi.dll', 'gdi32.dll', 'gdi32full.dll', 'imm32.dll', 'iphlpapi.dll',
+  'kernel32.dll', 'msvcrt.dll', 'netapi32.dll', 'ntdll.dll', 'ole32.dll', 'oleaut32.dll',
+  'rpcrt4.dll', 'secur32.dll', 'setupapi.dll', 'shell32.dll', 'shlwapi.dll', 'ucrtbase.dll',
+  'user32.dll', 'userenv.dll', 'version.dll', 'winhttp.dll', 'wininet.dll', 'winmm.dll',
+  'winspool.drv', 'ws2_32.dll'
+]);
+
+function readRuntimeDeployManifest(targetDirectory: string): Set<string> {
+  const manifestPath = path.join(targetDirectory, RUNTIME_DEPLOY_MANIFEST);
+  try {
+    const parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { dlls?: string[] };
+    return new Set((parsed.dlls ?? []).map((name) => path.basename(name).toLowerCase()).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+}
+
+function writeRuntimeDeployManifest(targetDirectory: string, dllNames: string[]): void {
+  const manifestPath = path.join(targetDirectory, RUNTIME_DEPLOY_MANIFEST);
+  const normalized = unique(dllNames.map((name) => path.basename(name))).sort((a, b) => a.localeCompare(b));
+  try {
+    if (normalized.length === 0) {
+      fs.rmSync(manifestPath, { force: true });
+      return;
+    }
+    fs.writeFileSync(manifestPath, `${JSON.stringify({ generatedBy: 'cpm', dlls: normalized }, null, 2)}
+`, 'utf8');
+  } catch {
+    // Manifest is a cleanup aid only. Runtime deployment must not fail because of it.
+  }
+}
+
+function readImportedDllNames(filePath: string): string[] {
+  const fromPe = readPeImportedDllNames(filePath);
+  if (fromPe.length > 0) {
+    return fromPe;
+  }
+  return readImportedDllNamesWithObjdump(filePath);
+}
+
+function readPeImportedDllNames(filePath: string): string[] {
+  try {
+    const buffer = fs.readFileSync(filePath);
+    if (buffer.length < 0x100 || buffer.toString('ascii', 0, 2) !== 'MZ') {
+      return [];
+    }
+    const peOffset = buffer.readUInt32LE(0x3c);
+    if (peOffset <= 0 || peOffset + 24 > buffer.length || buffer.toString('ascii', peOffset, peOffset + 4) !== 'PE\u0000\u0000') {
+      return [];
+    }
+    const sectionCount = buffer.readUInt16LE(peOffset + 6);
+    const optionalHeaderSize = buffer.readUInt16LE(peOffset + 20);
+    const optionalHeaderOffset = peOffset + 24;
+    if (optionalHeaderOffset + optionalHeaderSize > buffer.length) {
+      return [];
+    }
+    const magic = buffer.readUInt16LE(optionalHeaderOffset);
+    const dataDirectoryOffset = magic === 0x20b ? optionalHeaderOffset + 0x70 : optionalHeaderOffset + 0x60;
+    if (dataDirectoryOffset + 16 > optionalHeaderOffset + optionalHeaderSize) {
+      return [];
+    }
+    const importRva = buffer.readUInt32LE(dataDirectoryOffset + 8);
+    if (importRva === 0) {
+      return [];
+    }
+    const sections = [] as Array<{ virtualAddress: number; virtualSize: number; rawSize: number; rawPointer: number }>;
+    const sectionOffset = optionalHeaderOffset + optionalHeaderSize;
+    for (let index = 0; index < sectionCount; index++) {
+      const offset = sectionOffset + index * 40;
+      if (offset + 40 > buffer.length) {
+        break;
+      }
+      sections.push({
+        virtualSize: buffer.readUInt32LE(offset + 8),
+        virtualAddress: buffer.readUInt32LE(offset + 12),
+        rawSize: buffer.readUInt32LE(offset + 16),
+        rawPointer: buffer.readUInt32LE(offset + 20)
+      });
+    }
+    const rvaToOffset = (rva: number): number | undefined => {
+      for (const section of sections) {
+        const size = Math.max(section.virtualSize, section.rawSize);
+        if (rva >= section.virtualAddress && rva < section.virtualAddress + size) {
+          return section.rawPointer + (rva - section.virtualAddress);
+        }
+      }
+      return undefined;
+    };
+    const readCString = (offset: number): string => {
+      let end = offset;
+      while (end < buffer.length && buffer[end] !== 0) {
+        end++;
+      }
+      return buffer.toString('ascii', offset, end).trim();
+    };
+    const importOffset = rvaToOffset(importRva);
+    if (importOffset === undefined) {
+      return [];
+    }
+    const names: string[] = [];
+    for (let offset = importOffset; offset + 20 <= buffer.length; offset += 20) {
+      const originalFirstThunk = buffer.readUInt32LE(offset);
+      const nameRva = buffer.readUInt32LE(offset + 12);
+      const firstThunk = buffer.readUInt32LE(offset + 16);
+      if (originalFirstThunk === 0 && nameRva === 0 && firstThunk === 0) {
+        break;
+      }
+      const nameOffset = rvaToOffset(nameRva);
+      if (nameOffset !== undefined) {
+        const name = readCString(nameOffset);
+        if (name) {
+          names.push(name);
+        }
+      }
+    }
+    return unique(names);
+  } catch {
+    return [];
+  }
+}
+
+function readImportedDllNamesWithObjdump(filePath: string): string[] {
+  const tools = unique([
+    path.join(path.dirname(filePath), 'objdump.exe'),
+    path.join(path.dirname(filePath), 'llvm-objdump.exe'),
+    resolveExecutableFromPath('objdump'),
+    resolveExecutableFromPath('llvm-objdump')
+  ]).filter((candidate) => fs.existsSync(candidate));
+  for (const tool of tools) {
+    try {
+      const output = execFileSync(tool, ['-p', filePath], { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+      const matches = [...output.matchAll(/DLL Name:\s*([^\r\n]+)/gi)].map((match) => match[1].trim()).filter(Boolean);
+      if (matches.length > 0) {
+        return unique(matches);
+      }
+    } catch {
+      // Try the next tool.
+    }
+  }
+  return [];
 }
 
 function shouldCopyRuntimeDll(sourcePath: string, destinationPath: string): boolean {

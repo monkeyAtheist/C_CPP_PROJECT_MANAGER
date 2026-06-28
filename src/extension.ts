@@ -12,6 +12,7 @@ import { activate as activateCpmLibraryExplorer } from './jcLibEmbedded';
 import { ensureBundledCppLibraryPack } from './services/cpmLibraryPackService';
 import { CpmTemplateService } from './services/cpmTemplateService';
 import { CpmProjectSettingsService } from './services/cpmProjectSettingsService';
+import { CpmSdlService } from './services/cpmSdlService';
 import { BuildSettingsPanel } from './views/buildSettingsPanel';
 import { QuickActionsView } from './views/quickActionsView';
 import { CpmCompletionProvider, CpmSourceSymbol, CpmSymbolService, isSourceOrHeader } from './services/cpmSymbolService';
@@ -25,7 +26,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const installations = new CpmInstallationService(output);
   const cppTools = new CpmCppToolsService(installations, parser, output);
   const templates = new CpmTemplateService(context, installations, output);
-  const workspaces = new CpmWorkspaceService(context, parser, installations, templates, output);
+  const sdl = new CpmSdlService(output);
+  const workspaces = new CpmWorkspaceService(context, parser, installations, templates, sdl, output);
   const projectSettings = new CpmProjectSettingsService(workspaces, parser, output);
   const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output);
   const treeProvider = new CpmTreeProvider(workspaces);
@@ -104,6 +106,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     workspaces,
     home,
     buildSettings,
+    sdl,
     quickActions,
     quickActionsRegistration,
     cppTools,
@@ -134,13 +137,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         home.update();
         quickActions.update();
       }
-      if (event.affectsConfiguration('cpm.activeInstallation') || event.affectsConfiguration('cpm.autoConfigureCppTools') || event.affectsConfiguration('cpm.autoAddCpmFolderToWorkspace') || event.affectsConfiguration('cpm.useCppToolsConfigurationProvider') || event.affectsConfiguration('cpm.intelliSenseCompilerPath') || event.affectsConfiguration('cpm.additionalIncludePaths')) {
+      if (event.affectsConfiguration('cpm.activeInstallation') || event.affectsConfiguration('cpm.autoConfigureCppTools') || event.affectsConfiguration('cpm.autoAddCpmFolderToWorkspace') || event.affectsConfiguration('cpm.useCppToolsConfigurationProvider') || event.affectsConfiguration('cpm.intelliSenseCompilerPath') || event.affectsConfiguration('cpm.additionalIncludePaths') || event.affectsConfiguration('cpm.sdlRootPath') || event.affectsConfiguration('cpm.sdlEnabled') || event.affectsConfiguration('cpm.sdlPackages')) {
         void scheduleOptionalCppToolsSync(cppTools, workspaces.currentWorkspace);
       }
     }),
     register('cpm.openHome', () => home.show()),
     register('cpm.openWorkspace', () => workspaces.openWorkspace()),
     register('cpm.createWorkspaceProject', () => workspaces.createWorkspaceProject()),
+    register('cpm.createSdlWorkspaceProject', () => workspaces.createSdlWorkspaceProject()),
     register('cpm.refresh', () => workspaces.refresh()),
     register('cpm.configureInstallation', async () => {
       const installation = await installations.selectInstallation(workspaces.currentWorkspace?.cpmDir);
@@ -148,6 +152,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         await cppTools.sync(workspaces.currentWorkspace);
         home.update();
       }
+    }),
+    register('cpm.configureSdl', async () => {
+      await sdl.selectInstallation();
+      await cppTools.sync(workspaces.currentWorkspace, true);
+      home.update();
+      quickActions.update();
     }),
     register('cpm.syncCppTools', () => cppTools.sync(workspaces.currentWorkspace, true)),
     register('cpm.diagnoseCppTools', () => cppTools.diagnose(workspaces.currentWorkspace)),
@@ -183,6 +193,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.editProjectFile', (node?: ProjectNode) => node ? builds.openProjectFile(node.ref.absolutePath) : undefined),
     register('cpm.openProjectFile', (node?: ProjectNode) => node ? workspaces.openPath(node.ref.absolutePath) : undefined),
     register('cpm.createProjectInWorkspace', () => workspaces.createProjectInWorkspace()),
+    register('cpm.createSdlProjectInWorkspace', () => workspaces.createSdlProjectInWorkspace()),
     register('cpm.addExistingProject', () => workspaces.addExistingProject()),
     register('cpm.removeProject', (node?: ProjectNode) => node ? workspaces.removeProject(node.ref) : undefined),
     register('cpm.addFiles', (node?: ProjectNode | FolderNode) => {
@@ -306,8 +317,17 @@ const CPM_CONFIGURATION_KEYS = [
   'libraries',
   'defineSymbols',
   'useBuildModeArchitectureFlags',
+  'runtimeDependencyMode',
   'deployRuntimeDlls',
-  'useLocalBuildCacheForOneDrive'
+  'useLocalBuildCacheForOneDrive',
+  'cleanRuntimeDllsOnDeploy',
+  'sdlInstallations',
+  'sdlRootPath',
+  'sdlEnabled',
+  'sdlPackages',
+  'sdlRuntimeMode',
+  'sdlSubsystem',
+  'sdlCopyAllRuntimeDlls'
 ];
 
 async function migrateLegacyConfiguration(output: vscode.OutputChannel): Promise<void> {

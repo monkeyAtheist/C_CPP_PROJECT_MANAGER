@@ -157,3 +157,17 @@ The Lua header documents the main API directly in Doxygen form: one-shot executi
 The bundle headers now include a stronger self-contained documentation block. Each audited header starts with Doxygen sections for main features, typical applications, usage notes and a short example using the public API. This was applied to the generated C bundles, the generated C++ bundles and the copied MY_Util communication/external/Web UI bundles.
 
 This avoids missing important runtime behavior such as script argument passing or stdout capture: the Python and Lua execution bridge headers now explicitly document both argument access on the script side and output capture in the C/C++ result structures.
+
+## SDL2 project starter
+
+Version 0.2.41 adds dedicated SDL project creation commands rather than only a loose file template. The generated SDL project contains:
+
+- `main.c` or `main.cpp` with an SDL initialization path, window creation, renderer creation, event loop and cleanup;
+- `assets/` for images, fonts or audio;
+- `README_SDL.md` describing the SDL workspace settings.
+
+The starter is intended for graphical applications. CPM configures SDL through `cpm.sdlRootPath`, `cpm.sdlPackages`, `cpm.sdlRuntimeMode`, `cpm.sdlSubsystem` and `cpm.sdlCopyAllRuntimeDlls`.
+
+## Generic toolchain runtime dependency modes
+
+The build settings page includes a `Generic toolchain runtime dependencies` section for normal C/C++ builds. Use `copy-dlls` when the executable must also launch from Explorer, `path-only` when the executable is only launched through CPM run/debug, and `static-link` when the selected GCC/Clang-compatible toolchain provides suitable static runtime libraries. CPM can deploy GCC/MinGW/MSYS2 and LLVM/Clang runtime DLLs found in the selected toolchain `bin` directory, and it records copied DLLs in `.cpm-runtime-dlls.json` for cleanup.

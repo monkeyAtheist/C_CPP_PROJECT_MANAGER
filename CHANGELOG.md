@@ -1,3 +1,31 @@
+## 0.2.43
+
+- Generalized normal C/C++ runtime dependency handling beyond MinGW-only names.
+- `copy-dlls` now indexes the selected toolchain `bin` directories and copies detected GCC/MinGW/MSYS2 and LLVM/Clang runtime DLLs when they are imported by the generated target or recognized as compiler runtimes.
+- Added PE import-table tracing with recursive dependency detection for copied runtime DLLs, so transitive toolchain DLLs can be deployed when they live in the selected compiler `bin` directory.
+- Added a `.cpm-runtime-dlls.json` manifest beside the target to safely clean DLLs previously copied by CPM when switching runtime modes, architectures or toolchains.
+- Renamed the build-settings section to `Generic toolchain runtime dependencies`.
+
+## 0.2.42
+
+- Added generic toolchain runtime dependency handling modes for normal C/C++ builds, aligned with the SDL runtime workflow: `copy-dlls`, `path-only` and `static-link`.
+- The build settings page now exposes a dedicated `Generic toolchain runtime dependencies` section.
+- `copy-dlls` keeps the previous behavior and deploys runtime DLLs such as `libgcc_s_*.dll`, `libstdc++-6.dll` and `libwinpthread-1.dll` beside the executable or DLL target.
+- `path-only` disables runtime DLL copying and relies on CPM run/debug to prepend the selected toolchain `bin` directory to `PATH`.
+- `static-link` injects MinGW static runtime flags where supported by the selected toolchain. This is useful for classic executable projects that should not depend on copied MinGW runtime DLLs.
+- Added the setting `cpm.runtimeDependencyMode`; the legacy `cpm.deployRuntimeDlls` setting is still read for backward compatibility.
+
+## 0.2.41 - SDL2 project and build integration
+
+- Added SDL SDK detection and selection with common Windows roots such as `C:\Program Files\SDL64`, environment variables and manually selected SDK folders.
+- Added commands to create a complete SDL workspace/project or add an SDL project to the current workspace.
+- Generated SDL starters create `main.c` or `main.cpp`, an assets folder and a README explaining SDL settings.
+- Added SDL build integration settings for `SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_net` and `SDL2_gfx`.
+- The generic build pipeline now injects SDL include paths, link libraries and Windows subsystem flags when SDL is enabled.
+- Added SDL runtime handling modes: copy DLLs beside the executable, use PATH only, or attempt static linking when the SDK provides static libraries.
+- SDL DLL deployment copies all DLLs from the selected SDL `bin` folder by default to avoid missing transitive package DLLs.
+- C/C++ IntelliSense now receives SDL include directories from the selected SDK.
+
 ## 0.2.40 - Bundle header documentation audit
 
 - Audited generated and copied module-bundle headers for C and C++ bundles.

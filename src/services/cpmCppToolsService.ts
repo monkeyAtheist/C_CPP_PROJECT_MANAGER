@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { CpmParser } from '../model/cpmParser';
 import { CpmInstallation, CpmWorkspace } from '../model/types';
 import { CpmInstallationService } from './cpmInstallationService';
+import { describeSdlRoot, getSdlConfigurationFromWorkspace } from './cpmSdlService';
 
 const MANAGED_CONFIGURATION_NAME = 'C/C++ Project Manager (managed)';
 const CPPTOOLS_EXTENSION_ID = 'ms-vscode.cpptools';
@@ -694,10 +695,18 @@ export class CpmCppToolsService implements vscode.Disposable {
   }
 
   private getAdditionalIncludePaths(): string[] {
-    return vscode.workspace.getConfiguration('cpm').get<string[]>('additionalIncludePaths', [])
+    const base = vscode.workspace.getConfiguration('cpm').get<string[]>('additionalIncludePaths', [])
       .map((entry) => entry.trim())
       .filter(Boolean)
       .map((entry) => path.normalize(entry));
+    const sdl = getSdlConfigurationFromWorkspace();
+    if (sdl.enabled !== 'off' && sdl.rootPath) {
+      const installation = describeSdlRoot(sdl.rootPath, 'configured');
+      if (installation) {
+        base.push(...installation.includeDirectories);
+      }
+    }
+    return unique(base);
   }
 
   private findConfigurationRoot(workspacePath: string, preferOpenedFolder = true): string {

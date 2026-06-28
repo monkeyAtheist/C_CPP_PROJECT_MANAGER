@@ -74,7 +74,8 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
       return [
         info('No workspace loaded', 'Open or create a C/C++ workspace to display the active target summary.', 'info'),
         action('Open workspace or project…', 'cpm.openWorkspace', 'folder-opened'),
-        action('Create workspace and project…', 'cpm.createWorkspaceProject', 'new-folder')
+        action('Create workspace and project…', 'cpm.createWorkspaceProject', 'new-folder'),
+        action('Create SDL workspace and project…', 'cpm.createSdlWorkspaceProject', 'window')
       ];
     }
     if (!ref?.exists) {
@@ -99,6 +100,8 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
       info('Dependencies', summary.dependencies, 'references'),
       info('Project files', summary.files, summary.hasMissingFiles ? 'warning' : 'pass'),
       action('Open project build settings…', 'cpm.editBuildSettings', 'settings-gear'),
+      action('Configure SDL SDK…', 'cpm.configureSdl', 'window'),
+      action('Create SDL project…', 'cpm.createSdlProjectInWorkspace', 'new-folder'),
       action('Open build settings in safe mode…', 'cpm.editBuildSettingsSafeMode', 'shield'),
       action('Enable automatic suggestions', 'cpm.enableAutomaticSuggestions', 'sparkle'),
       action('Build & Debug', 'cpm.debugInCpm', 'debug-alt-small'),

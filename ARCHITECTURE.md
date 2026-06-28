@@ -121,7 +121,7 @@ The template service now treats documentation as part of the bundle payload. Int
 
 ## Runtime deployment and OneDrive fallback
 
-CPM prepends the selected toolchain bin directory to the Run/Debug process PATH and can deploy common MinGW runtime DLLs beside generated targets. When a OneDrive-hosted project refuses object-directory creation with EPERM/EACCES/EBUSY, CPM can fall back to a local object cache under the user profile while keeping the final target path unchanged.
+CPM prepends the selected toolchain bin directory to the Run/Debug process PATH and can deploy common toolchain runtime DLLs beside generated targets. When a OneDrive-hosted project refuses object-directory creation with EPERM/EACCES/EBUSY, CPM can fall back to a local object cache under the user profile while keeping the final target path unchanged.
 
 ## Generated C Python bridge bundle
 
@@ -164,3 +164,17 @@ The bundle generator now has a `c-lua-bridge` path. It reuses the same cross-pla
 From version 0.2.40, bundle headers are treated as user-facing documentation. A bundle header should contain a Doxygen `@file` block with four practical sections: main features, typical applications, usage notes and a minimal example. This applies both to files generated from TypeScript templates and to files copied from `data/templates/my_util/MY_Util`.
 
 When a new bundle is added, the header should explain non-obvious runtime behavior directly in the file. For example, script execution bridges must state where command-line arguments are retrieved on the script side and where stdout/stderr is captured on the C/C++ side.
+
+## SDL2 integration architecture
+
+The SDL integration is split into three areas:
+
+1. `CpmSdlService` detects SDL SDK roots, persists the selected SDK and exposes the selected package/runtime configuration.
+2. `CpmWorkspaceService` owns the SDL project wizard and writes the minimal SDL source starter into a normal CPM executable project.
+3. `CpmBuildService` consumes SDL settings during compile/link/run/debug: it appends include paths, package libraries, subsystem flags and SDL runtime DLL deployment.
+
+The integration remains optional. `cpm.sdlEnabled = auto` only activates SDL flags for projects whose sources visibly use SDL, while `on` forces SDL flags for the active build.
+
+## Generic toolchain runtime dependency handling
+
+The build service resolves `cpm.runtimeDependencyMode` after compiler settings are loaded. `copy-dlls` indexes the selected toolchain `bin` directories, reads the generated PE import table and deploys CPM-managed runtime DLLs beside executable/DLL targets. This covers common GCC/MinGW/MSYS2 runtimes and LLVM/Clang runtimes. Copied DLLs are recorded in `.cpm-runtime-dlls.json` so stale or architecture-mismatched copies can be cleaned safely. `path-only` leaves the output directory untouched and relies on the run/debug environment builder to prepend the toolchain `bin` directory to `PATH`. `static-link` adds GCC/Clang static runtime link flags before the target is linked; it is intentionally best-effort because third-party import libraries may still require dynamic DLLs.

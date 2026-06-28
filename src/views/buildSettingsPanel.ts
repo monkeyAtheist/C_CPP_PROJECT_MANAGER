@@ -30,6 +30,14 @@ interface GenericCompilerSettings {
   libraries: string[];
   defineSymbols: string[];
   useBuildModeArchitectureFlags: boolean;
+  runtimeDependencyMode: string;
+  cleanRuntimeDllsOnDeploy: boolean;
+  sdlEnabled: string;
+  sdlRootPath: string;
+  sdlPackages: string[];
+  sdlRuntimeMode: string;
+  sdlSubsystem: string;
+  sdlCopyAllRuntimeDlls: boolean;
 }
 
 const ALL_BUILD_MODES: CpmBuildMode[] = ['debug', 'release', 'debug64', 'release64'];
@@ -315,7 +323,8 @@ export class BuildSettingsPanel implements vscode.Disposable {
       typeLibFpFile: target.typeLibFpFile,
       singleHeaderNiTypeInfoFile: target.singleHeaderNiTypeInfoFile,
       workingDirectory: projectSettings.run.workingDirectory,
-      externalProcessPath: projectSettings.run.externalProcessPath
+      externalProcessPath: projectSettings.run.externalProcessPath,
+      sdlRootPath: compilerSettings.sdlRootPath
     };
     if (!(field in currentValues)) {
       return;
@@ -324,7 +333,7 @@ export class BuildSettingsPanel implements vscode.Disposable {
     const defaultUri = defaultDialogUri(currentValue, projectDirectory);
     let selected: vscode.Uri | undefined;
 
-    if (field === 'workingDirectory' || field === 'customDirectoryToCopyDll' || field === 'outputDirectory') {
+    if (field === 'workingDirectory' || field === 'customDirectoryToCopyDll' || field === 'outputDirectory' || field === 'sdlRootPath') {
       selected = (await vscode.window.showOpenDialog({
         title: browseTitle(field),
         defaultUri,
@@ -436,7 +445,15 @@ export class BuildSettingsPanel implements vscode.Disposable {
       libraryPaths: config.get<string[]>('libraryPaths', []),
       libraries: config.get<string[]>('libraries', []),
       defineSymbols: config.get<string[]>('defineSymbols', []),
-      useBuildModeArchitectureFlags: config.get<boolean>('useBuildModeArchitectureFlags', false)
+      useBuildModeArchitectureFlags: config.get<boolean>('useBuildModeArchitectureFlags', false),
+      runtimeDependencyMode: normalizeRuntimeDependencyMode(config.get<string>('runtimeDependencyMode', ''), config.get<string>('deployRuntimeDlls', 'auto')),
+      cleanRuntimeDllsOnDeploy: config.get<boolean>('cleanRuntimeDllsOnDeploy', true),
+      sdlEnabled: config.get<string>('sdlEnabled', 'auto'),
+      sdlRootPath: config.get<string>('sdlRootPath', ''),
+      sdlPackages: config.get<string[]>('sdlPackages', ['SDL2']),
+      sdlRuntimeMode: config.get<string>('sdlRuntimeMode', 'copy-dlls'),
+      sdlSubsystem: config.get<string>('sdlSubsystem', 'windows'),
+      sdlCopyAllRuntimeDlls: config.get<boolean>('sdlCopyAllRuntimeDlls', true)
     };
   }
 
@@ -446,8 +463,8 @@ export class BuildSettingsPanel implements vscode.Disposable {
     }
     const config = vscode.workspace.getConfiguration('cpm');
     const target = vscode.ConfigurationTarget.Workspace;
-    const stringKeys: Array<keyof GenericCompilerSettings> = ['cCompilerPath', 'cppCompilerPath', 'archiverPath', 'debuggerPath', 'outputDirectory', 'cStandard', 'cppStandard', 'warningLevel', 'optimizationLevel', 'debugInformation', 'architectureMode'];
-    const listKeys: Array<keyof GenericCompilerSettings> = ['compilerFlags', 'cCompilerFlags', 'cppCompilerFlags', 'linkerFlags', 'includePaths', 'libraryPaths', 'libraries', 'defineSymbols'];
+    const stringKeys: Array<keyof GenericCompilerSettings> = ['cCompilerPath', 'cppCompilerPath', 'archiverPath', 'debuggerPath', 'outputDirectory', 'cStandard', 'cppStandard', 'warningLevel', 'optimizationLevel', 'debugInformation', 'architectureMode', 'runtimeDependencyMode', 'sdlEnabled', 'sdlRootPath', 'sdlRuntimeMode', 'sdlSubsystem'];
+    const listKeys: Array<keyof GenericCompilerSettings> = ['compilerFlags', 'cCompilerFlags', 'cppCompilerFlags', 'linkerFlags', 'includePaths', 'libraryPaths', 'libraries', 'defineSymbols', 'sdlPackages'];
     for (const key of stringKeys) {
       const value = settings[key];
       if (typeof value === 'string') {
@@ -462,6 +479,15 @@ export class BuildSettingsPanel implements vscode.Disposable {
     }
     if (typeof settings.useBuildModeArchitectureFlags === 'boolean') {
       await config.update('useBuildModeArchitectureFlags', settings.useBuildModeArchitectureFlags, target);
+    }
+    if (typeof settings.cleanRuntimeDllsOnDeploy === 'boolean') {
+      await config.update('cleanRuntimeDllsOnDeploy', settings.cleanRuntimeDllsOnDeploy, target);
+    }
+    if (typeof settings.runtimeDependencyMode === 'string') {
+      await config.update('deployRuntimeDlls', settings.runtimeDependencyMode === 'copy-dlls' ? 'auto' : 'never', target);
+    }
+    if (typeof settings.sdlCopyAllRuntimeDlls === 'boolean') {
+      await config.update('sdlCopyAllRuntimeDlls', settings.sdlCopyAllRuntimeDlls, target);
     }
     if (typeof settings.architectureMode === 'string') {
       await config.update('useBuildModeArchitectureFlags', settings.architectureMode === 'from-build-mode', target);
@@ -517,6 +543,25 @@ export class BuildSettingsPanel implements vscode.Disposable {
       ['m32', 'Force 32-bit (-m32)'],
       ['m64', 'Force 64-bit (-m64)']
     ];
+    const runtimeDependencyOptions: SelectOption[] = [
+      ['copy-dlls', 'Copy toolchain runtime DLLs beside target'],
+      ['path-only', 'PATH only when running/debugging from CPM'],
+      ['static-link', 'Static-link toolchain runtime when possible']
+    ];
+    const sdlEnabledOptions: SelectOption[] = [
+      ['off', 'Off'],
+      ['auto', 'Auto: only projects that use SDL'],
+      ['on', 'On: inject SDL flags for builds']
+    ];
+    const sdlRuntimeOptions: SelectOption[] = [
+      ['copy-dlls', 'Copy SDL DLLs beside executable'],
+      ['path-only', 'Use PATH only when running/debugging'],
+      ['static-link', 'Static link, when SDK/static libs allow it']
+    ];
+    const sdlSubsystemOptions: SelectOption[] = [
+      ['windows', 'Windows GUI subsystem (-mwindows)'],
+      ['console', 'Console subsystem (-mconsole)']
+    ];
 
     return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>C/C++ Project Build Settings</title>
@@ -530,6 +575,8 @@ export class BuildSettingsPanel implements vscode.Disposable {
 <div class="grid">
 <section class="card wide"><details open><summary>Target</summary><div class="section-body"><label class="field">Target type<select id="targetType"><option ${target.targetType === 'Executable' ? 'selected' : ''}>Executable</option><option ${target.targetType === 'Dynamic Link Library' ? 'selected' : ''}>Dynamic Link Library</option><option ${target.targetType === 'Static Library' ? 'selected' : ''}>Static Library</option></select></label>${pathField('Output file', 'outputPath', target.outputPath)}<p class="muted">For generic builds, the output path is passed to GCC/G++/ar as the final target path.</p><div class="target-note target-exe-only">Executable target: compiler/linker settings, libraries and run/debug command-line options are active.</div><div class="target-note target-dll">DLL target: shared-library linking is active. Run options are used only when an external host executable is configured.</div><div class="target-note target-static-only">Static library target: sources are compiled to objects then archived with <code>ar</code>. Linker, runtime and debugger options are hidden because no executable is produced.</div></div></details></section>
 <section class="card wide"><details open><summary>Toolchain and predefined compiler options</summary><div class="section-body two">${pathField('C compiler', 'cCompilerPath', compiler.cCompilerPath)}${pathField('C++ compiler / linker', 'cppCompilerPath', compiler.cppCompilerPath)}<div class="target-static-only">${pathField('Static library archiver', 'archiverPath', compiler.archiverPath)}</div><div class="target-exe-only">${pathField('Debugger', 'debuggerPath', compiler.debuggerPath)}</div>${pathField('Output directory', 'outputDirectory', compiler.outputDirectory)}${selectField('Architecture', 'architectureMode', compiler.architectureMode, architectureOptions)}${selectField('C standard', 'cStandard', compiler.cStandard, cStandardOptions)}${selectField('C++ standard', 'cppStandard', compiler.cppStandard, cppStandardOptions)}${selectField('Warnings', 'warningLevel', compiler.warningLevel, warningLevelOptions)}${selectField('Optimization', 'optimizationLevel', compiler.optimizationLevel, optimizationOptions)}${selectField('Debug information', 'debugInformation', compiler.debugInformation, debugInfoOptions)}<label class="check hidden"><input id="useBuildModeArchitectureFlags" type="checkbox" ${checked(compiler.architectureMode === 'from-build-mode' || compiler.useBuildModeArchitectureFlags)}></label></div></details></section>
+<section class="card wide target-linkable-only"><details open><summary>Generic toolchain runtime dependencies</summary><div class="section-body two">${selectField('Runtime handling', 'runtimeDependencyMode', compiler.runtimeDependencyMode, runtimeDependencyOptions)}<label class="check"><input id="cleanRuntimeDllsOnDeploy" type="checkbox" ${checked(compiler.cleanRuntimeDllsOnDeploy)}> Remove stale or architecture-mismatched copied runtime DLLs before redeploy</label></div><p class="muted"><code>copy-dlls</code> copies detected toolchain runtime DLLs beside the target, including GCC/MinGW/MSYS2 and LLVM/Clang runtimes when they are imported by the executable or present in the selected toolchain. <code>path-only</code> keeps the output directory clean and prepends the selected toolchain <code>bin</code> directory to PATH only for CPM run/debug. <code>static-link</code> injects GCC/Clang static runtime flags when the selected toolchain supports them.</p></details></section>
+<section class="card wide target-linkable-only"><details open><summary>SDL integration</summary><div class="section-body two">${selectField('SDL integration', 'sdlEnabled', compiler.sdlEnabled, sdlEnabledOptions)}${pathField('SDL SDK root', 'sdlRootPath', compiler.sdlRootPath)}${textAreaField('SDL packages', 'sdlPackages', compiler.sdlPackages)}${selectField('SDL runtime handling', 'sdlRuntimeMode', compiler.sdlRuntimeMode, sdlRuntimeOptions)}${selectField('SDL Windows subsystem', 'sdlSubsystem', compiler.sdlSubsystem, sdlSubsystemOptions)}<label class="check"><input id="sdlCopyAllRuntimeDlls" type="checkbox" ${checked(compiler.sdlCopyAllRuntimeDlls)}> Copy every DLL from SDL bin directory</label></div><p class="muted">Use packages such as SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, SDL2_net or SDL2_gfx, one per line. The dedicated SDL SDK command can auto-detect C:\Program Files\SDL64 and fill this section.</p></details></section>
 <section class="card wide"><details><summary>Advanced compiler and linker flags</summary><div class="section-body two">${textAreaField('Define symbols (-D)', 'defineSymbols', compiler.defineSymbols)}${pathListField('Include paths (-I)', 'includePaths', compiler.includePaths)}<div class="target-linkable-only">${pathListField('Library paths (-L)', 'libraryPaths', compiler.libraryPaths)}</div><div class="target-linkable-only">${textAreaField('Libraries (-l)', 'libraries', compiler.libraries)}</div>${textAreaField('Common compiler flags', 'compilerFlags', compiler.compilerFlags)}${textAreaField('C-only compiler flags', 'cCompilerFlags', compiler.cCompilerFlags)}${textAreaField('C++-only compiler flags', 'cppCompilerFlags', compiler.cppCompilerFlags)}<div class="target-linkable-only">${textAreaField('Linker flags', 'linkerFlags', compiler.linkerFlags)}</div></div><p class="muted target-linkable-only">Use one value per line. Library paths, libraries and linker flags are used only for executable and DLL targets.</p><p class="muted target-static-only">Static libraries do not use linker flags, library paths or <code>-l</code> entries. Use compiler flags and include paths for object compilation, and the archiver path for final archive creation.</p></details></section>
 <section class="card wide"><details open><summary>Project dependencies and build order</summary><div class="section-body"><p class="muted">Checked projects are built before ${escapeHtml(ref.name)}.</p>${dependencies}</div></details></section>
 <section id="runOptionsSection" class="card wide target-runable-only"><details open><summary>Run / debug command line</summary><div class="section-body"><label class="field">Command line arguments<input id="arguments" value="${escapeHtml(settings.run.arguments)}" placeholder="--option value"></label>${pathField('Working directory', 'workingDirectory', settings.run.workingDirectory)}<label class="field">Environment options<input id="environmentOptions" value="${escapeHtml(settings.run.environmentOptions)}" placeholder="NAME=value;OTHER=value"></label><div id="externalProcessPathRow" class="target-dll">${pathField('External executable for DLL debugging', 'externalProcessPath', settings.run.externalProcessPath)}</div><p class="muted target-dll">DLL targets are not launched directly. These fields are used when an external host executable loads the DLL.</p></div></details></section>
@@ -542,12 +589,25 @@ document.querySelectorAll('[data-browse-field]').forEach(button=>button.addEvent
 el('configurationScope')?.addEventListener('change',()=>vscode.postMessage({type:'changeScope',scope:val('configurationScope')}));el('targetType')?.addEventListener('change',updateTargetControls);el('architectureMode')?.addEventListener('change',()=>{const legacy=el('useBuildModeArchitectureFlags');if(legacy)legacy.checked=val('architectureMode')==='from-build-mode';});
 window.addEventListener('message',(event)=>{const message=event.data;if(message?.type==='setField'&&el(message.field))el(message.field).value=message.value||'';if(message?.type==='appendLines'&&el(message.field)){const node=el(message.field);const existing=node.value.trim();const values=[...(message.values||[])].map(String).map(x=>x.trim()).filter(Boolean);node.value=[existing,...values].filter(Boolean).join(String.fromCharCode(10));}});
 updateTargetControls();
-el('save').addEventListener('click',()=>vscode.postMessage({type:'save',scope:val('configurationScope'),targetType:val('targetType'),settings:{preBuildActions:lines('preBuildActions'),customBuildActions:lines('customBuildActions'),postBuildActions:lines('postBuildActions'),dependencies:[...document.querySelectorAll('[data-dependency]:checked')].map(e=>e.dataset.dependency),run:{arguments:val('arguments'),workingDirectory:val('workingDirectory'),environmentOptions:val('environmentOptions'),externalProcessPath:val('externalProcessPath')}},compilerSettings:{cCompilerPath:val('cCompilerPath'),cppCompilerPath:val('cppCompilerPath'),archiverPath:val('archiverPath'),debuggerPath:val('debuggerPath'),outputDirectory:val('outputDirectory'),cStandard:val('cStandard'),cppStandard:val('cppStandard'),warningLevel:val('warningLevel'),optimizationLevel:val('optimizationLevel'),debugInformation:val('debugInformation'),architectureMode:val('architectureMode'),compilerFlags:lines('compilerFlags'),cCompilerFlags:lines('cCompilerFlags'),cppCompilerFlags:lines('cppCompilerFlags'),linkerFlags:lines('linkerFlags'),includePaths:lines('includePaths'),libraryPaths:lines('libraryPaths'),libraries:lines('libraries'),defineSymbols:lines('defineSymbols'),useBuildModeArchitectureFlags:flag('useBuildModeArchitectureFlags')},nativeTarget:{...nativeTargetDefaults,targetType:val('targetType'),outputPath:val('outputPath')}}));
+el('save').addEventListener('click',()=>vscode.postMessage({type:'save',scope:val('configurationScope'),targetType:val('targetType'),settings:{preBuildActions:lines('preBuildActions'),customBuildActions:lines('customBuildActions'),postBuildActions:lines('postBuildActions'),dependencies:[...document.querySelectorAll('[data-dependency]:checked')].map(e=>e.dataset.dependency),run:{arguments:val('arguments'),workingDirectory:val('workingDirectory'),environmentOptions:val('environmentOptions'),externalProcessPath:val('externalProcessPath')}},compilerSettings:{cCompilerPath:val('cCompilerPath'),cppCompilerPath:val('cppCompilerPath'),archiverPath:val('archiverPath'),debuggerPath:val('debuggerPath'),outputDirectory:val('outputDirectory'),cStandard:val('cStandard'),cppStandard:val('cppStandard'),warningLevel:val('warningLevel'),optimizationLevel:val('optimizationLevel'),debugInformation:val('debugInformation'),architectureMode:val('architectureMode'),compilerFlags:lines('compilerFlags'),cCompilerFlags:lines('cCompilerFlags'),cppCompilerFlags:lines('cppCompilerFlags'),linkerFlags:lines('linkerFlags'),includePaths:lines('includePaths'),libraryPaths:lines('libraryPaths'),libraries:lines('libraries'),defineSymbols:lines('defineSymbols'),useBuildModeArchitectureFlags:flag('useBuildModeArchitectureFlags'),runtimeDependencyMode:val('runtimeDependencyMode'),cleanRuntimeDllsOnDeploy:flag('cleanRuntimeDllsOnDeploy'),sdlEnabled:val('sdlEnabled'),sdlRootPath:val('sdlRootPath'),sdlPackages:lines('sdlPackages'),sdlRuntimeMode:val('sdlRuntimeMode'),sdlSubsystem:val('sdlSubsystem'),sdlCopyAllRuntimeDlls:flag('sdlCopyAllRuntimeDlls')},nativeTarget:{...nativeTargetDefaults,targetType:val('targetType'),outputPath:val('outputPath')}}));
 </script></body></html>`;
   }
 }
 
 type SelectOption = readonly [value: string, label: string];
+
+function normalizeRuntimeDependencyMode(value: string | undefined, legacyValue: string | undefined): string {
+  if (value === 'copy-dlls' || value === 'path-only' || value === 'static-link') {
+    return value;
+  }
+  if (legacyValue === 'never') {
+    return 'path-only';
+  }
+  if (legacyValue === 'static-link') {
+    return 'static-link';
+  }
+  return 'copy-dlls';
+}
 
 function targetOption(value: string, selected?: string): string { return `<option value="${escapeHtml(value)}" ${value === selected ? 'selected' : ''}>${escapeHtml(value)}</option>`; }
 function checked(value: boolean): string { return value ? 'checked' : ''; }
@@ -573,7 +633,7 @@ function scopeChoices(): Array<{ id: BuildSettingsScope; label: string; descript
 function parseScope(value: unknown, fallback: BuildSettingsScope): BuildSettingsScope { return value === 'debug' || value === 'release' || value === 'debug64' || value === 'release64' || value === 'all' ? value : fallback; }
 async function pickStoredValue(title: string, options: SelectOption[], selected: string): Promise<string | undefined> { const list = [...options]; if (selected && !list.some(([value]) => value === selected)) { list.push([selected, `${selected} (existing value)`]); } const picked = await vscode.window.showQuickPick(list.map(([value, label]) => ({ value, label, description: value === label ? undefined : value })), { title }); return picked?.value; }
 function defaultDialogUri(currentValue: string, projectDirectory: string): vscode.Uri { if (!currentValue) { return vscode.Uri.file(projectDirectory); } const normalizedValue = normalizeRuntimePath(currentValue); const resolved = path.isAbsolute(normalizedValue) || path.win32.isAbsolute(normalizedValue) ? normalizedValue : path.resolve(projectDirectory, normalizedValue); if (fs.existsSync(resolved)) { return vscode.Uri.file(resolved); } const directory = path.dirname(resolved); return vscode.Uri.file(fs.existsSync(directory) ? directory : projectDirectory); }
-function browseTitle(field: string): string { return ({ cCompilerPath: 'Select C compiler executable', cppCompilerPath: 'Select C++ compiler/linker executable', archiverPath: 'Select static library archiver executable', debuggerPath: 'Select debugger executable', outputDirectory: 'Select output directory', includePaths: 'Add include directory', libraryPaths: 'Add library directory', outputPath: 'Select output file', iconFile: 'Select application icon file', manifestPath: 'Select manifest file', customDirectoryToCopyDll: 'Select DLL copy directory', typeLibFpFile: 'Select function-panel file', singleHeaderNiTypeInfoFile: 'Select NI type-information header', workingDirectory: 'Select working directory', externalProcessPath: 'Select external executable for DLL debugging' } as Record<string, string>)[field] ?? 'Select file'; }
+function browseTitle(field: string): string { return ({ cCompilerPath: 'Select C compiler executable', cppCompilerPath: 'Select C++ compiler/linker executable', archiverPath: 'Select static library archiver executable', debuggerPath: 'Select debugger executable', outputDirectory: 'Select output directory', includePaths: 'Add include directory', libraryPaths: 'Add library directory', outputPath: 'Select output file', iconFile: 'Select application icon file', manifestPath: 'Select manifest file', customDirectoryToCopyDll: 'Select DLL copy directory', typeLibFpFile: 'Select function-panel file', singleHeaderNiTypeInfoFile: 'Select NI type-information header', workingDirectory: 'Select working directory', externalProcessPath: 'Select external executable for DLL debugging', sdlRootPath: 'Select SDL SDK root directory' } as Record<string, string>)[field] ?? 'Select file'; }
 function outputFilters(targetType: string): Record<string, string[]> { if (targetType === 'Dynamic Link Library') { return { 'Dynamic-link libraries': ['dll'], 'All files': ['*'] }; } if (targetType === 'Static Library') { return { 'Static libraries': ['lib'], 'All files': ['*'] }; } return { Executables: ['exe'], 'All files': ['*'] }; }
 function openFilters(field: string): Record<string, string[]> { switch (field) { case 'iconFile': return { Icons: ['ico'], 'All files': ['*'] }; case 'manifestPath': return { Manifest: ['manifest', 'xml'], 'All files': ['*'] }; case 'typeLibFpFile': return { 'Function panel files': ['fp'], 'All files': ['*'] }; case 'singleHeaderNiTypeInfoFile': return { Headers: ['h', 'hpp'], 'All files': ['*'] }; case 'externalProcessPath': case 'cCompilerPath': case 'cppCompilerPath': case 'archiverPath': case 'debuggerPath': return { Executables: ['exe', 'cmd', 'bat', 'sh'], 'All files': ['*'] }; default: return { 'All files': ['*'] }; } }
 
