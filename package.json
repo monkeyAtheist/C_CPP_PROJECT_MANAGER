@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.43",
+  "version": "0.2.47",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -637,7 +637,7 @@
       },
       {
         "command": "cpm.configureSdl",
-        "title": "C/C++ Project Manager: Detect / Select SDL SDK",
+        "title": "C/C++ Project Manager: Detect / Select SDL2 or SDL3 SDK",
         "icon": "$(window)"
       },
       {
@@ -1613,7 +1613,7 @@
         "cpm.sdlRootPath": {
           "type": "string",
           "default": "",
-          "description": "Selected SDL SDK root directory, for example C:\\Program Files\\SDL64. Leave empty to disable automatic SDL include/link injection."
+          "description": "Selected SDL2/SDL3 SDK directory. This can be the SDK root, an architecture folder such as i686-w64-mingw32/x86_64-w64-mingw32, or a nested bin/lib/include/include\\SDL2 folder. Leave empty to let CPM auto-scan common SDK roots when a project uses SDL."
         },
         "cpm.sdlEnabled": {
           "type": "string",
@@ -1638,10 +1638,15 @@
               "SDL2_mixer",
               "SDL2_ttf",
               "SDL2_net",
-              "SDL2_gfx"
+              "SDL2_gfx",
+              "SDL3",
+              "SDL3_image",
+              "SDL3_mixer",
+              "SDL3_ttf",
+              "SDL3_net"
             ]
           },
-          "description": "SDL packages linked by the generic build pipeline. SDL2 core is always included; extension packages are added when selected and present in the SDK."
+          "description": "SDL packages linked by the generic build pipeline. SDL2 or SDL3 core is selected from cpm.sdlVersion; extension packages are added when selected and present in the SDK."
         },
         "cpm.sdlRuntimeMode": {
           "type": "string",
@@ -1651,7 +1656,7 @@
             "static-link"
           ],
           "default": "copy-dlls",
-          "description": "How SDL runtime dependencies are handled. copy-dlls copies SDL DLLs beside the executable; path-only prepends SDL bin to PATH at run/debug; static-link uses static SDL libraries when available."
+          "description": "How SDL runtime dependencies are handled. copy-dlls copies SDL2/SDL3 DLLs beside the executable; path-only prepends SDL bin to PATH at run/debug; static-link uses static SDL libraries when available."
         },
         "cpm.sdlSubsystem": {
           "type": "string",
@@ -1665,7 +1670,17 @@
         "cpm.sdlCopyAllRuntimeDlls": {
           "type": "boolean",
           "default": true,
-          "description": "When SDL runtime mode is copy-dlls, copy every DLL from the SDL bin directory. This helps SDL2_image, SDL2_ttf and similar packages that may depend on companion DLLs."
+          "description": "When SDL runtime mode is copy-dlls, copy every DLL from the SDL bin directory. This helps SDL_image, SDL_ttf and similar packages that may depend on companion DLLs."
+        },
+        "cpm.sdlVersion": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "SDL2",
+            "SDL3"
+          ],
+          "default": "auto",
+          "description": "SDL major version used by the generic build pipeline. auto infers SDL2 or SDL3 from selected packages and source includes."
         }
       }
     },

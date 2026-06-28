@@ -7838,7 +7838,7 @@ async function addContentIntoPackFile(pack: LoadedPack, target?: { environmentNa
   options.push(
     { label: 'Add function', description: 'Create a function through a guided wizard', value: 'addFunction' },
     { label: 'Import source/header', description: 'Parse prototypes, functions, structs, typedefs, enums, and classes from a source or header file', value: 'importSymbols' },
-    { label: 'Add language pack / DLL helpers', description: 'Add grouped C, C++, Lua, SDL, Qt, OpenCV, Win32, Windows Devices, build, platform, embedded, and example packs, with family-level Add all actions', value: 'starter' },
+    { label: 'Add language pack / DLL helpers', description: 'Add grouped C, C++, Lua, SDL2/SDL3, Qt, OpenCV, Win32, Windows Devices, build, platform, embedded, and example packs, with family-level Add all actions', value: 'starter' },
     { label: 'Import file as snippet', description: 'Import a code or text file directly as a reusable snippet symbol', value: 'snippet' }
   );
 
@@ -8207,7 +8207,11 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
     case 'embedded_all':
       return combinePreservingLibraries('embedded_all', 'All embedded pack', ['embedded_core', 'arduino_core', 'esp32_core', 'stm32_core', 'raspi_core']);
     case 'sdl_all':
-      return bundledPackFileSelection('sdl_all', 'SDL structured pack', 'sdl_pack.json', ['SDL']);
+      return bundledPackFileSelection('sdl_all', 'SDL2 / SDL3 structured pack', 'sdl_pack.json', ['SDL2', 'SDL3']);
+    case 'sdl2_all':
+      return bundledPackFileSelection('sdl2_all', 'SDL2 structured pack', 'sdl2_language_pack.json', ['SDL2']);
+    case 'sdl3_all':
+      return bundledPackFileSelection('sdl3_all', 'SDL3 structured pack', 'sdl3_language_pack.json', ['SDL3']);
     case 'win32_gui_all':
       return bundledPackFileSelection('win32_gui_all', 'Win32 GUI structured pack', 'windows_api_device_pack.json', ['Win32']);
     case 'windows_devices_all':
@@ -8242,7 +8246,7 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
     { label: 'Qt pack', description: 'Structured Qt C++ pack loaded from qt_pack.json, plus Qt for Python / PySide6, editable declarative QML templates, multimedia, SQL, and tests', value: 'qt' },
     { label: 'OpenCV pack', description: 'OpenCV language pack merged with Vision Premium, plus robotics/camera examples', value: 'opencv' },
     { label: 'Build pack', description: 'CMake, CTest, CPack, GCC, G++, Clang, LLVM, MinGW, MSVC, Make, Ninja, and C/C++ dependency helpers', value: 'build' },
-    { label: 'SDL pack', description: 'Audited SDL2, SDL_image, SDL_ttf, SDL_mixer, and SDL2_net structured content with documented advanced pickers', value: 'sdl' },
+    { label: 'SDL pack', description: 'Audited SDL2 and SDL3 structured content with documented advanced pickers and migration helpers', value: 'sdl' },
     { label: 'Windows API / Devices pack', description: 'Win32 GUI plus Windows device APIs including audio, input, camera, HID, Bluetooth, serial, and USB helpers', value: 'windows' },
     { label: 'Scripting / System pack', description: 'Cross-platform automation, PowerShell 7, Windows CMD/Batch, Bash/POSIX shell, Linux systemd administration, Git, SSH, Docker, and DevOps helpers', value: 'scripting' },
     { label: 'Python language pack', description: 'Complete structured Python pack: language, typing, collections, files/configuration, persistence, asyncio, HTTP/FastAPI, Linux, serial, USB, BLE, scientific computing, AI, GUI, automation, and robotics', value: 'python_core' },
@@ -8309,7 +8313,9 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
       { label: 'Debugging, coverage, documentation and CI pack', description: 'GDB, LLDB, gcov, gcovr, LCOV, LLVM coverage, sanitizers, cppcheck, Doxygen, MSBuild diagnostics, and CI skeletons', value: 'build_quality_core' }
     ],
     sdl: [
-      { label: 'SDL complete pack', description: 'Add the audited SDL environment with SDL2, SDL_image, SDL_ttf, SDL_mixer, and SDL2_net content', value: 'sdl_all' }
+      { label: 'Add all SDL2 / SDL3 pack', description: 'Add both SDL2 extension libraries and the SDL3 modern API pack', value: 'sdl_all' },
+      { label: 'SDL2 complete pack', description: 'Add SDL2, SDL2_image, SDL2_ttf, SDL2_mixer and SDL2_net structured content', value: 'sdl2_all' },
+      { label: 'SDL3 complete pack', description: 'Add SDL3 windowing, renderer, events, properties, snippets and SDL2-to-SDL3 migration helpers', value: 'sdl3_all' }
     ],
     windows: [
       { label: 'Add Windows API / Devices structured pack', description: 'Add both Win32 GUI and Windows Devices with documented multi-select flag pickers', value: 'windows_all' },
@@ -13890,7 +13896,19 @@ function buildDetailsHtml(fn: CpmFunction, storedState?: StoredFunctionState): s
       if (!input) {
         return;
       }
-      input.value = value;
+      const normalizedValue = String(value ?? '');
+      if (input.tagName === 'SELECT') {
+        const select = input;
+        const hasOption = Array.from(select.options || []).some((option) => String(option.value) === normalizedValue);
+        if (!hasOption && normalizedValue.length > 0) {
+          const option = document.createElement('option');
+          option.value = normalizedValue;
+          option.textContent = normalizedValue;
+          option.setAttribute('data-generated-multiselect', 'true');
+          select.appendChild(option);
+        }
+      }
+      input.value = normalizedValue;
       updatePreview();
     }
 

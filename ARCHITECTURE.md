@@ -165,16 +165,29 @@ From version 0.2.40, bundle headers are treated as user-facing documentation. A 
 
 When a new bundle is added, the header should explain non-obvious runtime behavior directly in the file. For example, script execution bridges must state where command-line arguments are retrieved on the script side and where stdout/stderr is captured on the C/C++ side.
 
-## SDL2 integration architecture
+## SDL2 / SDL3 integration architecture
 
 The SDL integration is split into three areas:
 
-1. `CpmSdlService` detects SDL SDK roots, persists the selected SDK and exposes the selected package/runtime configuration.
-2. `CpmWorkspaceService` owns the SDL project wizard and writes the minimal SDL source starter into a normal CPM executable project.
-3. `CpmBuildService` consumes SDL settings during compile/link/run/debug: it appends include paths, package libraries, subsystem flags and SDL runtime DLL deployment.
+1. `CpmSdlService` detects SDL2 and SDL3 SDK roots, persists the selected SDK, selected SDL major version and exposes the selected package/runtime configuration.
+2. `CpmWorkspaceService` owns the SDL project wizard and writes a minimal SDL2 or SDL3 source starter into a normal CPM executable project.
+3. `CpmBuildService` consumes SDL settings during compile/link/run/debug: it appends include paths, package libraries, subsystem flags and SDL runtime DLL deployment. SDL2 links `SDL2main` on Windows; SDL3 links `SDL3` directly and expects the generated source to include `<SDL3/SDL_main.h>`.
 
 The integration remains optional. `cpm.sdlEnabled = auto` only activates SDL flags for projects whose sources visibly use SDL, while `on` forces SDL flags for the active build.
 
 ## Generic toolchain runtime dependency handling
 
 The build service resolves `cpm.runtimeDependencyMode` after compiler settings are loaded. `copy-dlls` indexes the selected toolchain `bin` directories, reads the generated PE import table and deploys CPM-managed runtime DLLs beside executable/DLL targets. This covers common GCC/MinGW/MSYS2 runtimes and LLVM/Clang runtimes. Copied DLLs are recorded in `.cpm-runtime-dlls.json` so stale or architecture-mismatched copies can be cleaned safely. `path-only` leaves the output directory untouched and relies on the run/debug environment builder to prepend the toolchain `bin` directory to `PATH`. `static-link` adds GCC/Clang static runtime link flags before the target is linked; it is intentionally best-effort because third-party import libraries may still require dynamic DLLs.
+
+
+### Build parameter import/export
+
+The build settings webview can export the currently edited configuration to a `.cpm-build.json` file. Imports are applied to the currently selected configuration scope and then persisted through the same parser/settings services used by the Save action.
+
+### SDL SDK path normalization
+
+SDL resolution accepts package roots, architecture triplet roots and nested `bin`, `lib`, `include` or `include/SDLx` folders. The resolver derives candidate SDK roots before detecting include directories, import libraries, runtime DLLs and architecture.
+
+### 0.2.47 embedded library synchronization
+
+The embedded library manager imports the JC Lib 0.8.9 SDL2 / SDL3 pack routing and enum-backed multi-select picker fix. SDL content is now available as combined SDL2 / SDL3, SDL2-only, or SDL3-only bundled packs.

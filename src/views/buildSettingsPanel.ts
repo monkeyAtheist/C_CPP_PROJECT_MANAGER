@@ -33,6 +33,7 @@ interface GenericCompilerSettings {
   runtimeDependencyMode: string;
   cleanRuntimeDllsOnDeploy: boolean;
   sdlEnabled: string;
+  sdlVersion: string;
   sdlRootPath: string;
   sdlPackages: string[];
   sdlRuntimeMode: string;
@@ -268,13 +269,7 @@ export class BuildSettingsPanel implements vscode.Disposable {
       try {
         const scope = parseScope(message.scope, this.selectedScope);
         this.selectedScope = scope;
-        const settings = message.settings as CpmProjectBuildSettings;
-        const targetSettings = message.nativeTarget as CpmNativeTargetSettings;
-        if (typeof message.targetType === 'string') {
-          targetSettings.targetType = message.targetType;
-        }
-        this.applyNativeTargetSettings(this.projectRef, scope, targetSettings);
-        this.applyProjectSettings(this.projectRef, scope, settings);
+        this.applyBuildParameterPayload(message, scope);
         await this.applyCompilerSettings(message.compilerSettings as Partial<GenericCompilerSettings> | undefined);
         this.workspaces.refresh();
         vscode.window.showInformationMessage(`Build settings saved for ${this.projectRef.name} (${scopeLabel(scope)}).`);
@@ -282,6 +277,106 @@ export class BuildSettingsPanel implements vscode.Disposable {
       } catch (error) {
         vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
       }
+      return;
+    }
+    if (message?.type === 'exportBuildParameters') {
+      await this.exportBuildParameters(message);
+      return;
+    }
+    if (message?.type === 'importBuildParameters') {
+      await this.importBuildParameters(parseScope(message.scope, this.selectedScope));
+      return;
+    }
+  }
+
+  private applyBuildParameterPayload(message: any, scope: BuildSettingsScope): void {
+    if (!this.projectRef) {
+      return;
+    }
+    const settings = message.settings as CpmProjectBuildSettings;
+    const targetSettings = message.nativeTarget as CpmNativeTargetSettings;
+    if (targetSettings && typeof message.targetType === 'string') {
+      targetSettings.targetType = message.targetType;
+    }
+    if (targetSettings) {
+      this.applyNativeTargetSettings(this.projectRef, scope, targetSettings);
+    }
+    if (settings) {
+      this.applyProjectSettings(this.projectRef, scope, settings);
+    }
+  }
+
+  private async exportBuildParameters(message: any): Promise<void> {
+    if (!this.projectRef) {
+      return;
+    }
+    const scope = parseScope(message.scope, this.selectedScope);
+    const projectDirectory = path.dirname(this.projectRef.absolutePath);
+    const defaultName = `${sanitizeFileName(this.projectRef.name)}-${scope}-build-parameters.cpm-build.json`;
+    const destination = await vscode.window.showSaveDialog({
+      title: 'Export C/C++ build parameters',
+      defaultUri: vscode.Uri.file(path.join(projectDirectory, defaultName)),
+      saveLabel: 'Export build parameters',
+      filters: { 'CPM build parameters': ['cpm-build.json', 'json'], JSON: ['json'], 'All files': ['*'] }
+    });
+    if (!destination) {
+      return;
+    }
+
+    const payload = {
+      schema: 'cpm.buildParameters',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      projectName: this.projectRef.name,
+      scope,
+      targetType: message.targetType,
+      nativeTarget: message.nativeTarget,
+      projectSettings: message.settings,
+      compilerSettings: message.compilerSettings
+    };
+    await fs.promises.writeFile(destination.fsPath, JSON.stringify(payload, null, 2), 'utf8');
+    vscode.window.showInformationMessage(`Build parameters exported to ${path.basename(destination.fsPath)}.`);
+  }
+
+  private async importBuildParameters(scope: BuildSettingsScope): Promise<void> {
+    if (!this.projectRef) {
+      return;
+    }
+    const source = (await vscode.window.showOpenDialog({
+      title: 'Import C/C++ build parameters',
+      defaultUri: vscode.Uri.file(path.dirname(this.projectRef.absolutePath)),
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      openLabel: 'Import build parameters',
+      filters: { 'CPM build parameters': ['cpm-build.json', 'json'], JSON: ['json'], 'All files': ['*'] }
+    }))?.[0];
+    if (!source) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(await fs.promises.readFile(source.fsPath, 'utf8'));
+      const importedSettings = payload?.projectSettings ?? payload?.settings;
+      const importedCompilerSettings = payload?.compilerSettings;
+      const importedNativeTarget = payload?.nativeTarget;
+      if (!importedSettings && !importedCompilerSettings && !importedNativeTarget) {
+        throw new Error('The selected JSON file does not contain CPM build parameters.');
+      }
+
+      this.selectedScope = scope;
+      this.applyBuildParameterPayload({
+        settings: importedSettings,
+        compilerSettings: importedCompilerSettings,
+        nativeTarget: importedNativeTarget,
+        targetType: payload?.targetType ?? importedNativeTarget?.targetType
+      }, scope);
+      await this.applyCompilerSettings(importedCompilerSettings as Partial<GenericCompilerSettings> | undefined);
+      this.workspaces.refresh();
+      vscode.window.showInformationMessage(`Build parameters imported for ${this.projectRef.name} (${scopeLabel(scope)}).`);
+      this.update();
+    } catch (error) {
+      vscode.window.showErrorMessage(`Unable to import build parameters: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -449,6 +544,7 @@ export class BuildSettingsPanel implements vscode.Disposable {
       runtimeDependencyMode: normalizeRuntimeDependencyMode(config.get<string>('runtimeDependencyMode', ''), config.get<string>('deployRuntimeDlls', 'auto')),
       cleanRuntimeDllsOnDeploy: config.get<boolean>('cleanRuntimeDllsOnDeploy', true),
       sdlEnabled: config.get<string>('sdlEnabled', 'auto'),
+      sdlVersion: config.get<string>('sdlVersion', 'auto'),
       sdlRootPath: config.get<string>('sdlRootPath', ''),
       sdlPackages: config.get<string[]>('sdlPackages', ['SDL2']),
       sdlRuntimeMode: config.get<string>('sdlRuntimeMode', 'copy-dlls'),
@@ -463,7 +559,7 @@ export class BuildSettingsPanel implements vscode.Disposable {
     }
     const config = vscode.workspace.getConfiguration('cpm');
     const target = vscode.ConfigurationTarget.Workspace;
-    const stringKeys: Array<keyof GenericCompilerSettings> = ['cCompilerPath', 'cppCompilerPath', 'archiverPath', 'debuggerPath', 'outputDirectory', 'cStandard', 'cppStandard', 'warningLevel', 'optimizationLevel', 'debugInformation', 'architectureMode', 'runtimeDependencyMode', 'sdlEnabled', 'sdlRootPath', 'sdlRuntimeMode', 'sdlSubsystem'];
+    const stringKeys: Array<keyof GenericCompilerSettings> = ['cCompilerPath', 'cppCompilerPath', 'archiverPath', 'debuggerPath', 'outputDirectory', 'cStandard', 'cppStandard', 'warningLevel', 'optimizationLevel', 'debugInformation', 'architectureMode', 'runtimeDependencyMode', 'sdlEnabled', 'sdlVersion', 'sdlRootPath', 'sdlRuntimeMode', 'sdlSubsystem'];
     const listKeys: Array<keyof GenericCompilerSettings> = ['compilerFlags', 'cCompilerFlags', 'cppCompilerFlags', 'linkerFlags', 'includePaths', 'libraryPaths', 'libraries', 'defineSymbols', 'sdlPackages'];
     for (const key of stringKeys) {
       const value = settings[key];
@@ -553,6 +649,11 @@ export class BuildSettingsPanel implements vscode.Disposable {
       ['auto', 'Auto: only projects that use SDL'],
       ['on', 'On: inject SDL flags for builds']
     ];
+    const sdlVersionOptions: SelectOption[] = [
+      ['auto', 'Auto: infer from selected packages / source'],
+      ['SDL2', 'SDL2'],
+      ['SDL3', 'SDL3']
+    ];
     const sdlRuntimeOptions: SelectOption[] = [
       ['copy-dlls', 'Copy SDL DLLs beside executable'],
       ['path-only', 'Use PATH only when running/debugging'],
@@ -566,7 +667,7 @@ export class BuildSettingsPanel implements vscode.Disposable {
     return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>C/C++ Project Build Settings</title>
 <style>
-*{box-sizing:border-box}body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:22px;max-width:1220px;margin:auto}h1{margin:0 0 5px;font-size:24px}h2{font-size:16px;margin:0 0 11px}h3{font-size:14px;margin:15px 0 5px}.muted{color:var(--vscode-descriptionForeground);line-height:1.45}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px;margin-top:16px}.card{border:1px solid var(--vscode-panel-border);border-radius:7px;background:var(--vscode-sideBar-background);padding:15px}.wide{grid-column:1/-1}label.field{display:block;margin-top:10px;font-weight:600}textarea,input,select{width:100%;margin-top:5px;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border,transparent);padding:7px;font:inherit;border-radius:3px}textarea{min-height:74px;resize:vertical;font-family:var(--vscode-editor-font-family)}.dependency{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;padding:7px 0;border-bottom:1px solid var(--vscode-panel-border)}.dependency input,.check input{width:auto;grid-row:1/3;margin:0 6px 0 0}.dependency small{color:var(--vscode-descriptionForeground);overflow-wrap:anywhere}.check{display:block;margin:7px 0}.notice{margin-top:12px;border:1px solid var(--vscode-panel-border);background:var(--vscode-textBlockQuote-background);padding:10px;border-radius:5px;color:var(--vscode-descriptionForeground);line-height:1.45}.actions{display:flex;justify-content:flex-end;margin-top:16px}button{border:1px solid var(--vscode-button-border,transparent);background:var(--vscode-button-background);color:var(--vscode-button-foreground);padding:8px 14px;border-radius:3px;cursor:pointer}.path{font-family:var(--vscode-editor-font-family);font-size:12px;overflow-wrap:anywhere;margin-top:5px;color:var(--vscode-descriptionForeground)}details{margin:0}summary{cursor:pointer;font-weight:700;font-size:16px;list-style-position:outside}.section-body{padding-top:11px}.target-dll{display:none}body[data-target="Dynamic Link Library"] .target-dll{display:block}.target-exe-only,.target-linkable-only,.target-runable-only,.target-static-only,.target-nonstatic-only{display:none}body[data-target="Executable"] .target-exe-only{display:block}body[data-target="Executable"] .target-linkable-only,body[data-target="Dynamic Link Library"] .target-linkable-only{display:block}body[data-target="Executable"] .target-runable-only,body[data-target="Dynamic Link Library"] .target-runable-only{display:block}body[data-target="Static Library"] .target-static-only{display:block}body[data-target="Executable"] .target-nonstatic-only,body[data-target="Dynamic Link Library"] .target-nonstatic-only{display:block}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.inline{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}.inline .check{margin:0}.path-control{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:5px;align-items:end}.path-control input{min-width:0}.path-list-control{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:5px;align-items:start}.path-list-control textarea{min-width:0}.path-list-control .browse{margin-top:5px}.target-note{margin-top:8px;padding:8px 10px;border-left:3px solid var(--vscode-textLink-foreground);background:var(--vscode-textBlockQuote-background);color:var(--vscode-descriptionForeground);line-height:1.45}.browse{display:flex;align-items:center;justify-content:center;margin-top:5px;padding:6px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border-color:var(--vscode-button-border,transparent)}.browse:hover{background:var(--vscode-button-secondaryHoverBackground)}.browse svg{width:16px;height:16px;fill:currentColor}.scope{margin-top:12px;max-width:420px}.scope-note{margin-top:7px;color:var(--vscode-descriptionForeground)}.disabled-control-zone{opacity:.58}.hidden{display:none!important}@media(max-width:760px){.two{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:22px;max-width:1220px;margin:auto}h1{margin:0 0 5px;font-size:24px}h2{font-size:16px;margin:0 0 11px}h3{font-size:14px;margin:15px 0 5px}.muted{color:var(--vscode-descriptionForeground);line-height:1.45}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px;margin-top:16px}.card{border:1px solid var(--vscode-panel-border);border-radius:7px;background:var(--vscode-sideBar-background);padding:15px}.wide{grid-column:1/-1}label.field{display:block;margin-top:10px;font-weight:600}textarea,input,select{width:100%;margin-top:5px;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border,transparent);padding:7px;font:inherit;border-radius:3px}textarea{min-height:74px;resize:vertical;font-family:var(--vscode-editor-font-family)}.dependency{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;padding:7px 0;border-bottom:1px solid var(--vscode-panel-border)}.dependency input,.check input{width:auto;grid-row:1/3;margin:0 6px 0 0}.dependency small{color:var(--vscode-descriptionForeground);overflow-wrap:anywhere}.check{display:block;margin:7px 0}.notice{margin-top:12px;border:1px solid var(--vscode-panel-border);background:var(--vscode-textBlockQuote-background);padding:10px;border-radius:5px;color:var(--vscode-descriptionForeground);line-height:1.45}.actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px}button{border:1px solid var(--vscode-button-border,transparent);background:var(--vscode-button-background);color:var(--vscode-button-foreground);padding:8px 14px;border-radius:3px;cursor:pointer}button.secondary{background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}.path{font-family:var(--vscode-editor-font-family);font-size:12px;overflow-wrap:anywhere;margin-top:5px;color:var(--vscode-descriptionForeground)}details{margin:0}summary{cursor:pointer;font-weight:700;font-size:16px;list-style-position:outside}.section-body{padding-top:11px}.target-dll{display:none}body[data-target="Dynamic Link Library"] .target-dll{display:block}.target-exe-only,.target-linkable-only,.target-runable-only,.target-static-only,.target-nonstatic-only{display:none}body[data-target="Executable"] .target-exe-only{display:block}body[data-target="Executable"] .target-linkable-only,body[data-target="Dynamic Link Library"] .target-linkable-only{display:block}body[data-target="Executable"] .target-runable-only,body[data-target="Dynamic Link Library"] .target-runable-only{display:block}body[data-target="Static Library"] .target-static-only{display:block}body[data-target="Executable"] .target-nonstatic-only,body[data-target="Dynamic Link Library"] .target-nonstatic-only{display:block}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.inline{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}.inline .check{margin:0}.path-control{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:5px;align-items:end}.path-control input{min-width:0}.path-list-control{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:5px;align-items:start}.path-list-control textarea{min-width:0}.path-list-control .browse{margin-top:5px}.target-note{margin-top:8px;padding:8px 10px;border-left:3px solid var(--vscode-textLink-foreground);background:var(--vscode-textBlockQuote-background);color:var(--vscode-descriptionForeground);line-height:1.45}.browse{display:flex;align-items:center;justify-content:center;margin-top:5px;padding:6px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border-color:var(--vscode-button-border,transparent)}.browse:hover{background:var(--vscode-button-secondaryHoverBackground)}.browse svg{width:16px;height:16px;fill:currentColor}.scope{margin-top:12px;max-width:420px}.scope-note{margin-top:7px;color:var(--vscode-descriptionForeground)}.disabled-control-zone{opacity:.58}.hidden{display:none!important}@media(max-width:760px){.two{grid-template-columns:1fr}}
 </style></head>
 <body data-target="${escapeHtml(target.targetType)}">
 <h1>C/C++ Project Build Settings</h1><div class="muted">${escapeHtml(ref.name)} · edited configuration: <strong>${escapeHtml(scopeLabel(mode))}</strong></div><div class="path">${escapeHtml(ref.absolutePath)}</div>
@@ -576,12 +677,12 @@ export class BuildSettingsPanel implements vscode.Disposable {
 <section class="card wide"><details open><summary>Target</summary><div class="section-body"><label class="field">Target type<select id="targetType"><option ${target.targetType === 'Executable' ? 'selected' : ''}>Executable</option><option ${target.targetType === 'Dynamic Link Library' ? 'selected' : ''}>Dynamic Link Library</option><option ${target.targetType === 'Static Library' ? 'selected' : ''}>Static Library</option></select></label>${pathField('Output file', 'outputPath', target.outputPath)}<p class="muted">For generic builds, the output path is passed to GCC/G++/ar as the final target path.</p><div class="target-note target-exe-only">Executable target: compiler/linker settings, libraries and run/debug command-line options are active.</div><div class="target-note target-dll">DLL target: shared-library linking is active. Run options are used only when an external host executable is configured.</div><div class="target-note target-static-only">Static library target: sources are compiled to objects then archived with <code>ar</code>. Linker, runtime and debugger options are hidden because no executable is produced.</div></div></details></section>
 <section class="card wide"><details open><summary>Toolchain and predefined compiler options</summary><div class="section-body two">${pathField('C compiler', 'cCompilerPath', compiler.cCompilerPath)}${pathField('C++ compiler / linker', 'cppCompilerPath', compiler.cppCompilerPath)}<div class="target-static-only">${pathField('Static library archiver', 'archiverPath', compiler.archiverPath)}</div><div class="target-exe-only">${pathField('Debugger', 'debuggerPath', compiler.debuggerPath)}</div>${pathField('Output directory', 'outputDirectory', compiler.outputDirectory)}${selectField('Architecture', 'architectureMode', compiler.architectureMode, architectureOptions)}${selectField('C standard', 'cStandard', compiler.cStandard, cStandardOptions)}${selectField('C++ standard', 'cppStandard', compiler.cppStandard, cppStandardOptions)}${selectField('Warnings', 'warningLevel', compiler.warningLevel, warningLevelOptions)}${selectField('Optimization', 'optimizationLevel', compiler.optimizationLevel, optimizationOptions)}${selectField('Debug information', 'debugInformation', compiler.debugInformation, debugInfoOptions)}<label class="check hidden"><input id="useBuildModeArchitectureFlags" type="checkbox" ${checked(compiler.architectureMode === 'from-build-mode' || compiler.useBuildModeArchitectureFlags)}></label></div></details></section>
 <section class="card wide target-linkable-only"><details open><summary>Generic toolchain runtime dependencies</summary><div class="section-body two">${selectField('Runtime handling', 'runtimeDependencyMode', compiler.runtimeDependencyMode, runtimeDependencyOptions)}<label class="check"><input id="cleanRuntimeDllsOnDeploy" type="checkbox" ${checked(compiler.cleanRuntimeDllsOnDeploy)}> Remove stale or architecture-mismatched copied runtime DLLs before redeploy</label></div><p class="muted"><code>copy-dlls</code> copies detected toolchain runtime DLLs beside the target, including GCC/MinGW/MSYS2 and LLVM/Clang runtimes when they are imported by the executable or present in the selected toolchain. <code>path-only</code> keeps the output directory clean and prepends the selected toolchain <code>bin</code> directory to PATH only for CPM run/debug. <code>static-link</code> injects GCC/Clang static runtime flags when the selected toolchain supports them.</p></details></section>
-<section class="card wide target-linkable-only"><details open><summary>SDL integration</summary><div class="section-body two">${selectField('SDL integration', 'sdlEnabled', compiler.sdlEnabled, sdlEnabledOptions)}${pathField('SDL SDK root', 'sdlRootPath', compiler.sdlRootPath)}${textAreaField('SDL packages', 'sdlPackages', compiler.sdlPackages)}${selectField('SDL runtime handling', 'sdlRuntimeMode', compiler.sdlRuntimeMode, sdlRuntimeOptions)}${selectField('SDL Windows subsystem', 'sdlSubsystem', compiler.sdlSubsystem, sdlSubsystemOptions)}<label class="check"><input id="sdlCopyAllRuntimeDlls" type="checkbox" ${checked(compiler.sdlCopyAllRuntimeDlls)}> Copy every DLL from SDL bin directory</label></div><p class="muted">Use packages such as SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, SDL2_net or SDL2_gfx, one per line. The dedicated SDL SDK command can auto-detect C:\Program Files\SDL64 and fill this section.</p></details></section>
+<section class="card wide target-linkable-only"><details open><summary>SDL integration</summary><div class="section-body two">${selectField('SDL integration', 'sdlEnabled', compiler.sdlEnabled, sdlEnabledOptions)}${selectField('SDL version', 'sdlVersion', compiler.sdlVersion, sdlVersionOptions)}${pathField('SDL SDK root', 'sdlRootPath', compiler.sdlRootPath)}${textAreaField('SDL packages', 'sdlPackages', compiler.sdlPackages)}${selectField('SDL runtime handling', 'sdlRuntimeMode', compiler.sdlRuntimeMode, sdlRuntimeOptions)}${selectField('SDL Windows subsystem', 'sdlSubsystem', compiler.sdlSubsystem, sdlSubsystemOptions)}<label class="check"><input id="sdlCopyAllRuntimeDlls" type="checkbox" ${checked(compiler.sdlCopyAllRuntimeDlls)}> Copy every DLL from SDL bin directory</label></div><p class="muted">Use packages such as SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, SDL2_net, SDL2_gfx, SDL3, SDL3_image, SDL3_ttf, SDL3_mixer or SDL3_net, one per line. The dedicated SDL SDK command can auto-detect C:\Program Files\SDL64 and fill this section.</p></details></section>
 <section class="card wide"><details><summary>Advanced compiler and linker flags</summary><div class="section-body two">${textAreaField('Define symbols (-D)', 'defineSymbols', compiler.defineSymbols)}${pathListField('Include paths (-I)', 'includePaths', compiler.includePaths)}<div class="target-linkable-only">${pathListField('Library paths (-L)', 'libraryPaths', compiler.libraryPaths)}</div><div class="target-linkable-only">${textAreaField('Libraries (-l)', 'libraries', compiler.libraries)}</div>${textAreaField('Common compiler flags', 'compilerFlags', compiler.compilerFlags)}${textAreaField('C-only compiler flags', 'cCompilerFlags', compiler.cCompilerFlags)}${textAreaField('C++-only compiler flags', 'cppCompilerFlags', compiler.cppCompilerFlags)}<div class="target-linkable-only">${textAreaField('Linker flags', 'linkerFlags', compiler.linkerFlags)}</div></div><p class="muted target-linkable-only">Use one value per line. Library paths, libraries and linker flags are used only for executable and DLL targets.</p><p class="muted target-static-only">Static libraries do not use linker flags, library paths or <code>-l</code> entries. Use compiler flags and include paths for object compilation, and the archiver path for final archive creation.</p></details></section>
 <section class="card wide"><details open><summary>Project dependencies and build order</summary><div class="section-body"><p class="muted">Checked projects are built before ${escapeHtml(ref.name)}.</p>${dependencies}</div></details></section>
 <section id="runOptionsSection" class="card wide target-runable-only"><details open><summary>Run / debug command line</summary><div class="section-body"><label class="field">Command line arguments<input id="arguments" value="${escapeHtml(settings.run.arguments)}" placeholder="--option value"></label>${pathField('Working directory', 'workingDirectory', settings.run.workingDirectory)}<label class="field">Environment options<input id="environmentOptions" value="${escapeHtml(settings.run.environmentOptions)}" placeholder="NAME=value;OTHER=value"></label><div id="externalProcessPathRow" class="target-dll">${pathField('External executable for DLL debugging', 'externalProcessPath', settings.run.externalProcessPath)}</div><p class="muted target-dll">DLL targets are not launched directly. These fields are used when an external host executable loads the DLL.</p></div></details></section>
 <section class="card wide"><details open><summary>Build steps</summary><div class="section-body two"><label class="field">Pre-build actions<textarea id="preBuildActions">${escapeHtml(settings.preBuildActions.join('\n'))}</textarea></label><label class="field">Custom build actions<textarea id="customBuildActions">${escapeHtml(settings.customBuildActions.join('\n'))}</textarea></label><label class="field wide">Post-build actions<textarea id="postBuildActions">${escapeHtml(settings.postBuildActions.join('\n'))}</textarea></label></div></details></section>
-</div><div class="actions"><button id="save">Save project build settings</button></div>
+</div><div class="actions"><button id="importBuildParameters" class="secondary" type="button">Import build parameters</button><button id="exportBuildParameters" class="secondary" type="button">Export build parameters</button><button id="save" type="button">Save project build settings</button></div>
 <script>
 const vscode=acquireVsCodeApi();const nativeTargetDefaults=${nativeDefaults};
 const el=(id)=>document.getElementById(id);const val=(id)=>el(id)?.value??'';const flag=(id)=>!!el(id)?.checked;const lines=(id)=>val(id).split(/(?:\\r?\\n|;)/).map(x=>x.trim()).filter(Boolean);const chosen=(selector)=>[...document.querySelectorAll(selector+':checked')].map(e=>e.value);const disableField=(id,disabled)=>{const node=el(id);if(node)node.disabled=disabled;};const disableBrowse=(field,disabled)=>{const button=document.querySelector('[data-browse-field="'+field+'"]');if(button)button.disabled=disabled;};const setDisplay=(selector,visible)=>document.querySelectorAll(selector).forEach(node=>{node.style.display=visible?'':'none';});const updateTargetControls=()=>{const target=val('targetType');document.body.dataset.target=target;const exe=target==='Executable';const dll=target==='Dynamic Link Library';const stat=target==='Static Library';setDisplay('.target-exe-only',exe);setDisplay('.target-dll',dll);setDisplay('.target-static-only',stat);setDisplay('.target-linkable-only',exe||dll);setDisplay('.target-runable-only',exe||dll);setDisplay('.target-nonstatic-only',exe||dll);disableField('archiverPath',!stat);disableBrowse('archiverPath',!stat);disableField('debuggerPath',!exe);disableBrowse('debuggerPath',!exe);disableField('libraryPaths',stat);disableBrowse('libraryPaths',stat);disableField('libraries',stat);disableField('linkerFlags',stat);disableField('arguments',stat);disableField('workingDirectory',stat);disableBrowse('workingDirectory',stat);disableField('environmentOptions',stat);disableField('externalProcessPath',!dll);disableBrowse('externalProcessPath',!dll);};
@@ -589,7 +690,10 @@ document.querySelectorAll('[data-browse-field]').forEach(button=>button.addEvent
 el('configurationScope')?.addEventListener('change',()=>vscode.postMessage({type:'changeScope',scope:val('configurationScope')}));el('targetType')?.addEventListener('change',updateTargetControls);el('architectureMode')?.addEventListener('change',()=>{const legacy=el('useBuildModeArchitectureFlags');if(legacy)legacy.checked=val('architectureMode')==='from-build-mode';});
 window.addEventListener('message',(event)=>{const message=event.data;if(message?.type==='setField'&&el(message.field))el(message.field).value=message.value||'';if(message?.type==='appendLines'&&el(message.field)){const node=el(message.field);const existing=node.value.trim();const values=[...(message.values||[])].map(String).map(x=>x.trim()).filter(Boolean);node.value=[existing,...values].filter(Boolean).join(String.fromCharCode(10));}});
 updateTargetControls();
-el('save').addEventListener('click',()=>vscode.postMessage({type:'save',scope:val('configurationScope'),targetType:val('targetType'),settings:{preBuildActions:lines('preBuildActions'),customBuildActions:lines('customBuildActions'),postBuildActions:lines('postBuildActions'),dependencies:[...document.querySelectorAll('[data-dependency]:checked')].map(e=>e.dataset.dependency),run:{arguments:val('arguments'),workingDirectory:val('workingDirectory'),environmentOptions:val('environmentOptions'),externalProcessPath:val('externalProcessPath')}},compilerSettings:{cCompilerPath:val('cCompilerPath'),cppCompilerPath:val('cppCompilerPath'),archiverPath:val('archiverPath'),debuggerPath:val('debuggerPath'),outputDirectory:val('outputDirectory'),cStandard:val('cStandard'),cppStandard:val('cppStandard'),warningLevel:val('warningLevel'),optimizationLevel:val('optimizationLevel'),debugInformation:val('debugInformation'),architectureMode:val('architectureMode'),compilerFlags:lines('compilerFlags'),cCompilerFlags:lines('cCompilerFlags'),cppCompilerFlags:lines('cppCompilerFlags'),linkerFlags:lines('linkerFlags'),includePaths:lines('includePaths'),libraryPaths:lines('libraryPaths'),libraries:lines('libraries'),defineSymbols:lines('defineSymbols'),useBuildModeArchitectureFlags:flag('useBuildModeArchitectureFlags'),runtimeDependencyMode:val('runtimeDependencyMode'),cleanRuntimeDllsOnDeploy:flag('cleanRuntimeDllsOnDeploy'),sdlEnabled:val('sdlEnabled'),sdlRootPath:val('sdlRootPath'),sdlPackages:lines('sdlPackages'),sdlRuntimeMode:val('sdlRuntimeMode'),sdlSubsystem:val('sdlSubsystem'),sdlCopyAllRuntimeDlls:flag('sdlCopyAllRuntimeDlls')},nativeTarget:{...nativeTargetDefaults,targetType:val('targetType'),outputPath:val('outputPath')}}));
+const collectBuildParameters=()=>({scope:val('configurationScope'),targetType:val('targetType'),settings:{preBuildActions:lines('preBuildActions'),customBuildActions:lines('customBuildActions'),postBuildActions:lines('postBuildActions'),dependencies:[...document.querySelectorAll('[data-dependency]:checked')].map(e=>e.dataset.dependency),run:{arguments:val('arguments'),workingDirectory:val('workingDirectory'),environmentOptions:val('environmentOptions'),externalProcessPath:val('externalProcessPath')}},compilerSettings:{cCompilerPath:val('cCompilerPath'),cppCompilerPath:val('cppCompilerPath'),archiverPath:val('archiverPath'),debuggerPath:val('debuggerPath'),outputDirectory:val('outputDirectory'),cStandard:val('cStandard'),cppStandard:val('cppStandard'),warningLevel:val('warningLevel'),optimizationLevel:val('optimizationLevel'),debugInformation:val('debugInformation'),architectureMode:val('architectureMode'),compilerFlags:lines('compilerFlags'),cCompilerFlags:lines('cCompilerFlags'),cppCompilerFlags:lines('cppCompilerFlags'),linkerFlags:lines('linkerFlags'),includePaths:lines('includePaths'),libraryPaths:lines('libraryPaths'),libraries:lines('libraries'),defineSymbols:lines('defineSymbols'),useBuildModeArchitectureFlags:flag('useBuildModeArchitectureFlags'),runtimeDependencyMode:val('runtimeDependencyMode'),cleanRuntimeDllsOnDeploy:flag('cleanRuntimeDllsOnDeploy'),sdlEnabled:val('sdlEnabled'),sdlVersion:val('sdlVersion'),sdlRootPath:val('sdlRootPath'),sdlPackages:lines('sdlPackages'),sdlRuntimeMode:val('sdlRuntimeMode'),sdlSubsystem:val('sdlSubsystem'),sdlCopyAllRuntimeDlls:flag('sdlCopyAllRuntimeDlls')},nativeTarget:{...nativeTargetDefaults,targetType:val('targetType'),outputPath:val('outputPath')}});
+el('save').addEventListener('click',()=>vscode.postMessage({type:'save',...collectBuildParameters()}));
+el('exportBuildParameters').addEventListener('click',()=>vscode.postMessage({type:'exportBuildParameters',...collectBuildParameters()}));
+el('importBuildParameters').addEventListener('click',()=>vscode.postMessage({type:'importBuildParameters',scope:val('configurationScope')}));
 </script></body></html>`;
   }
 }
@@ -620,6 +724,7 @@ function selectOptions(options: SelectOption[], selected: string): string { cons
 function splitSafeList(value: string): string[] { return value.split(/(?:\r?\n|;)/).map((entry) => entry.trim()).filter(Boolean); }
 function escapeHtml(value: string): string { return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 function stripCodicon(value: string): string { return value.replace(/^\$\([^)]*\)\s*/, ''); }
+function sanitizeFileName(value: string): string { return (value || 'project').replace(/[<>:\"/\\|?*]+/g, '_').replace(/\s+/g, '-').replace(/^-+|-+$/g, '') || 'project'; }
 function scopeModes(scope: BuildSettingsScope): CpmBuildMode[] { return scope === 'all' ? [...ALL_BUILD_MODES] : [scope]; }
 function scopeLabel(scope: BuildSettingsScope): string { return ({ debug: 'Debug', release: 'Release', debug64: 'Debug64', release64: 'Release64', all: 'All Configurations' } as const)[scope]; }
 function scopeOptions(selected: BuildSettingsScope): string { return scopeChoices().map((entry) => `<option value="${entry.id}" ${entry.id === selected ? 'selected' : ''}>${escapeHtml(entry.label)}</option>`).join(''); }

@@ -1,3 +1,34 @@
+## 0.2.47
+
+- Integrated JC Lib 0.8.9 embedded-library fixes for enum-backed multi-select pickers. Combined values such as `SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL` are now injected into enum/select parameter fields and update the generated-call preview.
+- Added bundled SDL2 and SDL3 standalone library packs in the embedded library manager.
+- Updated the SDL pack route to expose a combined SDL2 / SDL3 pack plus separate SDL2-only and SDL3-only import choices.
+
+## 0.2.46 - SDL path normalization and build settings import/export
+
+- Fixed SDL builds when `cpm.sdlRootPath` points directly to a nested SDK folder such as `...\SDL2\i686-w64-mingw32\bin`, `lib`, `include` or `include\SDL2`; CPM now normalizes those selections to a usable SDL SDK root before resolving includes, libraries and runtime DLLs.
+- SDL2 link flags are now injected correctly for the common MinGW 32-bit SDK layout selected from `C:\Program Files (x86)\SDL2\i686-w64-mingw32\bin`.
+- Added `Export build parameters` and `Import build parameters` buttons at the bottom of the build settings webview. The exported JSON includes the target settings, run/build actions, dependencies and generic compiler/SDL settings.
+- Import applies the selected JSON to the currently selected build configuration scope, so a known-good setup can be reused across projects.
+
+## 0.2.45 - SDL2 auto-detection and architecture selection fix
+
+- Fixed SDL2 builds where sources were detected as `SDL_main` but SDL link flags were not injected because no explicit `cpm.sdlRootPath` was selected.
+- Added build-time SDL SDK auto-scan when `cpm.sdlRootPath` is empty and `cpm.sdlEnabled` is `auto`/`on`; projects that include or call SDL can now pick up common SDL2/SDL3 roots automatically.
+- Added common Windows SDK roots for `C:\Program Files (x86)\SDL2` and nested MinGW layouts such as `i686-w64-mingw32` / `x86_64-w64-mingw32`.
+- SDL library, include and DLL folder resolution now prefers the active compiler architecture, preventing a 32-bit MinGW build from selecting the x64 SDL import library when both are present in the SDK.
+- SDL3 source detection now takes precedence over the default SDL2 package list when `cpm.sdlVersion` is `auto`.
+
+## 0.2.44 - SDL3 project and build integration
+
+- Added SDL3 support alongside the existing SDL2 workflow.
+- Added `cpm.sdlVersion` with `auto`, `SDL2` and `SDL3` modes.
+- Extended SDK detection to recognize SDL3 roots, `SDL3_DIR` / `SDL3_HOME` / `SDL3_ROOT`, MSYS2 `clang64`, and artifacts such as `include/SDL3/SDL.h`, `libSDL3.dll.a` and `SDL3.dll`.
+- Extended SDL package support to `SDL3`, `SDL3_image`, `SDL3_mixer`, `SDL3_ttf` and `SDL3_net` when those packages are present in the selected SDK.
+- Added SDL3 starter generation for C and C++ projects using `<SDL3/SDL.h>`, `<SDL3/SDL_main.h>`, SDL3 event constants and the SDL3 renderer/window API.
+- Updated the generic build pipeline so SDL2 keeps the `SDL2main` Windows link path, while SDL3 links with `-lSDL3` and no `SDL3main` library.
+- SDL runtime handling now works for both SDL2 and SDL3 in `copy-dlls`, `path-only` and experimental `static-link` modes.
+
 ## 0.2.43
 
 - Generalized normal C/C++ runtime dependency handling beyond MinGW-only names.

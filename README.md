@@ -1,3 +1,8 @@
+
+## 0.2.47 embedded library manager update
+
+The embedded C/C++ library manager now includes the JC Lib 0.8.9 SDL2 / SDL3 pack update. SDL can be added as a combined SDL2 / SDL3 pack or as SDL2-only / SDL3-only packs. Enum-backed multi-select pickers also support combined flag expressions and refresh the generated-call preview correctly.
+
 # C/C++ Project Manager and Build
 
 Visual Studio Code extension for creating and managing lightweight C/C++ workspaces and projects without writing `tasks.json` or `launch.json` manually.
@@ -114,16 +119,16 @@ Classic C/C++ builds use the same runtime-dependency strategy as SDL projects, n
 
 When `copy-dlls` is active, CPM traces the PE import table of the generated target and recursively follows copied toolchain DLL dependencies. A `.cpm-runtime-dlls.json` manifest is written beside the target so stale CPM-managed DLLs can be removed safely when changing architecture, compiler or runtime mode. The setting behind this section is `cpm.runtimeDependencyMode`. The old `cpm.deployRuntimeDlls` setting remains supported for existing workspaces.
 
-### 0.2.41 SDL2 project support
+### 0.2.45 SDL2 / SDL3 project support
 
-CPM can now detect and use SDL2 SDK folders such as `C:\Program Files\SDL64`. Use `C/C++ Project Manager: Detect / Select SDL SDK` to select the SDK, packages and runtime mode. The build pipeline can inject SDL include paths, SDL libraries and Windows subsystem flags without manually editing the normal include/linker lists.
+CPM can detect and use SDL2 and SDL3 SDK folders such as `C:\Program Files\SDL64`, `C:\Program Files (x86)\SDL2`, `C:\Program Files\SDL3`, MSYS2 `mingw64`, `ucrt64` or `clang64` prefixes. Use `C/C++ Project Manager: Detect / Select SDL2 or SDL3 SDK` to select the SDK, SDL major version, packages and runtime mode. The SDL SDK field also accepts nested SDK folders such as `...\i686-w64-mingw32\bin`, `lib`, `include` or `include\SDL2`; CPM normalizes them before build resolution. The build pipeline injects SDL include paths, SDL libraries and Windows subsystem flags without manually editing the normal include/linker lists. If `cpm.sdlRootPath` is empty, CPM auto-scans common SDK roots when the project source includes or calls SDL.
 
 New project commands are available for SDL applications:
 
 - `C/C++ Project Manager: Create SDL Workspace and Project` creates a workspace, an executable project and a minimal SDL event/render loop.
 - `Create New SDL Project in Workspace...` adds the same kind of SDL executable project to an existing `.cws` workspace.
 
-Supported package switches include `SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_net` and `SDL2_gfx`. Runtime handling can copy SDL DLLs beside the executable, use PATH only at run/debug time, or attempt static linking when the SDK provides suitable static libraries. The recommended Windows mode is DLL copying.
+Supported package switches include `SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_net`, `SDL2_gfx`, `SDL3`, `SDL3_image`, `SDL3_mixer`, `SDL3_ttf` and `SDL3_net`. For SDKs that contain both `i686-w64-mingw32` and `x86_64-w64-mingw32`, CPM prefers the directory matching the active compiler architecture. Runtime handling can copy SDL DLLs beside the executable, use PATH only at run/debug time, or attempt static linking when the SDK provides suitable static libraries. The recommended Windows mode is DLL copying. SDL2 keeps the classic Windows `SDL2main` link path; SDL3 uses `<SDL3/SDL_main.h>` in the generated source and links `SDL3` directly.
 
 ### 0.2.39 Lua execution bridge
 
@@ -149,3 +154,5 @@ The C `Python execution bridge` bundle is compatible with older MinGW/MinGW32 he
 ### Bundle header documentation
 
 As of 0.2.40, generated and copied module bundles include fuller Doxygen header notes. The header of each audited bundle summarizes its features, suitable applications, usage constraints and a minimal example. Script bridges also document how arguments and console output move between C/C++ and Python or Lua.
+
+The build settings page also provides `Export build parameters` and `Import build parameters` buttons near `Save project build settings`. The exported `.cpm-build.json` file captures target settings, run/build actions, dependencies, toolchain paths, generic runtime handling and SDL options so a working configuration can be moved to another project.

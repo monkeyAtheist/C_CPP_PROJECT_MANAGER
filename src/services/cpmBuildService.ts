@@ -444,7 +444,7 @@ export class CpmBuildService {
     const sdlPlan = this.resolveSdlPlan(ref, files, targetType);
     if (sdlPlan) {
       this.output.appendLine(`[C/C++ SDL] SDK: ${sdlPlan.rootPath}`);
-      this.output.appendLine(`[C/C++ SDL] Packages: ${sdlPlan.packages.join(', ')} · runtime: ${sdlPlan.runtimeMode}`);
+      this.output.appendLine(`[C/C++ SDL] Version: ${sdlPlan.version} · Packages: ${sdlPlan.packages.join(', ')} · runtime: ${sdlPlan.runtimeMode}`);
       if (sdlPlan.architecture) {
         this.output.appendLine(`[C/C++ SDL] SDK architecture: ${sdlPlan.architecture}`);
       }
@@ -897,7 +897,8 @@ export class CpmBuildService {
 
   private resolveSdlPlan(ref: CpmWorkspaceProjectRef, files: CpmProjectFile[], targetType: string): ReturnType<typeof createSdlBuildPlan> | undefined {
     const config = this.getCompilerConfiguration();
-    return createSdlBuildPlan(config.sdl, path.dirname(ref.absolutePath), files.map((file) => file.absolutePath), targetType);
+    const preferredArchitecture = inferRequestedArchitecture(config.cppCompilerPath || config.cCompilerPath || 'g++', this.modeFlags(config))?.id;
+    return createSdlBuildPlan(config.sdl, path.dirname(ref.absolutePath), files.map((file) => file.absolutePath), targetType, preferredArchitecture);
   }
 
   private cleanStaleRuntimeDlls(targetDirectory: string, runtimeSources: Map<string, string>): void {
@@ -963,6 +964,7 @@ export class CpmBuildService {
       useLocalBuildCacheForOneDrive: config.get<boolean>('useLocalBuildCacheForOneDrive', true),
       sdl: {
         enabled: normalizeSdlEnabled(config.get<string>('sdlEnabled', 'auto')),
+        version: normalizeSdlVersion(config.get<string>('sdlVersion', 'auto')),
         rootPath: config.get<string>('sdlRootPath', '').trim(),
         packages: config.get<string[]>('sdlPackages', ['SDL2']),
         runtimeMode: normalizeSdlRuntimeMode(config.get<string>('sdlRuntimeMode', 'copy-dlls')),
@@ -989,6 +991,10 @@ function normalizeRuntimeDependencyMode(value: string | undefined, legacyValue: 
 
 function normalizeSdlEnabled(value: string | undefined): CpmSdlConfiguration['enabled'] {
   return value === 'on' || value === 'off' || value === 'auto' ? value : 'auto';
+}
+
+function normalizeSdlVersion(value: string | undefined): CpmSdlConfiguration['version'] {
+  return value === 'SDL2' || value === 'SDL3' || value === 'auto' ? value : 'auto';
 }
 
 function normalizeSdlRuntimeMode(value: string | undefined): CpmSdlConfiguration['runtimeMode'] {
