@@ -188,3 +188,7 @@ The embedded library manager imports the JC Lib 0.8.9 SDL2 / SDL3 pack routing a
 `Insert color value` is available from the **CPM** editor context menu. It provides a native color selector, editable RGB channels, alpha control, alpha preview over a checkerboard, brightness/value adjustment and preset swatches. The current selection is reused as the initial color when it matches `#RRGGBB` or `0xRRGGBB`.
 
 Supported output formats are `#RRGGBB`, `0xRRGGBB`, decimal RGB integer, `rgb(r, g, b)`, `rgba(r, g, b, a)`, `r, g, b`, `r, g, b, a`, `{ r, g, b, a }` for `SDL_Color`, `RGB(r, g, b)` and `QColor(r, g, b, a)`.
+
+## 0.2.49 editor utility integration
+
+The editor context menu now imports the JC Lib 0.8.24 utility surface into CPM-specific commands. The implementation lives in `src/services/cpmEditorUtilitiesService.ts` and registers character/encoding tools, number/bit tools, logic/FSM generation and digital filter design alongside the existing snippet, header, special-text and color services.

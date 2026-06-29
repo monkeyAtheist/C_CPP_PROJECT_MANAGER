@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.48",
+  "version": "0.2.49",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -507,6 +507,30 @@
         "title": "Insert color value",
         "category": "CPM",
         "icon": "$(symbol-color)"
+      },
+      {
+        "command": "cpm.openDigitalFilterDesigner",
+        "title": "Open digital filter designer"
+      },
+      {
+        "command": "cpm.openTruthTableDesigner",
+        "title": "Open truth table / FSM designer"
+      },
+      {
+        "command": "cpm.openNumberConverter",
+        "title": "Open number / bit converter"
+      },
+      {
+        "command": "cpm.convertSelectedNumbersToText",
+        "title": "Convert selected numbers to text"
+      },
+      {
+        "command": "cpm.convertSelectedTextToDecimalValues",
+        "title": "Convert selected text to decimal values"
+      },
+      {
+        "command": "cpm.openCharacterTable",
+        "title": "Open character table / converter"
       },
       {
         "command": "cpm.saveFileAsTemplate",
@@ -1266,12 +1290,7 @@
           "group": "2_snippets@1"
         },
         {
-          "command": "cpm.insertColorValue",
-          "group": "3_tools@0"
-        },
-        {
-          "submenu": "cpm.convertSelectedInteger",
-          "when": "editorHasSelection",
+          "submenu": "cpm.editorUtilities",
           "group": "3_tools@1"
         }
       ],
@@ -1306,6 +1325,67 @@
         {
           "command": "cpm.manageSnippets",
           "group": "1_snippets@3"
+        }
+      ],
+      "cpm.editorUtilities": [
+        {
+          "command": "cpm.insertColorValue",
+          "group": "1_color@1"
+        },
+        {
+          "submenu": "cpm.characterEncodingTools",
+          "group": "2_encoding@1"
+        },
+        {
+          "submenu": "cpm.numberBitTools",
+          "group": "3_number@1"
+        },
+        {
+          "submenu": "cpm.logicStateTools",
+          "group": "4_logic@1"
+        },
+        {
+          "submenu": "cpm.signalFilterTools",
+          "group": "5_signal@1"
+        }
+      ],
+      "cpm.characterEncodingTools": [
+        {
+          "command": "cpm.openCharacterTable",
+          "group": "1_table@1"
+        },
+        {
+          "command": "cpm.convertSelectedTextToDecimalValues",
+          "when": "editorHasSelection",
+          "group": "2_convert@1"
+        },
+        {
+          "command": "cpm.convertSelectedNumbersToText",
+          "when": "editorHasSelection",
+          "group": "2_convert@2"
+        }
+      ],
+      "cpm.numberBitTools": [
+        {
+          "command": "cpm.openNumberConverter",
+          "group": "1_table@1"
+        },
+        {
+          "submenu": "cpm.convertSelectedInteger",
+          "when": "editorHasSelection",
+          "group": "2_convert@1"
+        }
+      ],
+      "cpm.logicStateTools": [
+        {
+          "command": "cpm.openTruthTableDesigner",
+          "group": "1_logic@1"
+        }
+      ],
+      "cpm.signalFilterTools": [
+        {
+          "command": "cpm.openDigitalFilterDesigner",
+          "group": "1_filter@1"
         }
       ]
     },
@@ -1724,6 +1804,26 @@
       {
         "id": "cpm.convertSelectedInteger",
         "label": "Convert selected integer to"
+      },
+      {
+        "id": "cpm.editorUtilities",
+        "label": "Utilities"
+      },
+      {
+        "id": "cpm.characterEncodingTools",
+        "label": "Character / encoding tools"
+      },
+      {
+        "id": "cpm.numberBitTools",
+        "label": "Number / bit tools"
+      },
+      {
+        "id": "cpm.logicStateTools",
+        "label": "Logic / state tools"
+      },
+      {
+        "id": "cpm.signalFilterTools",
+        "label": "Signal / filter tools"
       }
     ],
     "breakpoints": [

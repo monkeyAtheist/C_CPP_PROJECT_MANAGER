@@ -21,6 +21,7 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Synchronize a managed `.vscode/c_cpp_properties.json` entry for Microsoft C/C++ IntelliSense.
 - Browse embedded C/C++ library packs and insert snippets.
 - Insert color values from the editor context menu in C/C++ friendly formats, including SDL and Qt initializers.
+- Use editor context-menu utilities for character/encoding conversion, number/bit conversion, truth table / FSM generation and digital-filter coefficient design.
 - Generate C and C++ utility module bundles, including pure C Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges, plus separate companion script/frontend bundles.
 
 ## Toolchain selection
@@ -61,6 +62,10 @@ Some internal command identifiers still use the historical `cpm` namespace to av
 ## Documentation layout
 
 Historical validation reports and migration notes are stored under `docs/history/`. The project root keeps only `README.md`, `CHANGELOG.md`, `ARCHITECTURE.md` and `TEMPLATES_AND_SNIPPETS.md` as active documentation.
+
+### 0.2.49 editor-context utilities
+
+The CPM editor context menu now mirrors the latest JC Lib utility layout. Under `CPM > Utilities`, the extension exposes the color picker, character table/converter, selected text/numeric conversion helpers, number/bit converter, truth-table/FSM designer and digital-filter designer. These tools insert generated values back into the active C/C++ editor selection when requested.
 
 
 ### 0.2.25 workflow update

@@ -1,3 +1,12 @@
+## 0.2.49 - JC Lib context-menu utilities update
+
+- Integrated the latest JC Lib editor-context utilities into CPM.
+- Added `Utilities > Character / encoding tools` with a character table/converter webview, selected-text to decimal conversion and selected numeric values back to text.
+- Added `Utilities > Number / bit tools` with the full number / bit converter webview while keeping the quick selected-integer decimal/hex/binary conversions.
+- Added `Utilities > Logic / state tools` with the truth-table and FSM designer.
+- Added `Utilities > Signal / filter tools` with the digital-filter designer.
+- Reorganized the CPM editor context menu so snippets, documentation helpers and utilities match the updated JC Lib layout.
+
 ## 0.2.48 - Context-menu color value picker
 
 - Added `CPM: Insert color value` to the editor context menu.

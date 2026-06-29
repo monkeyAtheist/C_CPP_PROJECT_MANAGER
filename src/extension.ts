@@ -19,6 +19,7 @@ import { CpmCompletionProvider, CpmSourceSymbol, CpmSymbolService, isSourceOrHea
 import { CpmFunctionPanelService } from './services/cpmFunctionPanelService';
 import { CpmWorkspace } from './model/types';
 import { CpmColorValueService } from './services/cpmColorValueService';
+import { CpmEditorUtilitiesService } from './services/cpmEditorUtilitiesService';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
@@ -40,6 +41,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const completionProvider = new CpmCompletionProvider(symbols);
   const functionPanels = new CpmFunctionPanelService();
   const colorValues = new CpmColorValueService();
+  const editorUtilities = new CpmEditorUtilitiesService();
   const completionRegistration = vscode.languages.registerCompletionItemProvider(
     [{ language: 'c', scheme: 'file' }, { language: 'cpp', scheme: 'file' }],
     completionProvider
@@ -239,6 +241,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.insertCommentSection', () => templates.insertCommentSection()),
     register('cpm.insertSpecialCharacterText', () => templates.insertSpecialCharacterText()),
     register('cpm.insertColorValue', () => colorValues.openColorValuePicker()),
+    register('cpm.openCharacterTable', () => editorUtilities.openCharacterTable()),
+    register('cpm.convertSelectedTextToDecimalValues', () => editorUtilities.convertSelectedTextToDecimalValues()),
+    register('cpm.convertSelectedNumbersToText', () => editorUtilities.convertSelectedNumbersToText()),
+    register('cpm.openNumberConverter', () => editorUtilities.openNumberConverter()),
+    register('cpm.openTruthTableDesigner', () => editorUtilities.openTruthTableDesigner()),
+    register('cpm.openDigitalFilterDesigner', () => editorUtilities.openDigitalFilterDesigner()),
     register('cpm.saveSelectionAsSnippet', () => templates.saveSelectionAsSnippet()),
     register('cpm.manageSnippets', () => templates.manageSnippets()),
     register('cpm.saveFileAsTemplate', (node?: FileNode) => templates.saveCurrentFileAsTemplate(node?.file.absolutePath)),

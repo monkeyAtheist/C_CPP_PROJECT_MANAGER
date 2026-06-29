@@ -192,3 +192,7 @@ SDL resolution accepts package roots, architecture triplet roots and nested `bin
 ### 0.2.47 embedded library synchronization
 
 The embedded library manager imports the JC Lib 0.8.9 SDL2 / SDL3 pack routing and enum-backed multi-select picker fix. SDL content is now available as combined SDL2 / SDL3, SDL2-only, or SDL3-only bundled packs.
+
+## 0.2.49 editor utility integration
+
+The editor context menu now imports the JC Lib 0.8.24 utility surface into CPM-specific commands. The implementation lives in `src/services/cpmEditorUtilitiesService.ts` and registers character/encoding tools, number/bit tools, logic/FSM generation and digital filter design alongside the existing snippet, header, special-text and color services.
