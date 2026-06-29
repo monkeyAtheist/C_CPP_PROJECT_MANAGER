@@ -1,3 +1,11 @@
+## 0.2.50 - SDL add-on package auto-linking
+
+- Fixed SDL2 builds where source files used SDL_ttf, SDL_image or SDL_mixer APIs while the build settings still listed only the SDL2 core package.
+- CPM now scans project sources during SDL build planning and auto-adds installed SDL add-on packages when it detects `TTF_*`, `IMG_*`, `Mix_*`, `SDLNet_*` or SDL2_gfx usage.
+- SDL package settings now accept short aliases such as `ttf`, `image`, `mixer` and `net`, mapped to SDL2 or SDL3 according to the selected SDL version.
+- SDL include path resolution now keeps the active architecture include directories instead of mixing 32-bit and 64-bit SDK include folders when a multi-architecture SDL SDK is selected.
+- SDL static-link mode now resolves extension static libraries such as `libSDL2_ttf.a` and appends known private Windows libraries needed by SDL_ttf, SDL_mixer, SDL_net and SDL2_gfx.
+
 ## 0.2.49 - JC Lib context-menu utilities update
 
 - Integrated the latest JC Lib editor-context utilities into CPM.

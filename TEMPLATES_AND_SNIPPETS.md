@@ -1,3 +1,9 @@
+## 0.2.50 SDL add-on usage notes
+
+SDL2 and SDL3 starter projects can use add-on packages such as TTF, image, mixer and net without manually editing linker flags. The build settings still expose `SDL packages`, but CPM can infer installed add-ons from source code. For example, `TTF_Init()` causes `SDL2_ttf` or `SDL3_ttf` to be added to the build plan when the selected SDK contains the matching library.
+
+Accepted package aliases in build settings include `ttf`, `image`, `mixer` and `net`; CPM maps them to the selected SDL major version.
+
 # Templates and snippets guide
 
 ## Creation wizard

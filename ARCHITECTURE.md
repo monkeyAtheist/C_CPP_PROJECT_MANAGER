@@ -1,3 +1,9 @@
+## 0.2.50 SDL add-on build planning
+
+The SDL build planner now combines configured packages with a lightweight source scan. During compile/link planning it infers SDL add-ons from includes and API prefixes: `SDL_ttf.h` / `TTF_*`, `SDL_image.h` / `IMG_*`, `SDL_mixer.h` / `Mix_*`, `SDL_net.h` / `SDLNet_*`, and SDL2_gfx patterns. Inferred packages are filtered against the actually detected SDK artifacts before link arguments are emitted.
+
+For multi-architecture SDL SDKs, include directory resolution now returns the preferred compiler architecture group first, avoiding mixed `i686` and `x86_64` include paths in the same compile command. Static SDL link mode resolves extension static archives when present and appends known package-private Windows libraries after SDL archives.
+
 # Architecture notes — C/C++ Project Manager and Build
 
 ## Main components

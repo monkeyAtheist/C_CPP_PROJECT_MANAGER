@@ -293,7 +293,12 @@ export function createSdlBuildPlan(config: CpmSdlConfiguration, projectDirectory
     return undefined;
   }
 
-  const packages = normalizeSdlPackages(config.packages, version).filter((id) => installation.packages.includes(id));
+  const configuredPackages = normalizeSdlPackages(config.packages, version);
+  const inferredPackages = inferSdlPackagesFromSources(filePaths, version);
+  const packages = normalizeSdlPackages([
+    ...configuredPackages,
+    ...inferredPackages
+  ], version).filter((id) => installation.packages.includes(id));
   if (!packages.includes(version)) {
     return undefined;
   }
@@ -381,29 +386,44 @@ export function describeSdlRoot(root: string, source: CpmSdlInstallation['source
 }
 
 export function findSdlIncludeDirectories(root: string, preferredArchitecture?: CpmSdlArchitecture): string[] {
-  const tripletCandidates = orderedSdlTriplets(preferredArchitecture).flatMap((triplet) => [
-    path.join(root, triplet, 'include'),
-    path.join(root, triplet, 'include', 'SDL2'),
-    path.join(root, triplet, 'include', 'SDL3'),
-    path.join(root, triplet, 'include', 'SDL3_image'),
-    path.join(root, triplet, 'include', 'SDL3_mixer'),
-    path.join(root, triplet, 'include', 'SDL3_ttf')
+  const preferredTriplets = preferredArchitecture ? tripletsForArchitecture(preferredArchitecture) : [];
+  const baseCandidates = unique([
+    ...preferredTriplets.map((triplet) => path.join(root, triplet)),
+    root,
+    ...orderedSdlTriplets(preferredArchitecture).map((triplet) => path.join(root, triplet))
   ]);
-  const candidates = [
-    ...tripletCandidates,
-    path.join(root, 'include'),
-    path.join(root, 'include', 'SDL2'),
-    path.join(root, 'include', 'SDL3'),
-    path.join(root, 'include', 'SDL3_image'),
-    path.join(root, 'include', 'SDL3_mixer'),
-    path.join(root, 'include', 'SDL3_ttf')
+
+  for (const base of baseCandidates) {
+    const group = sdlIncludeCandidateGroup(base).filter((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isDirectory());
+    if (groupHasSdlCoreHeader(group)) {
+      return unique(group);
+    }
+  }
+
+  return [];
+}
+
+function sdlIncludeCandidateGroup(base: string): string[] {
+  return [
+    path.join(base, 'include'),
+    path.join(base, 'include', 'SDL2'),
+    path.join(base, 'include', 'SDL3'),
+    path.join(base, 'include', 'SDL3_image'),
+    path.join(base, 'include', 'SDL3_mixer'),
+    path.join(base, 'include', 'SDL3_ttf'),
+    path.join(base, 'include', 'SDL3_net')
   ];
-  return unique(candidates.filter((candidate) => directoryContainsAny(candidate, ['SDL.h', path.join('SDL2', 'SDL.h'), path.join('SDL3', 'SDL.h')])));
+}
+
+function groupHasSdlCoreHeader(group: string[]): boolean {
+  return group.some((candidate) => directoryContainsAny(candidate, ['SDL.h', path.join('SDL2', 'SDL.h'), path.join('SDL3', 'SDL.h')]));
 }
 
 export function normalizeSdlPackages(packages: string[], version: CpmSdlVersion = 'auto'): string[] {
-  const valid = new Set(SDL_PACKAGES.map((definition) => definition.id));
-  const selected = unique(packages.map((entry) => entry.trim()).filter((entry) => valid.has(entry)));
+  const normalizedEntries = packages.flatMap((entry) => splitSdlPackageEntry(entry))
+    .map((entry) => normalizeSdlPackageId(entry, version))
+    .filter((entry): entry is string => !!entry);
+  const selected = unique(normalizedEntries);
   const resolved = resolvePackageVersion(version, selected);
   const core = corePackageId(resolved);
   const result = [core, ...selected.filter((id) => packageVersion(id) === resolved && id !== core)];
@@ -412,6 +432,80 @@ export function normalizeSdlPackages(packages: string[], version: CpmSdlVersion 
 
 export function getSdlPackageDefinitions(): ReadonlyArray<SdlPackageDefinition> {
   return SDL_PACKAGES;
+}
+
+function splitSdlPackageEntry(entry: string): string[] {
+  return entry
+    .split(/[;,|\s]+/g)
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function normalizeSdlPackageId(entry: string, version: CpmSdlVersion): string | undefined {
+  const exact = SDL_PACKAGES.find((definition) => definition.id === entry);
+  if (exact) {
+    return exact.id;
+  }
+
+  const key = entry.trim().toLowerCase().replace(/[-\s]+/g, '_');
+  const aliasMap: Record<string, string> = {
+    sdl2: 'SDL2',
+    sdl_2: 'SDL2',
+    sdl3: 'SDL3',
+    sdl_3: 'SDL3',
+    sdl2_image: 'SDL2_image',
+    sdl_image: resolveVersionedSdlPackage('image', version),
+    image: resolveVersionedSdlPackage('image', version),
+    img: resolveVersionedSdlPackage('image', version),
+    sdl2_mixer: 'SDL2_mixer',
+    sdl_mixer: resolveVersionedSdlPackage('mixer', version),
+    mixer: resolveVersionedSdlPackage('mixer', version),
+    mix: resolveVersionedSdlPackage('mixer', version),
+    sdl2_ttf: 'SDL2_ttf',
+    sdl_ttf: resolveVersionedSdlPackage('ttf', version),
+    ttf: resolveVersionedSdlPackage('ttf', version),
+    font: resolveVersionedSdlPackage('ttf', version),
+    fonts: resolveVersionedSdlPackage('ttf', version),
+    sdl2_net: 'SDL2_net',
+    sdl_net: resolveVersionedSdlPackage('net', version),
+    net: resolveVersionedSdlPackage('net', version),
+    network: resolveVersionedSdlPackage('net', version),
+    sdl2_gfx: 'SDL2_gfx',
+    sdl_gfx: version === 'SDL3' ? '' : 'SDL2_gfx',
+    gfx: version === 'SDL3' ? '' : 'SDL2_gfx',
+    sdl3_image: 'SDL3_image',
+    sdl3_mixer: 'SDL3_mixer',
+    sdl3_ttf: 'SDL3_ttf',
+    sdl3_net: 'SDL3_net'
+  };
+  const resolved = aliasMap[key];
+  return resolved && SDL_PACKAGES.some((definition) => definition.id === resolved) ? resolved : undefined;
+}
+
+function resolveVersionedSdlPackage(kind: 'image' | 'mixer' | 'ttf' | 'net', version: CpmSdlVersion): string {
+  const resolvedVersion = version === 'SDL3' ? 'SDL3' : 'SDL2';
+  return `${resolvedVersion}_${kind}`;
+}
+
+function inferSdlPackagesFromSources(filePaths: string[], version: CpmSdlResolvedVersion): string[] {
+  const inferred = new Set<string>([version]);
+  const candidates = filePaths.filter((filePath) => /\.(?:c|cc|cpp|cxx|h|hh|hpp|hxx)$/i.test(filePath)).slice(0, 120);
+  for (const filePath of candidates) {
+    let data = '';
+    try {
+      data = fs.readFileSync(filePath, 'utf8').slice(0, 131072);
+    } catch {
+      continue;
+    }
+    if (/SDL_image\.h|IMG_\w+/i.test(data)) inferred.add(`${version}_image`);
+    if (/SDL_mixer\.h|Mix_\w+/i.test(data)) inferred.add(`${version}_mixer`);
+    if (/SDL_ttf\.h|TTF_\w+/i.test(data)) inferred.add(`${version}_ttf`);
+    if (/SDL_net\.h|\bSDLNet_\w+/i.test(data)) inferred.add(`${version}_net`);
+    if (version === 'SDL2' && /SDL2_gfx|SDL_gfx|gfxPrimitives|\b(?:aaline|box|circle|ellipse|filledCircle|string)Color\s*\(/i.test(data)) {
+      inferred.add('SDL2_gfx');
+    }
+  }
+  return Array.from(inferred);
 }
 
 function buildSdlPackageDefines(packages: string[], version: CpmSdlResolvedVersion): string[] {
@@ -451,18 +545,18 @@ function buildSdlLinkArgs(installation: CpmSdlInstallation, packages: string[], 
 
   const extensionLibs = packages
     .filter((id) => id !== version)
-    .map((id) => SDL_PACKAGES.find((definition) => definition.id === id)?.lib)
-    .filter((value): value is string => !!value);
-  for (const lib of extensionLibs) {
-    args.push(`-l${lib}`);
+    .map((id) => SDL_PACKAGES.find((definition) => definition.id === id))
+    .filter((value): value is SdlPackageDefinition => !!value);
+  for (const definition of extensionLibs) {
+    args.push(resolveSdlLibraryArgument(installation.libraryDirectory, definition.lib, runtimeMode));
   }
 
   if (runtimeMode === 'static-link' && installation.libraryDirectory) {
-    const staticLib = path.join(installation.libraryDirectory, `lib${version}.a`);
-    args.push(fs.existsSync(staticLib) ? staticLib : `-l${version}`);
+    args.push(resolveSdlLibraryArgument(installation.libraryDirectory, version, runtimeMode));
     if (version === 'SDL2' && process.platform === 'win32') {
       args.push('-lm', '-ldinput8', '-ldxguid', '-ldxerr8', '-luser32', '-lgdi32', '-lwinmm', '-limm32', '-lole32', '-loleaut32', '-lshell32', '-lsetupapi', '-lversion', '-luuid');
     }
+    args.push(...staticSdlPackagePrivateLibraries(packages, version));
   } else {
     args.push(`-l${version}`);
   }
@@ -470,7 +564,32 @@ function buildSdlLinkArgs(installation: CpmSdlInstallation, packages: string[], 
   if (process.platform === 'win32') {
     args.push(subsystem === 'windows' ? '-mwindows' : '-mconsole');
   }
-  return args;
+  return uniquePreserveOrder(args);
+}
+
+function resolveSdlLibraryArgument(libraryDirectory: string | undefined, libraryName: string, runtimeMode: CpmSdlRuntimeMode): string {
+  if (runtimeMode === 'static-link' && libraryDirectory) {
+    const staticLib = path.join(libraryDirectory, `lib${libraryName}.a`);
+    if (fs.existsSync(staticLib)) {
+      return staticLib;
+    }
+  }
+  return `-l${libraryName}`;
+}
+
+function staticSdlPackagePrivateLibraries(packages: string[], version: CpmSdlResolvedVersion): string[] {
+  const privateLibs: Record<string, string[]> = {
+    SDL2_ttf: ['-lusp10', '-lrpcrt4', '-lgdi32'],
+    SDL2_mixer: ['-lwinmm'],
+    SDL2_net: ['-lws2_32'],
+    SDL2_gfx: ['-lm'],
+    SDL3_ttf: ['-lusp10', '-lrpcrt4', '-lgdi32'],
+    SDL3_mixer: ['-lwinmm'],
+    SDL3_net: ['-lws2_32']
+  };
+  return uniquePreserveOrder(packages
+    .filter((id) => id !== version)
+    .flatMap((id) => privateLibs[id] ?? []));
 }
 
 function getSdlRuntimeDlls(installation: CpmSdlInstallation, packages: string[], copyAll: boolean): string[] {
@@ -506,6 +625,15 @@ function detectSdlPackages(root: string, includeDirectories: string[], libraryDi
     }
   }
   return unique(result).sort((a, b) => packageSortIndex(a) - packageSortIndex(b));
+}
+
+function tripletsForArchitecture(architecture: CpmSdlArchitecture): string[] {
+  const byArchitecture: Record<CpmSdlArchitecture, string[]> = {
+    x86: ['i686-w64-mingw32', 'mingw32'],
+    x64: ['x86_64-w64-mingw32', 'mingw64', 'ucrt64', 'clang64'],
+    arm64: ['aarch64-w64-mingw32', 'arm64']
+  };
+  return byArchitecture[architecture];
 }
 
 function orderedSdlTriplets(preferredArchitecture?: CpmSdlArchitecture): string[] {
@@ -695,6 +823,19 @@ function unique(values: string[]): string[] {
     if (!seen.has(key)) {
       seen.add(key);
       result.push(normalized);
+    }
+  }
+  return result;
+}
+
+function uniquePreserveOrder(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const key = value.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(value);
     }
   }
   return result;

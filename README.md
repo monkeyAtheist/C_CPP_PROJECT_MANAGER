@@ -67,6 +67,10 @@ Historical validation reports and migration notes are stored under `docs/history
 
 The CPM editor context menu now mirrors the latest JC Lib utility layout. Under `CPM > Utilities`, the extension exposes the color picker, character table/converter, selected text/numeric conversion helpers, number/bit converter, truth-table/FSM designer and digital-filter designer. These tools insert generated values back into the active C/C++ editor selection when requested.
 
+### 0.2.50 SDL add-on auto-linking
+
+SDL builds now auto-detect common add-on usage from project sources. If the project calls `TTF_Init`, `IMG_Load`, `Mix_OpenAudio`, `SDLNet_Init` or SDL2_gfx helpers and the selected SDK contains the matching headers/libraries, CPM adds the corresponding package to the SDL build plan even when the build settings only list the SDL2 or SDL3 core package. The `SDL packages` field also accepts aliases such as `ttf`, `image`, `mixer` and `net`.
+
 
 ### 0.2.25 workflow update
 
