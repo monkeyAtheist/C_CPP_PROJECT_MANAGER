@@ -12,6 +12,7 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 ## Main features
 
 - Create or open a workspace containing one or more C/C++ projects.
+- Uses a compact Qt-style CPM/PM sidebar logo for clearer identification in the VS Code activity bar.
 - Add existing `.c`, `.cpp`, `.h`, `.hpp`, `.a`, `.lib`, `.o` and `.obj` files to a project.
 - Create starter files from embedded C/C++ templates.
 - Select executable, dynamic-library or static-library targets.
@@ -166,3 +167,8 @@ The C `Python execution bridge` bundle is compatible with older MinGW/MinGW32 he
 As of 0.2.40, generated and copied module bundles include fuller Doxygen header notes. The header of each audited bundle summarizes its features, suitable applications, usage constraints and a minimal example. Script bridges also document how arguments and console output move between C/C++ and Python or Lua.
 
 The build settings page also provides `Export build parameters` and `Import build parameters` buttons near `Save project build settings`. The exported `.cpm-build.json` file captures target settings, run/build actions, dependencies, toolchain paths, generic runtime handling and SDL options so a working configuration can be moved to another project.
+
+### v0.2.51 embedded library pack refresh
+
+The embedded JC Lib manager now includes the JC Lib 0.8.27 structured packs. Pack imports preserve the source environment/library hierarchy, including the refreshed SDL, Lua, Embedded and Windows API / Devices layouts, plus the new Assembly and Visual Basic / VBA packs.
+

@@ -1,4 +1,18 @@
+## 0.2.52 - CPM activity bar logo refresh
+
+- Reworked the CPM activity-bar icon to use a Qt-style rounded-square outline with a compact `PM` monogram for better readability at VS Code sidebar size.
+- Updated the marketplace PNG icons so the extension branding remains consistent with the new sidebar logo.
+
 ## 0.2.50 - SDL add-on package auto-linking
+
+
+## 0.2.51
+
+- Updated embedded JC Lib packs from JC Lib 0.8.27.
+- Refreshed structured pack hierarchy for SDL, Lua, Embedded, Windows API / Devices, Web, C, C++, OpenCV and related bundled packs.
+- Added bundled Assembly and Visual Basic / VBA packs to the CPM embedded library manager.
+- Improved starter pack insertion so imported bundled packs preserve their source environment and library hierarchy instead of being flattened into a generic target.
+- Added updated metadata files used by the embedded library tools.
 
 - Fixed SDL2 builds where source files used SDL_ttf, SDL_image or SDL_mixer APIs while the build settings still listed only the SDL2 core package.
 - CPM now scans project sources during SDL build planning and auto-adds installed SDL add-on packages when it detects `TTF_*`, `IMG_*`, `Mix_*`, `SDLNet_*` or SDL2_gfx usage.

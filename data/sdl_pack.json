@@ -2,12 +2,12 @@
   "id": "sdl_pack",
   "name": "SDL2 / SDL3 Complete Structured Pack",
   "language": "SDL",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "readOnly": true,
-  "description": "Integrated SDL2 and SDL3 structured packs. SDL2 keeps the legacy extension libraries; SDL3 adds modern SDL3 APIs and migration helpers.",
+  "description": "Integrated SDL family pack with one SDL environment containing SDL2, SDL2 companion libraries, and SDL3.",
   "environments": [
     {
-      "name": "SDL2",
+      "name": "SDL",
       "libraries": [
         {
           "name": "SDL2",
@@ -152,7 +152,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_Init(Uint32 flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_InitSubSystem",
@@ -291,7 +291,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_InitSubSystem(Uint32 flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_WasInit",
@@ -430,7 +430,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint32 SDL_WasInit(Uint32 flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_QuitSubSystem",
@@ -569,7 +569,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_QuitSubSystem(Uint32 flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Quit",
@@ -585,7 +585,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_Quit(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetVersion",
@@ -608,7 +608,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_GetVersion(SDL_version * ver);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetError",
@@ -624,7 +624,7 @@
                   "symbolKind": "function",
                   "declaration": "const char * SDL_GetError(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_ClearError",
@@ -640,7 +640,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_ClearError(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Log",
@@ -663,7 +663,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_Log(const char * fmt);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -858,7 +858,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Window * SDL_CreateWindow(const char *title, int x, int y, int w, int h, Uint32 flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_CreateWindowAndRenderer",
@@ -1041,7 +1041,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_CreateWindowAndRenderer(int width, int height, Uint32 window_flags, SDL_Window ** window, SDL_Renderer ** renderer);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DestroyWindow",
@@ -1064,7 +1064,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_DestroyWindow(SDL_Window * window);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetWindowTitle",
@@ -1093,7 +1093,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_SetWindowTitle(SDL_Window * window, const char * title);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetWindowSize",
@@ -1128,7 +1128,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_GetWindowSize(SDL_Window * window, int * w, int * h);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetWindowSize",
@@ -1163,7 +1163,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_SetWindowSize(SDL_Window * window, int w, int h);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetWindowPosition",
@@ -1198,7 +1198,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_SetWindowPosition(SDL_Window * window, int x, int y);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_ShowWindow",
@@ -1221,7 +1221,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_ShowWindow(SDL_Window * window);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_HideWindow",
@@ -1244,7 +1244,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_HideWindow(SDL_Window * window);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_CreateRenderer",
@@ -1345,7 +1345,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Renderer * SDL_CreateRenderer(SDL_Window * window, int index, Uint32 flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DestroyRenderer",
@@ -1368,7 +1368,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_DestroyRenderer(SDL_Renderer * renderer);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetRenderDrawBlendMode",
@@ -1473,7 +1473,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_SetRenderDrawBlendMode(SDL_Renderer * renderer, SDL_BlendMode blendMode);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetWindowFullscreen",
@@ -1554,7 +1554,7 @@
                     }
                   ],
                   "declaration": "int SDL_SetWindowFullscreen(SDL_Window * window, Uint32 flags);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Window & Renderer",
                   "returnType": "int"
                 },
@@ -1575,7 +1575,7 @@
                     }
                   ],
                   "declaration": "Uint32 SDL_GetWindowFlags(SDL_Window * window);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Window & Renderer",
                   "returnType": "Uint32"
                 }
@@ -1630,7 +1630,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_SetRenderDrawColor(SDL_Renderer * renderer, Uint8 r, Uint8 g, Uint8 b, Uint8 a);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderClear",
@@ -1653,7 +1653,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_RenderClear(SDL_Renderer * renderer);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderDrawPoint",
@@ -1688,7 +1688,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_RenderDrawPoint(SDL_Renderer * renderer, int x, int y);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderDrawLine",
@@ -1735,7 +1735,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_RenderDrawLine(SDL_Renderer * renderer, int x1, int y1, int x2, int y2);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderDrawRect",
@@ -1764,7 +1764,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_RenderDrawRect(SDL_Renderer * renderer, const SDL_Rect * rect);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderFillRect",
@@ -1793,7 +1793,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_RenderFillRect(SDL_Renderer * renderer, const SDL_Rect * rect);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderCopy",
@@ -1834,7 +1834,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_RenderCopy(SDL_Renderer * renderer, SDL_Texture * texture, const SDL_Rect * srcrect, const SDL_Rect * dstrect);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderCopyEx",
@@ -1949,7 +1949,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_RenderCopyEx(SDL_Renderer * renderer, SDL_Texture * texture, const SDL_Rect * srcrect, const SDL_Rect * dstrect, const double angle, const SDL_Point * center, const SDL_RendererFlip flip);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderPresent",
@@ -1972,7 +1972,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_RenderPresent(SDL_Renderer * renderer);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -2001,7 +2001,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Surface * SDL_LoadBMP(const char * file);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SaveBMP",
@@ -2030,7 +2030,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_SaveBMP(SDL_Surface * surface, const char * file);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_CreateTexture",
@@ -2219,7 +2219,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Texture * SDL_CreateTexture(SDL_Renderer * renderer, Uint32 format, int access, int w, int h);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_CreateTextureFromSurface",
@@ -2248,7 +2248,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Texture * SDL_CreateTextureFromSurface(SDL_Renderer * renderer, SDL_Surface * surface);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_UpdateTexture",
@@ -2289,7 +2289,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_UpdateTexture(SDL_Texture * texture, const SDL_Rect * rect, const void * pixels, int pitch);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_QueryTexture",
@@ -2336,7 +2336,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_QueryTexture(SDL_Texture * texture, Uint32 * format, int * access, int * w, int * h);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DestroyTexture",
@@ -2359,7 +2359,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_DestroyTexture(SDL_Texture * texture);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_FreeSurface",
@@ -2382,7 +2382,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_FreeSurface(SDL_Surface * surface);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_FillRect",
@@ -2417,7 +2417,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_FillRect(SDL_Surface * dst, const SDL_Rect * rect, Uint32 color);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_BlitSurface",
@@ -2458,7 +2458,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_BlitSurface(SDL_Surface * src, const SDL_Rect * srcrect, SDL_Surface * dst, SDL_Rect * dstrect);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_ConvertSurfaceFormat",
@@ -2579,7 +2579,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Surface * SDL_ConvertSurfaceFormat(SDL_Surface * src, Uint32 pixel_format, Uint32 flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_MapRGB",
@@ -2620,7 +2620,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint32 SDL_MapRGB(const SDL_PixelFormat * format, Uint8 r, Uint8 g, Uint8 b);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_MapRGBA",
@@ -2667,7 +2667,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint32 SDL_MapRGBA(const SDL_PixelFormat * format, Uint8 r, Uint8 g, Uint8 b, Uint8 a);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetTextureBlendMode",
@@ -2768,7 +2768,7 @@
                     }
                   ],
                   "declaration": "int SDL_SetTextureBlendMode(SDL_Texture * texture, SDL_BlendMode blendMode);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Surfaces, Textures & Pixels",
                   "returnType": "int"
                 },
@@ -2851,7 +2851,7 @@
                     }
                   ],
                   "declaration": "int SDL_SetTextureScaleMode(SDL_Texture * texture, SDL_ScaleMode scaleMode);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Surfaces, Textures & Pixels",
                   "returnType": "int"
                 },
@@ -2878,7 +2878,7 @@
                     }
                   ],
                   "declaration": "int SDL_SetTextureAlphaMod(SDL_Texture * texture, Uint8 alpha);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Surfaces, Textures & Pixels",
                   "returnType": "int"
                 },
@@ -2917,7 +2917,7 @@
                     }
                   ],
                   "declaration": "int SDL_SetTextureColorMod(SDL_Texture * texture, Uint8 r, Uint8 g, Uint8 b);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Surfaces, Textures & Pixels",
                   "returnType": "int"
                 }
@@ -2948,7 +2948,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_PollEvent(SDL_Event * event);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_WaitEvent",
@@ -2971,7 +2971,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_WaitEvent(SDL_Event * event);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetKeyboardState",
@@ -2994,7 +2994,7 @@
                   "symbolKind": "function",
                   "declaration": "const Uint8 * SDL_GetKeyboardState(int * numkeys);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetMouseState",
@@ -3023,7 +3023,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint32 SDL_GetMouseState(int * x, int * y);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_WarpMouseInWindow",
@@ -3058,7 +3058,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_WarpMouseInWindow(SDL_Window * window, int x, int y);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_StartTextInput",
@@ -3074,7 +3074,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_StartTextInput(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_StopTextInput",
@@ -3090,7 +3090,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_StopTextInput(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_PushEvent",
@@ -3109,7 +3109,7 @@
                     }
                   ],
                   "declaration": "int SDL_PushEvent(SDL_Event * event);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Events, Keyboard & Mouse",
                   "returnType": "int"
                 },
@@ -3236,7 +3236,7 @@
                     }
                   ],
                   "declaration": "void SDL_FlushEvent(Uint32 type);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Events, Keyboard & Mouse"
                 },
                 {
@@ -3302,7 +3302,7 @@
                     }
                   ],
                   "declaration": "int SDL_SetRelativeMouseMode(SDL_bool enabled);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Events, Keyboard & Mouse",
                   "returnType": "int"
                 }
@@ -3333,7 +3333,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_Delay(Uint32 ms);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetTicks",
@@ -3349,7 +3349,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint32 SDL_GetTicks(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetPerformanceCounter",
@@ -3365,7 +3365,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint64 SDL_GetPerformanceCounter(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetPerformanceFrequency",
@@ -3381,7 +3381,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint64 SDL_GetPerformanceFrequency(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetClipboardText",
@@ -3404,7 +3404,7 @@
                   "symbolKind": "function",
                   "declaration": "int SDL_SetClipboardText(const char * text);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetClipboardText",
@@ -3420,7 +3420,7 @@
                   "symbolKind": "function",
                   "declaration": "char * SDL_GetClipboardText(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_HasClipboardText",
@@ -3436,7 +3436,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_bool SDL_HasClipboardText(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -3471,7 +3471,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_bool SDL_PointInRect(const SDL_Point * p, const SDL_Rect * r);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_HasIntersection",
@@ -3500,7 +3500,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_bool SDL_HasIntersection(const SDL_Rect * A, const SDL_Rect * B);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_IntersectRect",
@@ -3535,7 +3535,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_bool SDL_IntersectRect(const SDL_Rect * A, const SDL_Rect * B, SDL_Rect * result);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_UnionRect",
@@ -3570,7 +3570,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_UnionRect(const SDL_Rect * A, const SDL_Rect * B, SDL_Rect * result);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -3592,7 +3592,7 @@
                   "symbolKind": "enum",
                   "declaration": "typedef enum SDL_InitFlags {\n    SDL_INIT_TIMER,\n    SDL_INIT_AUDIO,\n    SDL_INIT_VIDEO,\n    SDL_INIT_JOYSTICK,\n    SDL_INIT_HAPTIC,\n    SDL_INIT_GAMECONTROLLER,\n    SDL_INIT_EVENTS,\n    SDL_INIT_EVERYTHING\n} SDL_InitFlags;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_WindowFlags",
@@ -3608,7 +3608,7 @@
                   "symbolKind": "enum",
                   "declaration": "typedef enum SDL_WindowFlags {\n    SDL_WINDOW_FULLSCREEN,\n    SDL_WINDOW_OPENGL,\n    SDL_WINDOW_SHOWN,\n    SDL_WINDOW_HIDDEN,\n    SDL_WINDOW_BORDERLESS,\n    SDL_WINDOW_RESIZABLE,\n    SDL_WINDOW_MINIMIZED,\n    SDL_WINDOW_MAXIMIZED,\n    SDL_WINDOW_INPUT_GRABBED,\n    SDL_WINDOW_ALLOW_HIGHDPI\n} SDL_WindowFlags;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RendererFlags",
@@ -3624,7 +3624,7 @@
                   "symbolKind": "enum",
                   "declaration": "typedef enum SDL_RendererFlags {\n    SDL_RENDERER_SOFTWARE,\n    SDL_RENDERER_ACCELERATED,\n    SDL_RENDERER_PRESENTVSYNC,\n    SDL_RENDERER_TARGETTEXTURE\n} SDL_RendererFlags;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_EventType",
@@ -3640,7 +3640,7 @@
                   "symbolKind": "enum",
                   "declaration": "typedef enum SDL_EventType {\n    SDL_QUIT,\n    SDL_WINDOWEVENT,\n    SDL_KEYDOWN,\n    SDL_KEYUP,\n    SDL_MOUSEMOTION,\n    SDL_MOUSEBUTTONDOWN,\n    SDL_MOUSEBUTTONUP,\n    SDL_MOUSEWHEEL,\n    SDL_TEXTINPUT,\n    SDL_USEREVENT\n} SDL_EventType;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_BlendMode",
@@ -3656,7 +3656,7 @@
                   "symbolKind": "enum",
                   "declaration": "typedef enum SDL_BlendMode {\n    SDL_BLENDMODE_NONE,\n    SDL_BLENDMODE_BLEND,\n    SDL_BLENDMODE_ADD,\n    SDL_BLENDMODE_MOD,\n    SDL_BLENDMODE_MUL\n} SDL_BlendMode;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_ScaleMode",
@@ -3672,7 +3672,7 @@
                   "symbolKind": "enum",
                   "declaration": "typedef enum SDL_ScaleMode {\n    SDL_ScaleModeNearest,\n    SDL_ScaleModeLinear,\n    SDL_ScaleModeBest\n} SDL_ScaleMode;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -3694,7 +3694,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef struct SDL_Point {\n    int x;\n    int y;\n} SDL_Point;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_FPoint",
@@ -3710,7 +3710,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef struct SDL_FPoint {\n    float x;\n    float y;\n} SDL_FPoint;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Rect",
@@ -3726,7 +3726,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef struct SDL_Rect {\n    int x, y;\n    int w, h;\n} SDL_Rect;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_FRect",
@@ -3742,7 +3742,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef struct SDL_FRect {\n    float x;\n    float y;\n    float w;\n    float h;\n} SDL_FRect;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Color",
@@ -3758,7 +3758,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef struct SDL_Color {\n    Uint8 r;\n    Uint8 g;\n    Uint8 b;\n    Uint8 a;\n} SDL_Color;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DisplayMode",
@@ -3774,7 +3774,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef struct SDL_DisplayMode {\n    Uint32 format;\n    int w;\n    int h;\n    int refresh_rate;\n    void *driverdata;\n} SDL_DisplayMode;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RendererInfo",
@@ -3790,7 +3790,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef struct SDL_RendererInfo {\n    const char *name;\n    Uint32 flags;\n    Uint32 num_texture_formats;\n    Uint32 texture_formats[16];\n    int max_texture_width;\n    int max_texture_height;\n} SDL_RendererInfo;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Keysym",
@@ -3806,7 +3806,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef struct SDL_Keysym {\n    SDL_Scancode scancode;\n    SDL_Keycode sym;\n    Uint16 mod;\n    Uint32 unused;\n} SDL_Keysym;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Event",
@@ -3822,7 +3822,7 @@
                   "symbolKind": "struct",
                   "declaration": "typedef union SDL_Event {\n    Uint32 type;\n    SDL_KeyboardEvent key;\n    SDL_MouseMotionEvent motion;\n    SDL_MouseButtonEvent button;\n    SDL_MouseWheelEvent wheel;\n    SDL_WindowEvent window;\n    SDL_TextInputEvent text;\n    SDL_QuitEvent quit;\n    SDL_UserEvent user;\n} SDL_Event;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -3844,7 +3844,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct SDL_Window SDL_Window;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Renderer",
@@ -3860,7 +3860,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct SDL_Renderer SDL_Renderer;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Texture",
@@ -3876,7 +3876,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct SDL_Texture SDL_Texture;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Surface",
@@ -3892,7 +3892,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct SDL_Surface SDL_Surface;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Cursor",
@@ -3908,7 +3908,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct SDL_Cursor SDL_Cursor;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RWops",
@@ -3924,7 +3924,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct SDL_RWops SDL_RWops;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GLContext",
@@ -3940,7 +3940,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef void * SDL_GLContext;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_AudioDeviceID",
@@ -3956,7 +3956,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef Uint32 SDL_AudioDeviceID;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_TimerID",
@@ -3972,7 +3972,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef int SDL_TimerID;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_EventFilter",
@@ -3988,7 +3988,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef int (SDLCALL * SDL_EventFilter)(void *userdata, SDL_Event *event);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -4008,7 +4008,7 @@
                   "parameters": [],
                   "symbolKind": "snippet",
                   "declaration": "if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {\n    SDL_Log(\"SDL_Init failed: %s\", SDL_GetError());\n    return 1;\n}\n\nSDL_Window *window = SDL_CreateWindow(\"SDL App\", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);\nSDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);\nint running = 1;\nSDL_Event event;\n\nwhile (running) {\n    while (SDL_PollEvent(&event)) {\n        if (event.type == SDL_QUIT) {\n            running = 0;\n        }\n    }\n\n    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);\n    SDL_RenderClear(renderer);\n    SDL_RenderPresent(renderer);\n}\n\nSDL_DestroyRenderer(renderer);\nSDL_DestroyWindow(window);\nSDL_Quit();",
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Texture from image surface",
@@ -4022,7 +4022,7 @@
                   "parameters": [],
                   "symbolKind": "snippet",
                   "declaration": "SDL_Surface *surface = SDL_LoadBMP(\"sprite.bmp\");\nif (!surface) {\n    SDL_Log(\"SDL_LoadBMP failed: %s\", SDL_GetError());\n}\n\nSDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);\nSDL_FreeSurface(surface);\n\nif (!texture) {\n    SDL_Log(\"SDL_CreateTextureFromSurface failed: %s\", SDL_GetError());\n}",
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Event switch skeleton",
@@ -4036,7 +4036,7 @@
                   "parameters": [],
                   "symbolKind": "snippet",
                   "declaration": "SDL_Event event;\nwhile (SDL_PollEvent(&event)) {\n    switch (event.type) {\n    case SDL_QUIT:\n        running = 0;\n        break;\n    case SDL_KEYDOWN:\n        if (event.key.keysym.sym == SDLK_ESCAPE) {\n            running = 0;\n        }\n        break;\n    case SDL_MOUSEBUTTONDOWN:\n        SDL_Log(\"mouse click at %d,%d\", event.button.x, event.button.y);\n        break;\n    }\n}",
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Renderer setup with common flags",
@@ -4052,7 +4052,7 @@
                   "symbolKind": "snippet",
                   "declaration": "SDL_Window *window = SDL_CreateWindow(\n    \"App\",\n    SDL_WINDOWPOS_CENTERED,\n    SDL_WINDOWPOS_CENTERED,\n    1280,\n    720,\n    SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE\n);\n\nSDL_Renderer *renderer = SDL_CreateRenderer(\n    window,\n    -1,\n    SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC\n);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Rect-based draw frame",
@@ -4068,7 +4068,7 @@
                   "symbolKind": "snippet",
                   "declaration": "SDL_Rect rect = { 100, 80, 320, 180 };\nSDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);\nSDL_RenderClear(renderer);\nSDL_SetRenderDrawColor(renderer, 0, 180, 255, 255);\nSDL_RenderFillRect(renderer, &rect);\nSDL_RenderPresent(renderer);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -4086,7 +4086,7 @@
                   "longDescription": "Reference note explaining exclusive SDL enums and composable bitmasks.",
                   "parameters": [],
                   "declaration": "SDL enum / bitmask advanced-picker navigation guide",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Reference Guides",
                   "returnType": "reference"
                 }
@@ -4108,7 +4108,7 @@
                   "parameters": [],
                   "symbolKind": "reference",
                   "declaration": "// SDL2 -> SDL3 migration reference",
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -4228,7 +4228,7 @@
                   "symbolKind": "function",
                   "declaration": "int IMG_Init(int flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "IMG_Quit",
@@ -4244,7 +4244,7 @@
                   "symbolKind": "function",
                   "declaration": "void IMG_Quit(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "IMG_Load",
@@ -4267,7 +4267,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Surface * IMG_Load(const char * file);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "IMG_Load_RW",
@@ -4342,7 +4342,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Surface * IMG_Load_RW(SDL_RWops * src, int freesrc);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "IMG_LoadTexture",
@@ -4371,7 +4371,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Texture * IMG_LoadTexture(SDL_Renderer * renderer, const char * file);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "IMG_LoadTexture_RW",
@@ -4452,7 +4452,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Texture * IMG_LoadTexture_RW(SDL_Renderer * renderer, SDL_RWops * src, int freesrc);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "IMG_SavePNG",
@@ -4481,7 +4481,7 @@
                   "symbolKind": "function",
                   "declaration": "int IMG_SavePNG(SDL_Surface * surface, const char * file);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "IMG_SaveJPG",
@@ -4516,7 +4516,7 @@
                   "symbolKind": "function",
                   "declaration": "int IMG_SaveJPG(SDL_Surface * surface, const char * file, int quality);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -4538,7 +4538,7 @@
                   "symbolKind": "enum",
                   "declaration": "typedef enum IMG_InitFlags {\n    IMG_INIT_JPG,\n    IMG_INIT_PNG,\n    IMG_INIT_TIF,\n    IMG_INIT_WEBP,\n    IMG_INIT_JXL,\n    IMG_INIT_AVIF\n} IMG_InitFlags;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -4563,7 +4563,7 @@
                   "parameters": [],
                   "symbolKind": "snippet",
                   "declaration": "if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) == 0) {\n    SDL_Log(\"IMG_Init failed: %s\", IMG_GetError());\n}\n\nSDL_Texture *texture = IMG_LoadTexture(renderer, \"sprite.png\");\nif (!texture) {\n    SDL_Log(\"IMG_LoadTexture failed: %s\", IMG_GetError());\n}",
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "IMG codec startup check",
@@ -4579,7 +4579,7 @@
                   "symbolKind": "snippet",
                   "declaration": "int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;\nif ((IMG_Init(imgFlags) & imgFlags) != imgFlags)\n{\n    SDL_Log(\"IMG_Init failed: %s\", IMG_GetError());\n}",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -4606,7 +4606,7 @@
                   "symbolKind": "function",
                   "declaration": "int TTF_Init(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_Quit",
@@ -4622,7 +4622,7 @@
                   "symbolKind": "function",
                   "declaration": "void TTF_Quit(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_WasInit",
@@ -4638,7 +4638,7 @@
                   "symbolKind": "function",
                   "declaration": "int TTF_WasInit(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_OpenFont",
@@ -4667,7 +4667,7 @@
                   "symbolKind": "function",
                   "declaration": "TTF_Font * TTF_OpenFont(const char * file, int ptsize);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_CloseFont",
@@ -4690,7 +4690,7 @@
                   "symbolKind": "function",
                   "declaration": "void TTF_CloseFont(TTF_Font * font);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_SetFontStyle",
@@ -4795,7 +4795,7 @@
                   "symbolKind": "function",
                   "declaration": "void TTF_SetFontStyle(TTF_Font * font, int style);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_GetFontStyle",
@@ -4818,7 +4818,7 @@
                   "symbolKind": "function",
                   "declaration": "int TTF_GetFontStyle(const TTF_Font * font);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_FontHeight",
@@ -4841,7 +4841,7 @@
                   "symbolKind": "function",
                   "declaration": "int TTF_FontHeight(const TTF_Font * font);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -4882,7 +4882,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Surface * TTF_RenderText_Solid(TTF_Font * font, const char * text, SDL_Color fg);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_RenderText_Blended",
@@ -4917,7 +4917,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Surface * TTF_RenderText_Blended(TTF_Font * font, const char * text, SDL_Color fg);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_RenderUTF8_Blended",
@@ -4952,7 +4952,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Surface * TTF_RenderUTF8_Blended(TTF_Font * font, const char * text, SDL_Color fg);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_SizeText",
@@ -4993,7 +4993,7 @@
                   "symbolKind": "function",
                   "declaration": "int TTF_SizeText(TTF_Font * font, const char * text, int * w, int * h);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF_SizeUTF8",
@@ -5034,7 +5034,7 @@
                   "symbolKind": "function",
                   "declaration": "int TTF_SizeUTF8(TTF_Font * font, const char * text, int * w, int * h);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -5056,7 +5056,7 @@
                   "symbolKind": "enum",
                   "declaration": "enum {\n    TTF_STYLE_NORMAL,\n    TTF_STYLE_BOLD,\n    TTF_STYLE_ITALIC,\n    TTF_STYLE_UNDERLINE,\n    TTF_STYLE_STRIKETHROUGH\n};",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -5078,7 +5078,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct TTF_Font TTF_Font;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -5098,7 +5098,7 @@
                   "parameters": [],
                   "symbolKind": "snippet",
                   "declaration": "SDL_Color white = {255, 255, 255, 255};\nTTF_Font *font = TTF_OpenFont(\"font.ttf\", 24);\nSDL_Surface *textSurface = TTF_RenderUTF8_Blended(font, \"Hello SDL_ttf\", white);\nSDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);\nSDL_FreeSurface(textSurface);\nTTF_CloseFont(font);",
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "TTF open font and set style",
@@ -5114,7 +5114,7 @@
                   "symbolKind": "snippet",
                   "declaration": "TTF_Font *font = TTF_OpenFont(\"assets/Roboto-Regular.ttf\", 24);\nif (!font)\n{\n    SDL_Log(\"TTF_OpenFont failed: %s\", TTF_GetError());\n}\nTTF_SetFontStyle(font, TTF_STYLE_BOLD);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -5234,7 +5234,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_Init(int flags);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_Quit",
@@ -5250,7 +5250,7 @@
                   "symbolKind": "function",
                   "declaration": "void Mix_Quit(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_OpenAudio",
@@ -5347,7 +5347,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_OpenAudio(int frequency, Uint16 format, int channels, int chunksize);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_OpenAudioDevice",
@@ -5532,7 +5532,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_OpenAudioDevice(int frequency, Uint16 format, int channels, int chunksize, const char * device, int allowed_changes);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_CloseAudio",
@@ -5548,7 +5548,7 @@
                   "symbolKind": "function",
                   "declaration": "void Mix_CloseAudio(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_QuerySpec",
@@ -5583,7 +5583,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_QuerySpec(int * frequency, Uint16 * format, int * channels);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_AllocateChannels",
@@ -5606,7 +5606,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_AllocateChannels(int numchans);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -5635,7 +5635,7 @@
                   "symbolKind": "function",
                   "declaration": "Mix_Chunk * Mix_LoadWAV(const char * file);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_LoadMUS",
@@ -5658,7 +5658,7 @@
                   "symbolKind": "function",
                   "declaration": "Mix_Music * Mix_LoadMUS(const char * file);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_FreeChunk",
@@ -5681,7 +5681,7 @@
                   "symbolKind": "function",
                   "declaration": "void Mix_FreeChunk(Mix_Chunk * chunk);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_FreeMusic",
@@ -5704,7 +5704,7 @@
                   "symbolKind": "function",
                   "declaration": "void Mix_FreeMusic(Mix_Music * music);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -5745,7 +5745,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_PlayChannel(int channel, Mix_Chunk * chunk, int loops);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_PlayMusic",
@@ -5774,7 +5774,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_PlayMusic(Mix_Music * music, int loops);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_Volume",
@@ -5803,7 +5803,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_Volume(int channel, int volume);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_VolumeMusic",
@@ -5826,7 +5826,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_VolumeMusic(int volume);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_HaltChannel",
@@ -5849,7 +5849,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_HaltChannel(int channel);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_HaltMusic",
@@ -5865,7 +5865,7 @@
                   "symbolKind": "function",
                   "declaration": "int Mix_HaltMusic(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_Pause",
@@ -5888,7 +5888,7 @@
                   "symbolKind": "function",
                   "declaration": "void Mix_Pause(int channel);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_Resume",
@@ -5911,7 +5911,7 @@
                   "symbolKind": "function",
                   "declaration": "void Mix_Resume(int channel);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_PauseMusic",
@@ -5927,7 +5927,7 @@
                   "symbolKind": "function",
                   "declaration": "void Mix_PauseMusic(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_ResumeMusic",
@@ -5943,7 +5943,7 @@
                   "symbolKind": "function",
                   "declaration": "void Mix_ResumeMusic(void);",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -5965,7 +5965,7 @@
                   "symbolKind": "enum",
                   "declaration": "typedef enum MIX_InitFlags {\n    MIX_INIT_FLAC,\n    MIX_INIT_MOD,\n    MIX_INIT_MP3,\n    MIX_INIT_OGG,\n    MIX_INIT_MID,\n    MIX_INIT_OPUS\n} MIX_InitFlags;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -5987,7 +5987,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct Mix_Chunk Mix_Chunk;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mix_Music",
@@ -6003,7 +6003,7 @@
                   "symbolKind": "typedef",
                   "declaration": "typedef struct _Mix_Music Mix_Music;",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -6023,7 +6023,7 @@
                   "parameters": [],
                   "symbolKind": "snippet",
                   "declaration": "if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) == -1) {\n    SDL_Log(\"Mix_OpenAudio failed: %s\", Mix_GetError());\n}\n\nMix_Chunk *click = Mix_LoadWAV(\"click.wav\");\nif (click) {\n    Mix_PlayChannel(-1, click, 0);\n}",
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 },
                 {
                   "name": "Mixer startup with codec check",
@@ -6039,7 +6039,7 @@
                   "symbolKind": "snippet",
                   "declaration": "if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)\n{\n    SDL_Log(\"Mix_OpenAudio failed: %s\", Mix_GetError());\n}\nint mixFlags = MIX_INIT_OGG | MIX_INIT_MP3;\nif ((Mix_Init(mixFlags) & mixFlags) != mixFlags)\n{\n    SDL_Log(\"Mix_Init warning: %s\", Mix_GetError());\n}",
                   "isStatic": false,
-                  "environment": "SDL2"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -6062,7 +6062,7 @@
                   "longDescription": "Initialize SDL2_net.",
                   "parameters": [],
                   "declaration": "int SDLNet_Init(void);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Initialization & Address Resolution",
                   "returnType": "int"
                 },
@@ -6076,7 +6076,7 @@
                   "longDescription": "Shut down SDL2_net.",
                   "parameters": [],
                   "declaration": "void SDLNet_Quit(void);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Initialization & Address Resolution"
                 },
                 {
@@ -6089,7 +6089,7 @@
                   "longDescription": "Return the latest SDL2_net error message.",
                   "parameters": [],
                   "declaration": "const char * SDLNet_GetError(void);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Initialization & Address Resolution",
                   "returnType": "const char *"
                 },
@@ -6122,7 +6122,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_ResolveHost(IPaddress * address, const char * host, Uint16 port);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Initialization & Address Resolution",
                   "returnType": "int"
                 },
@@ -6143,7 +6143,7 @@
                     }
                   ],
                   "declaration": "const char * SDLNet_ResolveIP(const IPaddress * ip);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Initialization & Address Resolution",
                   "returnType": "const char *"
                 }
@@ -6169,7 +6169,7 @@
                     }
                   ],
                   "declaration": "TCPsocket SDLNet_TCP_Open(IPaddress * ip);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "TCP Streams",
                   "returnType": "TCPsocket"
                 },
@@ -6190,7 +6190,7 @@
                     }
                   ],
                   "declaration": "TCPsocket SDLNet_TCP_Accept(TCPsocket server);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "TCP Streams",
                   "returnType": "TCPsocket"
                 },
@@ -6223,7 +6223,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_TCP_Send(TCPsocket sock, const void * data, int len);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "TCP Streams",
                   "returnType": "int"
                 },
@@ -6256,7 +6256,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_TCP_Recv(TCPsocket sock, void * data, int maxlen);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "TCP Streams",
                   "returnType": "int"
                 },
@@ -6277,7 +6277,7 @@
                     }
                   ],
                   "declaration": "void SDLNet_TCP_Close(TCPsocket sock);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "TCP Streams"
                 }
               ]
@@ -6302,7 +6302,7 @@
                     }
                   ],
                   "declaration": "UDPsocket SDLNet_UDP_Open(Uint16 port);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "UDP Datagrams",
                   "returnType": "UDPsocket"
                 },
@@ -6323,7 +6323,7 @@
                     }
                   ],
                   "declaration": "UDPpacket * SDLNet_AllocPacket(int size);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "UDP Datagrams",
                   "returnType": "UDPpacket *"
                 },
@@ -6344,7 +6344,7 @@
                     }
                   ],
                   "declaration": "void SDLNet_FreePacket(UDPpacket * packet);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "UDP Datagrams"
                 },
                 {
@@ -6376,7 +6376,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_UDP_Bind(UDPsocket sock, int channel, const IPaddress * address);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "UDP Datagrams",
                   "returnType": "int"
                 },
@@ -6409,7 +6409,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_UDP_Send(UDPsocket sock, int channel, UDPpacket * packet);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "UDP Datagrams",
                   "returnType": "int"
                 },
@@ -6436,7 +6436,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_UDP_Recv(UDPsocket sock, UDPpacket * packet);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "UDP Datagrams",
                   "returnType": "int"
                 },
@@ -6457,7 +6457,7 @@
                     }
                   ],
                   "declaration": "void SDLNet_UDP_Close(UDPsocket sock);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "UDP Datagrams"
                 }
               ]
@@ -6482,7 +6482,7 @@
                     }
                   ],
                   "declaration": "SDLNet_SocketSet SDLNet_AllocSocketSet(int maxsockets);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Socket Sets & Polling",
                   "returnType": "SDLNet_SocketSet"
                 },
@@ -6509,7 +6509,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_TCP_AddSocket(SDLNet_SocketSet set, TCPsocket sock);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Socket Sets & Polling",
                   "returnType": "int"
                 },
@@ -6536,7 +6536,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_UDP_AddSocket(SDLNet_SocketSet set, UDPsocket sock);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Socket Sets & Polling",
                   "returnType": "int"
                 },
@@ -6563,7 +6563,7 @@
                     }
                   ],
                   "declaration": "int SDLNet_CheckSockets(SDLNet_SocketSet set, Uint32 timeout);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Socket Sets & Polling",
                   "returnType": "int"
                 },
@@ -6584,7 +6584,7 @@
                     }
                   ],
                   "declaration": "void SDLNet_FreeSocketSet(SDLNet_SocketSet set);",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Socket Sets & Polling"
                 }
               ]
@@ -6602,7 +6602,7 @@
                   "longDescription": "IPv4 host and port in SDL2_net network byte order.",
                   "parameters": [],
                   "declaration": "typedef struct IPaddress { Uint32 host; Uint16 port; } IPaddress;",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "typedefs & structs",
                   "returnType": "type"
                 },
@@ -6616,7 +6616,7 @@
                   "longDescription": "Opaque SDL2_net TCP socket handle.",
                   "parameters": [],
                   "declaration": "typedef struct _TCPsocket *TCPsocket;",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "typedefs & structs",
                   "returnType": "type"
                 },
@@ -6630,7 +6630,7 @@
                   "longDescription": "Opaque SDL2_net UDP socket handle.",
                   "parameters": [],
                   "declaration": "typedef struct _UDPsocket *UDPsocket;",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "typedefs & structs",
                   "returnType": "type"
                 },
@@ -6644,7 +6644,7 @@
                   "longDescription": "Opaque SDL2_net readiness-polling set.",
                   "parameters": [],
                   "declaration": "typedef struct _SDLNet_SocketSet *SDLNet_SocketSet;",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "typedefs & structs",
                   "returnType": "type"
                 },
@@ -6658,7 +6658,7 @@
                   "longDescription": "SDL2_net UDP packet buffer and peer address.",
                   "parameters": [],
                   "declaration": "typedef struct UDPpacket { int channel; Uint8 *data; int len; int maxlen; int status; IPaddress address; } UDPpacket;",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "typedefs & structs",
                   "returnType": "type"
                 }
@@ -6677,7 +6677,7 @@
                   "longDescription": "TCP client sequence using SDL2_net.",
                   "parameters": [],
                   "declaration": "SDL2_net TCP client lifecycle",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Snippets",
                   "returnType": "snippet"
                 },
@@ -6691,19 +6691,14 @@
                   "longDescription": "UDP packet sequence using SDL2_net.",
                   "parameters": [],
                   "declaration": "SDL2_net UDP packet lifecycle",
-                  "environment": "SDL2",
+                  "environment": "SDL",
                   "category": "Snippets",
                   "returnType": "snippet"
                 }
               ]
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "SDL3",
-      "libraries": [
+        },
         {
           "name": "SDL3",
           "categories": [
@@ -6847,7 +6842,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_Init(SDL_InitFlags flags);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_InitSubSystem",
@@ -6986,7 +6981,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_InitSubSystem(SDL_InitFlags flags);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_QuitSubSystem",
@@ -7125,7 +7120,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_QuitSubSystem(SDL_InitFlags flags);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_WasInit",
@@ -7274,7 +7269,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_InitFlags SDL_WasInit(SDL_InitFlags flags);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Quit",
@@ -7290,7 +7285,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_Quit(void);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -7546,7 +7541,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Window * SDL_CreateWindow(const char *title, int w, int h, SDL_WindowFlags flags);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_CreateWindowAndRenderer",
@@ -7810,7 +7805,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_CreateWindowAndRenderer(const char *title, int width, int height, SDL_WindowFlags window_flags, SDL_Window **window, SDL_Renderer **renderer);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_CreateWindowWithProperties",
@@ -7834,7 +7829,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Window * SDL_CreateWindowWithProperties(SDL_PropertiesID props);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DestroyWindow",
@@ -7858,7 +7853,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_DestroyWindow(SDL_Window *window);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_ShowWindow",
@@ -7882,7 +7877,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_ShowWindow(SDL_Window *window);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetWindowFullscreen",
@@ -7958,7 +7953,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_SetWindowFullscreen(SDL_Window *window, bool fullscreen);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetWindowFullscreenMode",
@@ -7989,7 +7984,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_SetWindowFullscreenMode(SDL_Window *window, const SDL_DisplayMode *mode);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetWindowSize",
@@ -8027,7 +8022,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_GetWindowSize(SDL_Window *window, int *w, int *h);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetWindowSizeInPixels",
@@ -8065,7 +8060,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_GetWindowSizeInPixels(SDL_Window *window, int *w, int *h);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_CreateRenderer",
@@ -8096,7 +8091,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Renderer * SDL_CreateRenderer(SDL_Window *window, const char *name);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DestroyRenderer",
@@ -8120,7 +8115,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_DestroyRenderer(SDL_Renderer *renderer);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -8178,7 +8173,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_SetRenderDrawColor(SDL_Renderer *renderer, Uint8 r, Uint8 g, Uint8 b, Uint8 a);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderClear",
@@ -8202,7 +8197,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_RenderClear(SDL_Renderer *renderer);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderPresent",
@@ -8226,7 +8221,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_RenderPresent(SDL_Renderer *renderer);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderLine",
@@ -8278,7 +8273,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_RenderLine(SDL_Renderer *renderer, float x1, float y1, float x2, float y2);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderRect",
@@ -8309,7 +8304,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_RenderRect(SDL_Renderer *renderer, const SDL_FRect *rect);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderFillRect",
@@ -8340,7 +8335,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_RenderFillRect(SDL_Renderer *renderer, const SDL_FRect *rect);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_RenderTexture",
@@ -8385,7 +8380,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_RenderTexture(SDL_Renderer *renderer, SDL_Texture *texture, const SDL_FRect *srcrect, const SDL_FRect *dstrect);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -8573,7 +8568,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Texture * SDL_CreateTexture(SDL_Renderer *renderer, SDL_PixelFormat format, SDL_TextureAccess access, int w, int h);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_CreateTextureFromSurface",
@@ -8604,7 +8599,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Texture * SDL_CreateTextureFromSurface(SDL_Renderer *renderer, SDL_Surface *surface);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DestroyTexture",
@@ -8628,7 +8623,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_DestroyTexture(SDL_Texture *texture);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_LoadBMP",
@@ -8652,7 +8647,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_Surface * SDL_LoadBMP(const char *file);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DestroySurface",
@@ -8676,7 +8671,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_DestroySurface(SDL_Surface *surface);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetTextureBlendMode",
@@ -8782,7 +8777,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_SetTextureBlendMode(SDL_Texture *texture, SDL_BlendMode blendMode);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -8812,7 +8807,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_PollEvent(SDL_Event *event);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_WaitEvent",
@@ -8836,7 +8831,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_WaitEvent(SDL_Event *event);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetKeyboardState",
@@ -8860,7 +8855,7 @@
                   "symbolKind": "function",
                   "declaration": "const bool * SDL_GetKeyboardState(int *numkeys);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetMouseState",
@@ -8891,7 +8886,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_MouseButtonFlags SDL_GetMouseState(float *x, float *y);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL3 event loop switch skeleton",
@@ -8978,7 +8973,7 @@
                   "symbolKind": "snippet",
                   "declaration": "SDL3 event loop switch skeleton",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -9000,7 +8995,7 @@
                   "symbolKind": "function",
                   "declaration": "const char * SDL_GetError(void);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Log",
@@ -9024,7 +9019,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_Log(const char *fmt, ...);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_Delay",
@@ -9048,7 +9043,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_Delay(Uint32 ms);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetTicks",
@@ -9064,7 +9059,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint64 SDL_GetTicks(void);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetPerformanceCounter",
@@ -9080,7 +9075,7 @@
                   "symbolKind": "function",
                   "declaration": "Uint64 SDL_GetPerformanceCounter(void);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_GetClipboardText",
@@ -9096,7 +9091,7 @@
                   "symbolKind": "function",
                   "declaration": "char * SDL_GetClipboardText(void);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetClipboardText",
@@ -9120,7 +9115,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_SetClipboardText(const char *text);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -9142,7 +9137,7 @@
                   "symbolKind": "function",
                   "declaration": "SDL_PropertiesID SDL_CreateProperties(void);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_DestroyProperties",
@@ -9166,7 +9161,7 @@
                   "symbolKind": "function",
                   "declaration": "void SDL_DestroyProperties(SDL_PropertiesID props);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetStringProperty",
@@ -9204,7 +9199,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_SetStringProperty(SDL_PropertiesID props, const char *name, const char *value);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL_SetNumberProperty",
@@ -9242,7 +9237,7 @@
                   "symbolKind": "function",
                   "declaration": "bool SDL_SetNumberProperty(SDL_PropertiesID props, const char *name, Sint64 value);",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL3 CreateWindowWithProperties recipe",
@@ -9506,7 +9501,7 @@
                   "symbolKind": "snippet",
                   "declaration": "SDL3 CreateWindowWithProperties recipe",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -9762,7 +9757,7 @@
                   "symbolKind": "snippet",
                   "declaration": "SDL3 minimal window loop",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL3 renderer loop",
@@ -10040,7 +10035,7 @@
                   "symbolKind": "snippet",
                   "declaration": "SDL3 renderer loop",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "CMake SDL3 find_package target",
@@ -10071,7 +10066,7 @@
                   "symbolKind": "snippet",
                   "declaration": "CMake SDL3 target",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []
@@ -10093,7 +10088,7 @@
                   "symbolKind": "reference",
                   "declaration": "SDL2 to SDL3 window migration note",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL2 to SDL3 renderer migration note",
@@ -10109,7 +10104,7 @@
                   "symbolKind": "reference",
                   "declaration": "SDL2 to SDL3 renderer migration note",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 },
                 {
                   "name": "SDL2 to SDL3 surface cleanup migration note",
@@ -10125,7 +10120,7 @@
                   "symbolKind": "reference",
                   "declaration": "SDL2 to SDL3 surface cleanup migration note",
                   "isStatic": false,
-                  "environment": "SDL3"
+                  "environment": "SDL"
                 }
               ],
               "groups": []

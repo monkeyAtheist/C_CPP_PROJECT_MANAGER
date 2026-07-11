@@ -202,3 +202,8 @@ The embedded library manager imports the JC Lib 0.8.9 SDL2 / SDL3 pack routing a
 ## 0.2.49 editor utility integration
 
 The editor context menu now imports the JC Lib 0.8.24 utility surface into CPM-specific commands. The implementation lives in `src/services/cpmEditorUtilitiesService.ts` and registers character/encoding tools, number/bit tools, logic/FSM generation and digital filter design alongside the existing snippet, header, special-text and color services.
+
+### v0.2.51 embedded library pack refresh
+
+The embedded JC Lib manager now includes the JC Lib 0.8.27 structured packs. Pack imports preserve the source environment/library hierarchy, including the refreshed SDL, Lua, Embedded and Windows API / Devices layouts, plus the new Assembly and Visual Basic / VBA packs.
+
