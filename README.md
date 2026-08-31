@@ -1,3 +1,15 @@
+### Structured build output
+
+CPM now separates normal build readability from raw tool diagnostics. The main `C/C++ Project Manager` output channel shows a structured report with phases, compiled files, warnings, errors, contextual hints and the final status. Full commands and unfiltered stdout/stderr are preserved in `C/C++ Project Manager - Build Trace`.
+
+Use `cpm.buildLogDetail` to select the main report density:
+
+- `compact`: phase summaries, warnings, errors and final status.
+- `normal`: compiled files, durations, structured diagnostics and hints.
+- `verbose`: normal report plus commands and successful raw output in the main channel.
+
+Parsed diagnostics are also sent to VS Code Problems with source `CPM Build`. The commands `C/C++ Project Manager: Show Build Problems` and `C/C++ Project Manager: Show Full Build Trace` are available from the Command Palette.
+
 
 ## 0.2.47 embedded library manager update
 

@@ -1,3 +1,14 @@
+## 0.2.54 - Structured CPM build reports
+
+- Reworked the main `C/C++ Project Manager` output channel into a structured build report with clear build order, project/toolchain, compilation, link and final summary sections.
+- Added the secondary `C/C++ Project Manager - Build Trace` output channel, which keeps full commands, working directories, stdout, stderr, exit codes and tool durations.
+- Captured compiler/linker output per process before rendering it, preventing parallel or sequential tool output from becoming interleaved in the readable build report.
+- Added diagnostic parsing for GCC, G++, MinGW, Clang, MSVC-style diagnostics and common GNU linker errors.
+- Added contextual hints for common errors: undeclared identifiers, incomplete types, no matching overload, undefined references, missing libraries/includes and multiple definitions.
+- Published parsed build diagnostics to VS Code Problems with source `CPM Build`.
+- Added commands `C/C++ Project Manager: Show Build Problems` and `C/C++ Project Manager: Show Full Build Trace`.
+- Added setting `cpm.buildLogDetail` with `compact`, `normal` and `verbose` modes.
+
 ## 0.2.52 - CPM activity bar logo refresh
 
 - Reworked the CPM activity-bar icon to use a Qt-style rounded-square outline with a compact `PM` monogram for better readability at VS Code sidebar size.

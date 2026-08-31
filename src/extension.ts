@@ -23,6 +23,8 @@ import { CpmEditorUtilitiesService } from './services/cpmEditorUtilitiesService'
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
+  const buildTraceOutput = vscode.window.createOutputChannel('C/C++ Project Manager - Build Trace');
+  const buildDiagnostics = vscode.languages.createDiagnosticCollection('CPM Build');
   await migrateLegacyConfiguration(output);
   const parser = new CpmParser();
   const installations = new CpmInstallationService(output);
@@ -31,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const sdl = new CpmSdlService(output);
   const workspaces = new CpmWorkspaceService(context, parser, installations, templates, sdl, output);
   const projectSettings = new CpmProjectSettingsService(workspaces, parser, output);
-  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output);
+  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output, buildTraceOutput, buildDiagnostics);
   const treeProvider = new CpmTreeProvider(workspaces);
   const treeView = vscode.window.createTreeView('cpm.workspaceExplorer', { treeDataProvider: treeProvider, showCollapseAll: true });
   const symbols = new CpmSymbolService(context.extensionPath, workspaces);
@@ -107,6 +109,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     output,
+    buildTraceOutput,
+    buildDiagnostics,
     workspaces,
     home,
     buildSettings,
@@ -174,6 +178,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.selectBuildModeD64', () => builds.selectBuildMode()),
     register('cpm.selectBuildModeR64', () => builds.selectBuildMode()),
     register('cpm.chooseBuildAction', () => builds.chooseBuildAction()),
+    register('cpm.showBuildProblems', () => builds.showBuildProblems()),
+    register('cpm.showFullBuildTrace', () => builds.showFullBuildTrace()),
     register('cpm.build', () => builds.build(false)),
     register('cpm.rebuild', () => builds.build(true)),
     register('cpm.clean', () => builds.clean()),
@@ -298,6 +304,7 @@ const CPM_CONFIGURATION_KEYS = [
   'activeInstallation',
   'buildMode',
   'runArguments',
+  'buildLogDetail',
   'projectFormatVersion',
   'autoLoadWorkspace',
   'autoConfigureCppTools',

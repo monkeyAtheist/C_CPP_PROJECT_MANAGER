@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.52",
+  "version": "0.2.54",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -680,6 +680,18 @@
         "command": "cpm.createSdlProjectInWorkspace",
         "title": "Create New SDL Project in Workspace...",
         "icon": "$(window)"
+      },
+      {
+        "command": "cpm.showBuildProblems",
+        "title": "C/C++ Project Manager: Show Build Problems",
+        "category": "C/C++ Project Manager",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "cpm.showFullBuildTrace",
+        "title": "C/C++ Project Manager: Show Full Build Trace",
+        "category": "C/C++ Project Manager",
+        "icon": "$(output)"
       }
     ],
     "menus": {
@@ -1772,6 +1784,21 @@
           ],
           "default": "auto",
           "description": "SDL major version used by the generic build pipeline. auto infers SDL2 or SDL3 from selected packages and source includes."
+        },
+        "cpm.buildLogDetail": {
+          "type": "string",
+          "default": "normal",
+          "enum": [
+            "compact",
+            "normal",
+            "verbose"
+          ],
+          "enumDescriptions": [
+            "Show phase summaries, warnings, errors and final status only.",
+            "Show phases, compiled files, timings, structured diagnostics, hints and final status without full compiler commands.",
+            "Show normal report plus full commands and successful raw output in the main output channel."
+          ],
+          "description": "Controls how much information the structured CPM build report shows in the main C/C++ Project Manager output channel. Full raw output is always preserved in C/C++ Project Manager - Build Trace."
         }
       }
     },

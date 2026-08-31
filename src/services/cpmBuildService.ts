@@ -13,6 +13,46 @@ import { CpmSdlConfiguration, createSdlBuildPlan } from './cpmSdlService';
 
 type CpmRuntimeDependencyMode = 'copy-dlls' | 'path-only' | 'static-link';
 
+type CpmBuildLogDetail = 'compact' | 'normal' | 'verbose';
+
+interface ParsedToolDiagnostic {
+  severity: 'error' | 'warning' | 'note';
+  file?: string;
+  line?: number;
+  column?: number;
+  code?: string;
+  message: string;
+  sourceLine?: string;
+  hint?: string;
+  toolLabel: string;
+  rawLine: string;
+}
+
+interface ToolRunResult {
+  success: boolean;
+  code: number | null;
+  stdout: string;
+  stderr: string;
+  durationMs: number;
+  diagnostics: ParsedToolDiagnostic[];
+}
+
+interface CpmBuildReport {
+  label: string;
+  startedAt: Date;
+  startedMs: number;
+  toolRuns: number;
+  errors: ParsedToolDiagnostic[];
+  warnings: ParsedToolDiagnostic[];
+  notes: ParsedToolDiagnostic[];
+  failedAt?: string;
+  sourceTotal: number;
+  compileRun: number;
+  compileCached: number;
+  linkRun: number;
+}
+
+
 interface GenericCompilerConfiguration {
   cCompilerPath: string;
   cppCompilerPath: string;
@@ -55,8 +95,12 @@ export class CpmBuildService {
     _installations: unknown,
     private readonly projectSettings: CpmProjectSettingsService,
     _breakpoints: unknown,
-    private readonly output: vscode.OutputChannel
+    private readonly output: vscode.OutputChannel,
+    private readonly traceOutput: vscode.OutputChannel,
+    private readonly diagnostics: vscode.DiagnosticCollection
   ) {}
+
+  private currentReport: CpmBuildReport | undefined;
 
   get buildMode(): CpmBuildMode {
     return vscode.workspace.getConfiguration('cpm').get<CpmBuildMode>('buildMode', 'debug');
@@ -117,31 +161,47 @@ export class CpmBuildService {
       return false;
     }
 
-    this.beginOutput(`${rebuild ? 'Rebuild' : 'Build'} ${ref.name}`);
-    const order = this.projectSettings.getBuildOrder(ref);
-    this.output.appendLine(`[C/C++] Build order: ${order.map((item) => item.name).join(' -> ')}`);
-    this.output.appendLine('');
+    const report = this.beginOutput(`${rebuild ? 'Rebuild' : 'Build'} ${ref.name}`);
+    let success = false;
+    let failedAt = '';
+    try {
+      const order = this.projectSettings.getBuildOrder(ref);
+      this.appendSection('BUILD ORDER');
+      for (const item of order) {
+        this.output.appendLine(`  ${item.name}`);
+      }
+      this.output.appendLine('');
+      this.traceOutput.appendLine(`[C/C++] Build order: ${order.map((item) => item.name).join(' -> ')}`);
+      this.traceOutput.appendLine('');
 
-    for (const item of order) {
-      const cwd = path.dirname(item.absolutePath);
-      const settings = this.projectSettings.getSettings(item);
-      if (!await this.projectSettings.runActions(settings.preBuildActions, `Pre-build actions — ${item.name}`, cwd)) {
-        return false;
+      for (const item of order) {
+        const cwd = path.dirname(item.absolutePath);
+        const settings = this.projectSettings.getSettings(item);
+        if (!await this.projectSettings.runActions(settings.preBuildActions, `Pre-build actions — ${item.name}`, cwd)) {
+          failedAt = `Pre-build actions — ${item.name}`;
+          return false;
+        }
+        if (!await this.projectSettings.runActions(settings.customBuildActions, `Custom build actions — ${item.name}`, cwd)) {
+          failedAt = `Custom build actions — ${item.name}`;
+          return false;
+        }
+        const itemSuccess = await this.buildOneProject(item, rebuild);
+        if (!itemSuccess) {
+          failedAt = this.currentReport?.failedAt ?? `Build ${item.name}`;
+          return false;
+        }
+        if (!await this.projectSettings.runActions(settings.postBuildActions, `Post-build actions — ${item.name}`, cwd)) {
+          failedAt = `Post-build actions — ${item.name}`;
+          return false;
+        }
       }
-      if (!await this.projectSettings.runActions(settings.customBuildActions, `Custom build actions — ${item.name}`, cwd)) {
-        return false;
-      }
-      const success = await this.buildOneProject(item, rebuild);
-      if (!success) {
-        return false;
-      }
-      if (!await this.projectSettings.runActions(settings.postBuildActions, `Post-build actions — ${item.name}`, cwd)) {
-        return false;
-      }
+
+      success = true;
+      vscode.window.showInformationMessage(`${rebuild ? 'Rebuild' : 'Build'} completed successfully.`);
+      return true;
+    } finally {
+      this.finishOutput(report, success, failedAt);
     }
-
-    vscode.window.showInformationMessage(`${rebuild ? 'Rebuild' : 'Build'} completed successfully.`);
-    return true;
   }
 
   async clean(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
@@ -150,7 +210,7 @@ export class CpmBuildService {
       vscode.window.showErrorMessage('No existing active C/C++ project is available to clean.');
       return;
     }
-    this.beginOutput(`Clean ${ref.name}`);
+    const report = this.beginOutput(`Clean ${ref.name}`);
     const artifacts = this.resolveArtifacts(ref);
     const candidates = new Set<string>([artifacts.targetPath]);
     if (path.extname(artifacts.targetPath).toLowerCase() === '.exe') {
@@ -192,6 +252,7 @@ export class CpmBuildService {
       this.output.appendLine('[C/C++] No generated target or object directory was found.');
     }
     vscode.window.showInformationMessage(`Clean completed for ${ref.name}: ${removed} generated item(s) removed.`);
+    this.finishOutput(report, true);
   }
 
   async compileFile(filePath: string, projectRef?: CpmWorkspaceProjectRef): Promise<boolean> {
@@ -208,13 +269,14 @@ export class CpmBuildService {
       vscode.window.showErrorMessage(`Source file not found: ${filePath}`);
       return false;
     }
-    this.beginOutput(`Compile ${path.basename(filePath)}`);
+    const report = this.beginOutput(`Compile ${path.basename(filePath)}`);
     const config = this.getCompilerConfiguration();
     const project = this.workspaces.getProject(ref);
     const artifacts = this.resolveArtifacts(ref);
     if (!await this.ensureDirectory(artifacts.objectDirectory, 'object directory', false)) {
       const fallbackObjectDirectory = this.resolveLocalObjectDirectory(ref, config);
       if (!fallbackObjectDirectory || !await this.ensureDirectory(fallbackObjectDirectory, 'local object directory')) {
+        this.finishOutput(report, false, 'Create object directory');
         return false;
       }
       this.output.appendLine(`[C/C++] Falling back to local object directory: ${fallbackObjectDirectory}`);
@@ -222,7 +284,9 @@ export class CpmBuildService {
     }
     const objectPath = this.objectPathForSource(filePath, ref.absolutePath, artifacts.objectDirectory);
     const args = this.compileArguments(filePath, objectPath, ref, project?.files ?? [], config);
-    return await this.spawnTool(this.compilerForSource(filePath, config), args, path.dirname(ref.absolutePath), `Compile ${path.basename(filePath)}`);
+    const result = await this.spawnTool(this.compilerForSource(filePath, config), args, path.dirname(ref.absolutePath), `Compile ${path.basename(filePath)}`);
+    this.finishOutput(report, result, result ? '' : `Compile ${path.basename(filePath)}`);
+    return result;
   }
 
   async run(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
@@ -401,20 +465,48 @@ export class CpmBuildService {
       return false;
     }
 
-    const objectFiles: string[] = [];
-    for (const source of sourceFiles) {
+    const compilePlan = sourceFiles.map((source) => {
       const objectPath = this.objectPathForSource(source.absolutePath, ref.absolutePath, artifacts.objectDirectory);
       const shouldCompile = rebuild || !fs.existsSync(objectPath) || fs.statSync(source.absolutePath).mtimeMs > fs.statSync(objectPath).mtimeMs;
-      if (shouldCompile) {
-        const args = this.compileArguments(source.absolutePath, objectPath, ref, project.files, config);
-        const success = await this.spawnTool(this.compilerForSource(source.absolutePath, config), args, path.dirname(ref.absolutePath), `Compile ${path.basename(source.absolutePath)}`);
+      return { source, objectPath, shouldCompile };
+    });
+    const compileCount = compilePlan.filter((item) => item.shouldCompile).length;
+    const cachedCount = compilePlan.length - compileCount;
+    if (this.currentReport) {
+      this.currentReport.sourceTotal += compilePlan.length;
+      this.currentReport.compileRun += compileCount;
+      this.currentReport.compileCached += cachedCount;
+    }
+
+    this.appendSection('PROJECT / TOOLCHAIN');
+    this.output.appendLine(`  Project   : ${ref.name}`);
+    this.output.appendLine(`  Target    : ${artifacts.targetPath}`);
+    this.output.appendLine(`  C compiler: ${config.cCompilerPath || 'gcc'}`);
+    this.output.appendLine(`  C++ linker: ${config.cppCompilerPath || 'g++'}`);
+    this.output.appendLine(`  Sources   : ${sourceFiles.length}`);
+    this.output.appendLine('');
+
+    this.appendSection('C/C++ COMPILATION');
+    this.output.appendLine(`  Sources: ${compilePlan.length} | Compile: ${compileCount} | Cached: ${cachedCount}`);
+    this.output.appendLine('');
+    if (compileCount === 0) {
+      this.output.appendLine('  [OK] All object files are up to date.');
+      this.output.appendLine('');
+    }
+
+    const objectFiles: string[] = [];
+    for (const item of compilePlan) {
+      if (item.shouldCompile) {
+        const args = this.compileArguments(item.source.absolutePath, item.objectPath, ref, project.files, config);
+        const success = await this.spawnTool(this.compilerForSource(item.source.absolutePath, config), args, path.dirname(ref.absolutePath), `Compile ${path.basename(item.source.absolutePath)}`);
         if (!success) {
+          this.output.appendLine('  [SKIP] Link step skipped because compilation failed.');
           return false;
         }
-      } else {
-        this.output.appendLine(`[C/C++] Up to date: ${path.basename(source.absolutePath)}`);
+      } else if (this.logDetail() === 'verbose') {
+        this.output.appendLine(`  [CACHE] ${path.basename(item.source.absolutePath)}`);
       }
-      objectFiles.push(objectPath);
+      objectFiles.push(item.objectPath);
     }
 
     artifacts.objectFiles = objectFiles;
@@ -423,6 +515,10 @@ export class CpmBuildService {
   }
 
   private async linkArtifacts(ref: CpmWorkspaceProjectRef, targetType: string, artifacts: BuildArtifacts, files: CpmProjectFile[], config: GenericCompilerConfiguration): Promise<boolean> {
+    this.appendSection(targetType === 'Static Library' ? 'ARCHIVE' : 'LINK');
+    if (this.currentReport) {
+      this.currentReport.linkRun += 1;
+    }
     if (targetType === 'Static Library') {
       const args = ['rcs', artifacts.targetPath, ...artifacts.objectFiles];
       return await this.spawnTool(config.archiverPath || 'ar', args, path.dirname(ref.absolutePath), `Archive ${path.basename(artifacts.targetPath)}`);
@@ -605,46 +701,287 @@ export class CpmBuildService {
     return path.join(objectDirectory, `${relative}.${hash}.o`);
   }
 
-  private beginOutput(label: string): void {
+  private beginOutput(label: string): CpmBuildReport {
+    const report: CpmBuildReport = {
+      label,
+      startedAt: new Date(),
+      startedMs: Date.now(),
+      toolRuns: 0,
+      errors: [],
+      warnings: [],
+      notes: [],
+      sourceTotal: 0,
+      compileRun: 0,
+      compileCached: 0,
+      linkRun: 0
+    };
+    this.currentReport = report;
+    this.diagnostics.clear();
     this.output.clear();
+    this.traceOutput.clear();
     this.output.show(true);
-    this.output.appendLine(`[C/C++] ${label} started`);
-    this.output.appendLine(`[C/C++] Build mode: ${this.buildMode}`);
+
+    const detail = this.logDetail();
+    this.output.appendLine('='.repeat(80));
+    this.output.appendLine(` CPM BUILD  |  ${label}`);
+    this.output.appendLine('='.repeat(80));
+    this.output.appendLine(`  Mode      : ${this.buildMode}`);
+    this.output.appendLine(`  Started   : ${formatDateTime(report.startedAt)}`);
+    this.output.appendLine(`  Log detail: ${detail}`);
     this.output.appendLine('');
+    this.output.appendLine('  Full compiler commands and raw tool output are available in:');
+    this.output.appendLine('  Output -> C/C++ Project Manager - Build Trace');
+    this.output.appendLine('');
+
+    this.traceOutput.appendLine('='.repeat(80));
+    this.traceOutput.appendLine(` CPM BUILD TRACE  |  ${label}`);
+    this.traceOutput.appendLine('='.repeat(80));
+    this.traceOutput.appendLine(`Mode    : ${this.buildMode}`);
+    this.traceOutput.appendLine(`Started : ${formatDateTime(report.startedAt)}`);
+    this.traceOutput.appendLine('');
+    return report;
+  }
+
+  private finishOutput(report: CpmBuildReport, success: boolean, failedAt?: string): void {
+    if (this.currentReport !== report) {
+      return;
+    }
+    const durationMs = Date.now() - report.startedMs;
+    this.output.appendLine('');
+    this.output.appendLine('='.repeat(80));
+    this.output.appendLine(success ? ' BUILD SUCCEEDED' : ' BUILD FAILED');
+    this.output.appendLine('='.repeat(80));
+    this.output.appendLine(`  Duration   : ${formatDuration(durationMs)}`);
+    this.output.appendLine(`  Tool runs  : ${report.toolRuns}`);
+    this.output.appendLine(`  Errors     : ${report.errors.length}`);
+    this.output.appendLine(`  Warnings   : ${report.warnings.length}`);
+    if (!success) {
+      const firstError = report.errors[0];
+      this.output.appendLine(`  Failed at  : ${failedAt || report.failedAt || 'unknown step'}`);
+      if (firstError) {
+        this.output.appendLine('  First error:');
+        const location = formatDiagnosticLocation(firstError);
+        if (location) {
+          this.output.appendLine(`      ${location}`);
+        }
+        this.output.appendLine(`      ${firstError.message}`);
+      }
+      this.output.appendLine('');
+      this.output.appendLine('  Next steps:');
+      this.output.appendLine('    1. Fix the first ERROR block above; later diagnostics may be consequences.');
+      this.output.appendLine('    2. Open View -> Problems for clickable CPM build diagnostics.');
+      this.output.appendLine('    3. Use Output -> C/C++ Project Manager - Build Trace for full commands/raw output.');
+    }
+    this.output.appendLine('='.repeat(80));
+
+    this.traceOutput.appendLine('');
+    this.traceOutput.appendLine('='.repeat(80));
+    this.traceOutput.appendLine(success ? ' BUILD TRACE ENDED: SUCCESS' : ' BUILD TRACE ENDED: FAILURE');
+    this.traceOutput.appendLine(`Duration: ${formatDuration(durationMs)}`);
+    this.traceOutput.appendLine('='.repeat(80));
+    this.currentReport = undefined;
+  }
+
+  private appendSection(title: string): void {
+    const line = `--- ${title} ${'-'.repeat(Math.max(1, 76 - title.length))}`;
+    this.output.appendLine(line);
+  }
+
+  private logDetail(): CpmBuildLogDetail {
+    const value = vscode.workspace.getConfiguration('cpm').get<string>('buildLogDetail', 'normal');
+    return value === 'compact' || value === 'normal' || value === 'verbose' ? value : 'normal';
+  }
+
+  showBuildProblems(): void {
+    void vscode.commands.executeCommand('workbench.actions.view.problems');
+  }
+
+  showFullBuildTrace(): void {
+    this.traceOutput.show(true);
   }
 
   private async spawnTool(executable: string, args: string[], cwd: string, label: string): Promise<boolean> {
+    const result = await this.runTool(executable, args, cwd, label);
+    return result.success;
+  }
+
+  private async runTool(executable: string, args: string[], cwd: string, label: string): Promise<ToolRunResult> {
     const launch = resolveToolLaunch(executable);
-    this.output.appendLine(`[C/C++] ${label}`);
-    this.output.appendLine(`[C/C++] Tool: ${executable}`);
+    const started = Date.now();
+    const detail = this.logDetail();
+
+    this.traceOutput.appendLine(`--- ${label} ${'-'.repeat(Math.max(1, 76 - label.length))}`);
+    this.traceOutput.appendLine(`Tool             : ${executable}`);
+    this.traceOutput.appendLine(`Working directory: ${cwd}`);
     if (launch.note) {
-      this.output.appendLine(`[C/C++] ${launch.note}`);
+      this.traceOutput.appendLine(`Launch note      : ${launch.note}`);
     }
     if (launch.warning) {
-      this.output.appendLine(`[C/C++] ${launch.warning}`);
+      this.traceOutput.appendLine(`Launch warning   : ${launch.warning}`);
     }
-    this.output.appendLine(`[C/C++] Arguments: ${args.map(renderArgument).join(' ')}`);
-    this.output.appendLine('');
-    return await new Promise<boolean>((resolve) => {
+    this.traceOutput.appendLine(`Arguments        : ${args.map(renderArgument).join(' ')}`);
+    this.traceOutput.appendLine('');
+
+    if (detail === 'verbose') {
+      this.output.appendLine(`  [RUN] ${label}`);
+      this.output.appendLine(`      Tool: ${executable}`);
+      if (launch.note) {
+        this.output.appendLine(`      ${launch.note}`);
+      }
+      if (launch.warning) {
+        this.output.appendLine(`      ${launch.warning}`);
+      }
+      this.output.appendLine(`      Arguments: ${args.map(renderArgument).join(' ')}`);
+      this.output.appendLine('');
+    }
+
+    return await new Promise<ToolRunResult>((resolve) => {
+      let stdout = '';
+      let stderr = '';
       const child = spawn(launch.executable, args, { cwd, windowsHide: true, shell: false, env: launch.env });
-      child.stdout.on('data', (data: Buffer) => this.output.append(data.toString()));
-      child.stderr.on('data', (data: Buffer) => this.output.append(data.toString()));
+      child.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
+      child.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
       child.on('error', (error) => {
-        this.output.appendLine(`\n[C/C++] Unable to start ${executable}: ${error.message}`);
+        const durationMs = Date.now() - started;
+        const diagnostic: ParsedToolDiagnostic = {
+          severity: 'error',
+          message: `Unable to start ${executable}: ${error.message}`,
+          toolLabel: label,
+          rawLine: error.message,
+          hint: 'Check that the compiler path exists and that the executable can be launched from VS Code.'
+        };
+        const result: ToolRunResult = { success: false, code: null, stdout, stderr, durationMs, diagnostics: [diagnostic] };
+        this.recordToolResult(label, executable, args, cwd, result);
         vscode.window.showErrorMessage(`Unable to start ${executable}: ${error.message}`);
-        resolve(false);
+        resolve(result);
       });
       child.on('close', (code) => {
-        this.output.appendLine('');
-        this.output.appendLine(`[C/C++] ${path.basename(executable)} exited with code ${String(code)}.`);
+        const durationMs = Date.now() - started;
+        const combinedOutput = `${stdout}${stdout && stderr ? '\n' : ''}${stderr}`;
+        const diagnostics = parseToolDiagnostics(combinedOutput, label);
+        const result: ToolRunResult = { success: code === 0, code, stdout, stderr, durationMs, diagnostics };
+        this.recordToolResult(label, executable, args, cwd, result);
         if (code !== 0) {
           vscode.window.showErrorMessage(`${label} failed. Open the C/C++ Project Manager output channel for details.`);
         }
-        resolve(code === 0);
+        resolve(result);
       });
     });
   }
 
+  private recordToolResult(label: string, executable: string, args: string[], cwd: string, result: ToolRunResult): void {
+    const report = this.currentReport;
+    if (report) {
+      report.toolRuns += 1;
+      const errors = result.diagnostics.filter((item) => item.severity === 'error');
+      const warnings = result.diagnostics.filter((item) => item.severity === 'warning');
+      const notes = result.diagnostics.filter((item) => item.severity === 'note');
+      report.errors.push(...errors);
+      report.warnings.push(...warnings);
+      report.notes.push(...notes);
+      if (!result.success && !report.failedAt) {
+        report.failedAt = label;
+      }
+      this.publishCurrentDiagnostics(report);
+    }
+
+    this.traceOutput.appendLine('stdout:');
+    this.traceOutput.appendLine(result.stdout.trimEnd() || '  <empty>');
+    this.traceOutput.appendLine('');
+    this.traceOutput.appendLine('stderr:');
+    this.traceOutput.appendLine(result.stderr.trimEnd() || '  <empty>');
+    this.traceOutput.appendLine('');
+    this.traceOutput.appendLine(`Exit code: ${String(result.code)}`);
+    this.traceOutput.appendLine(`Duration : ${formatDuration(result.durationMs)}`);
+    this.traceOutput.appendLine('');
+
+    const status = result.success ? '[OK]' : '[X]';
+    const detail = result.code !== 0 && result.code !== null ? `exit code ${result.code}, ${formatDuration(result.durationMs)}` : formatDuration(result.durationMs);
+    const line = `  ${status} ${label}${result.success ? '' : ' FAILED'} (${detail})`;
+    if (!result.success || this.logDetail() !== 'compact') {
+      this.output.appendLine(line);
+    }
+
+    if (this.logDetail() === 'verbose') {
+      const raw = `${result.stdout}${result.stderr}`.trimEnd();
+      if (raw.length > 0) {
+        this.output.appendLine('      Raw output:');
+        this.output.appendLine(indentBlock(raw, '      '));
+      }
+    }
+
+    if (!result.success) {
+      this.renderDiagnostics(result.diagnostics, result.stdout, result.stderr);
+    } else if (result.diagnostics.some((item) => item.severity === 'warning') && this.logDetail() !== 'compact') {
+      this.renderDiagnostics(result.diagnostics.filter((item) => item.severity === 'warning'), result.stdout, result.stderr);
+    }
+  }
+
+  private renderDiagnostics(diagnostics: ParsedToolDiagnostic[], stdout: string, stderr: string): void {
+    const errors = diagnostics.filter((item) => item.severity === 'error');
+    const warnings = diagnostics.filter((item) => item.severity === 'warning');
+    const relevant = [...errors, ...warnings];
+    if (relevant.length === 0) {
+      const raw = `${stdout}${stderr}`.trim();
+      if (raw.length > 0) {
+        this.output.appendLine('  ------------------------------------------------------------------------------');
+        this.output.appendLine('  Raw tool output excerpt:');
+        this.output.appendLine(indentBlock(raw.split(/\r?\n/).slice(0, 20).join('\n'), '      '));
+      }
+      this.output.appendLine('');
+      return;
+    }
+
+    this.output.appendLine('  ------------------------------------------------------------------------------');
+    relevant.forEach((diagnostic, index) => {
+      const tag = diagnostic.severity === 'warning' ? 'WARNING' : 'ERROR';
+      this.output.appendLine(`  [X] ${tag} ${index + 1}/${relevant.length}`);
+      const location = formatDiagnosticLocation(diagnostic);
+      if (location) {
+        this.output.appendLine(`      Location : ${location}`);
+      }
+      if (diagnostic.code) {
+        this.output.appendLine(`      Code     : ${diagnostic.code}`);
+      }
+      this.output.appendLine(`      Message  : ${diagnostic.message}`);
+      if (diagnostic.sourceLine) {
+        this.output.appendLine(`      Source   : ${diagnostic.sourceLine.trim()}`);
+      }
+      if (diagnostic.hint) {
+        this.output.appendLine('      Hint     : ' + diagnostic.hint.replace(/\n/g, '\n                 '));
+      }
+      this.output.appendLine('');
+    });
+    this.output.appendLine('  Full command and unfiltered output:');
+    this.output.appendLine('  Output -> C/C++ Project Manager - Build Trace');
+    this.output.appendLine('');
+  }
+
+  private publishCurrentDiagnostics(report: CpmBuildReport): void {
+    const byFile = new Map<string, vscode.Diagnostic[]>();
+    for (const item of [...report.errors, ...report.warnings]) {
+      if (!item.file) {
+        continue;
+      }
+      const normalizedFile = normalizeRuntimePath(item.file);
+      const zeroLine = Math.max(0, (item.line ?? 1) - 1);
+      const zeroColumn = Math.max(0, (item.column ?? 1) - 1);
+      const range = new vscode.Range(zeroLine, zeroColumn, zeroLine, Math.max(zeroColumn + 1, zeroColumn + (item.sourceLine?.trim().length ?? 1)));
+      const severity = item.severity === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error;
+      const diagnostic = new vscode.Diagnostic(range, item.hint ? `${item.message}\n\nHint: ${item.hint}` : item.message, severity);
+      diagnostic.source = 'CPM Build';
+      if (item.code) {
+        diagnostic.code = item.code;
+      }
+      const existing = byFile.get(normalizedFile) ?? [];
+      existing.push(diagnostic);
+      byFile.set(normalizedFile, existing);
+    }
+    this.diagnostics.clear();
+    for (const [filePath, values] of byFile) {
+      this.diagnostics.set(vscode.Uri.file(filePath), values);
+    }
+  }
 
   private async ensureDirectory(directoryPath: string, label: string, showUserMessage = true): Promise<boolean> {
     const normalized = normalizeRuntimePath(directoryPath);
@@ -1003,6 +1340,205 @@ function normalizeSdlRuntimeMode(value: string | undefined): CpmSdlConfiguration
 
 function normalizeSdlSubsystem(value: string | undefined): CpmSdlConfiguration['subsystem'] {
   return value === 'console' || value === 'windows' ? value : 'windows';
+}
+
+
+
+function formatDateTime(date: Date): string {
+  return date.toLocaleString();
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms} ms`;
+  }
+  return `${(ms / 1000).toFixed(2)} s`;
+}
+
+function formatDurationWithComma(ms: number): string {
+  return `, ${formatDuration(ms)}`;
+}
+
+function indentBlock(text: string, prefix: string): string {
+  return text.split(/\r?\n/).map((line) => `${prefix}${line}`).join('\n');
+}
+
+function formatDiagnosticLocation(diagnostic: ParsedToolDiagnostic): string {
+  if (!diagnostic.file) {
+    return '';
+  }
+  if (diagnostic.line !== undefined && diagnostic.column !== undefined) {
+    return `${diagnostic.file}:${diagnostic.line}:${diagnostic.column}`;
+  }
+  if (diagnostic.line !== undefined) {
+    return `${diagnostic.file}:${diagnostic.line}`;
+  }
+  return diagnostic.file;
+}
+
+function parseToolDiagnostics(output: string, toolLabel: string): ParsedToolDiagnostic[] {
+  const diagnostics: ParsedToolDiagnostic[] = [];
+  const lines = output.split(/\r?\n/);
+  const gccLocation = /^(.+?):(\d+):(\d+):\s*(fatal error|error|warning|note):\s*(.+)$/;
+  const gccLocationNoColumn = /^(.+?):(\d+):\s*(fatal error|error|warning|note):\s*(.+)$/;
+  const msvcLocation = /^(.+?)\((\d+)(?:,(\d+))?\):\s*(fatal error|error|warning)\s*([A-Z]+\d+)?\s*:\s*(.+)$/;
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    let match = line.match(gccLocation);
+    if (match) {
+      const message = match[5].trim();
+      diagnostics.push({
+        severity: normalizeSeverity(match[4]),
+        file: match[1],
+        line: Number(match[2]),
+        column: Number(match[3]),
+        message,
+        sourceLine: findLikelySourceLine(lines, index + 1),
+        hint: hintForDiagnostic(message),
+        toolLabel,
+        rawLine: line
+      });
+      continue;
+    }
+    match = line.match(gccLocationNoColumn);
+    if (match) {
+      const message = match[4].trim();
+      diagnostics.push({
+        severity: normalizeSeverity(match[3]),
+        file: match[1],
+        line: Number(match[2]),
+        message,
+        sourceLine: findLikelySourceLine(lines, index + 1),
+        hint: hintForDiagnostic(message),
+        toolLabel,
+        rawLine: line
+      });
+      continue;
+    }
+    match = line.match(msvcLocation);
+    if (match) {
+      const message = match[6].trim();
+      diagnostics.push({
+        severity: normalizeSeverity(match[4]),
+        file: match[1],
+        line: Number(match[2]),
+        column: match[3] ? Number(match[3]) : undefined,
+        code: match[5]?.trim(),
+        message,
+        sourceLine: findLikelySourceLine(lines, index + 1),
+        hint: hintForDiagnostic(message),
+        toolLabel,
+        rawLine: line
+      });
+      continue;
+    }
+
+    const linkerDiagnostic = parseLinkerDiagnostic(line, toolLabel);
+    if (linkerDiagnostic) {
+      diagnostics.push(linkerDiagnostic);
+    }
+  }
+
+  return coalesceDiagnostics(diagnostics);
+}
+
+function normalizeSeverity(value: string): ParsedToolDiagnostic['severity'] {
+  if (/warning/i.test(value)) {
+    return 'warning';
+  }
+  if (/note/i.test(value)) {
+    return 'note';
+  }
+  return 'error';
+}
+
+function findLikelySourceLine(lines: string[], start: number): string | undefined {
+  for (let index = start; index < Math.min(lines.length, start + 3); index++) {
+    const candidate = lines[index]?.trimEnd();
+    if (!candidate || /^\s*\^/.test(candidate) || /^\s*~/.test(candidate)) {
+      continue;
+    }
+    if (/^(?:In file included from|from )/.test(candidate)) {
+      continue;
+    }
+    if (/^.+?:\d+(:\d+)?:\s*(fatal error|error|warning|note):/.test(candidate)) {
+      continue;
+    }
+    return candidate;
+  }
+  return undefined;
+}
+
+function parseLinkerDiagnostic(line: string, toolLabel: string): ParsedToolDiagnostic | undefined {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const patterns: Array<{ regex: RegExp; message?: (match: RegExpMatchArray) => string }> = [
+    { regex: /undefined reference to [`'](.+?)[`']/i, message: (match) => `undefined reference to ${match[1]}` },
+    { regex: /cannot find\s+(-l\S+)/i, message: (match) => `cannot find ${match[1]}` },
+    { regex: /multiple definition of [`'](.+?)[`']/i, message: (match) => `multiple definition of ${match[1]}` },
+    { regex: /ld(?:\.exe)?:\s+cannot find\s+(.+)/i, message: (match) => `cannot find ${match[1]}` },
+    { regex: /collect2(?:\.exe)?: error: ld returned \d+ exit status/i }
+  ];
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern.regex);
+    if (match) {
+      const message = pattern.message ? pattern.message(match) : trimmed;
+      return {
+        severity: 'error',
+        message,
+        hint: hintForDiagnostic(message),
+        toolLabel,
+        rawLine: line
+      };
+    }
+  }
+  return undefined;
+}
+
+function hintForDiagnostic(message: string): string | undefined {
+  const lower = message.toLowerCase();
+  if (lower.includes('not declared in this scope') || lower.includes('undeclared identifier')) {
+    return 'The identifier is used without a visible declaration. Check the variable name, include the declaring header, or use the correct object/member scope.';
+  }
+  if (lower.includes('incomplete type')) {
+    return 'A forward declaration is visible but the complete type is required here. Include the full header defining the type.';
+  }
+  if (lower.includes('no matching function for call') || lower.includes('no instance of overloaded function')) {
+    return 'The call does not match any available overload. Check argument count, constness, pointer/reference usage and implicit conversions.';
+  }
+  if (lower.includes('undefined reference')) {
+    return 'This is a linker error. Add the source/object/library that defines the symbol, or add the missing library in Project Build Settings.';
+  }
+  if (lower.includes('cannot find -l')) {
+    return 'The linker cannot locate the requested library. Check library paths, architecture x86/x64, and the library name without the lib prefix or extension.';
+  }
+  if (lower.includes('no such file or directory') || lower.includes('cannot open include file')) {
+    return 'A header or file path is missing. Check include paths, generated files and external SDK installation paths.';
+  }
+  if (lower.includes('multiple definition')) {
+    return 'The same symbol is defined in more than one translation unit. Move definitions to one .c/.cpp file, or mark header-only definitions inline/static where appropriate.';
+  }
+  if (lower.includes('winmain@16') || lower.includes('undefined reference to winmain')) {
+    return 'The Windows subsystem expects WinMain. For SDL2, ensure SDL2main/SDL2 are linked; otherwise use a console subsystem or provide the expected entry point.';
+  }
+  return undefined;
+}
+
+function coalesceDiagnostics(diagnostics: ParsedToolDiagnostic[]): ParsedToolDiagnostic[] {
+  const seen = new Set<string>();
+  const result: ParsedToolDiagnostic[] = [];
+  for (const diagnostic of diagnostics) {
+    const key = [diagnostic.severity, diagnostic.file ?? '', diagnostic.line ?? '', diagnostic.column ?? '', diagnostic.message].join('|');
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(diagnostic);
+  }
+  return result;
 }
 
 

@@ -1,3 +1,9 @@
+### Build report and diagnostic pipeline
+
+The CPM build service now uses two output channels. `C/C++ Project Manager` is a human-readable report, while `C/C++ Project Manager - Build Trace` stores the complete raw execution trace for every compiler, archiver and linker process. Tool stdout/stderr is captured per child process and rendered only after process completion, which keeps each compile/link step coherent.
+
+The build service parses GCC/G++/MinGW/Clang/MSVC-style diagnostics and common GNU linker failures into an internal diagnostic model. Parsed errors and warnings are rendered in the report, enriched with lightweight contextual hints, and published to a VS Code `DiagnosticCollection` named `CPM Build`.
+
 ## 0.2.50 SDL add-on build planning
 
 The SDL build planner now combines configured packages with a lightweight source scan. During compile/link planning it infers SDL add-ons from includes and API prefixes: `SDL_ttf.h` / `TTF_*`, `SDL_image.h` / `IMG_*`, `SDL_mixer.h` / `Mix_*`, `SDL_net.h` / `SDLNet_*`, and SDL2_gfx patterns. Inferred packages are filtered against the actually detected SDK artifacts before link arguments are emitted.
