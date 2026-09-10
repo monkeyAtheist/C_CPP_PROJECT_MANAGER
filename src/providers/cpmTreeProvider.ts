@@ -12,7 +12,11 @@ export interface FolderNode { kind: 'folder'; ref: CpmWorkspaceProjectRef; proje
 export interface FileNode { kind: 'file'; ref: CpmWorkspaceProjectRef; file: CpmProjectFile; }
 export interface PlaceholderNode { kind: 'placeholder'; label: string; }
 
-export class CpmTreeProvider implements vscode.TreeDataProvider<CpmTreeNode> {
+export class CpmTreeProvider implements vscode.TreeDataProvider<CpmTreeNode>, vscode.TreeDragAndDropController<CpmTreeNode> {
+  private static readonly dragMimeType = 'application/vnd.code.tree.cpm.workspaceexplorer';
+
+  readonly dragMimeTypes = [CpmTreeProvider.dragMimeType];
+  readonly dropMimeTypes = [CpmTreeProvider.dragMimeType];
   private readonly changeEmitter = new vscode.EventEmitter<CpmTreeNode | undefined | null | void>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
 
@@ -23,6 +27,90 @@ export class CpmTreeProvider implements vscode.TreeDataProvider<CpmTreeNode> {
   refresh(): void {
     this.changeEmitter.fire();
   }
+
+  handleDrag(source: readonly CpmTreeNode[], dataTransfer: vscode.DataTransfer, _token: vscode.CancellationToken): void {
+    const files = source
+      .filter((node): node is FileNode => node.kind === 'file')
+      .map((node) => ({
+        projectPath: node.ref.absolutePath,
+        projectIndex: node.ref.index,
+        sectionName: node.file.sectionName,
+        filePath: node.file.absolutePath,
+        fileName: path.basename(node.file.absolutePath)
+      }));
+
+    if (files.length === 0) {
+      return;
+    }
+
+    dataTransfer.set(CpmTreeProvider.dragMimeType, new vscode.DataTransferItem(JSON.stringify({ files })));
+  }
+
+  async handleDrop(target: CpmTreeNode | undefined, dataTransfer: vscode.DataTransfer, token: vscode.CancellationToken): Promise<void> {
+    if (token.isCancellationRequested) {
+      return;
+    }
+
+    const transfer = dataTransfer.get(CpmTreeProvider.dragMimeType);
+    if (!transfer) {
+      return;
+    }
+
+    const dropTarget = this.dropTargetForNode(target);
+    if (!dropTarget) {
+      vscode.window.showInformationMessage('Drop project files onto a CPM folder or onto a project root to move them.');
+      return;
+    }
+
+    const payload = this.parseDragPayload(transfer.value);
+    const matchingFiles = payload.files.filter((file) => path.normalize(file.projectPath).toLowerCase() === path.normalize(dropTarget.ref.absolutePath).toLowerCase());
+    if (matchingFiles.length === 0) {
+      vscode.window.showWarningMessage('Files can only be moved inside their own CPM project.');
+      return;
+    }
+
+    await this.workspaces.moveFilesToFolder(
+      dropTarget.ref,
+      matchingFiles.map((file) => file.sectionName),
+      dropTarget.folderPath,
+      { silent: true }
+    );
+  }
+
+  private dropTargetForNode(node: CpmTreeNode | undefined): { ref: CpmWorkspaceProjectRef; folderPath: string } | undefined {
+    if (!node) {
+      return undefined;
+    }
+    if (node.kind === 'folder') {
+      return { ref: node.ref, folderPath: node.folderPath };
+    }
+    if (node.kind === 'project') {
+      return { ref: node.ref, folderPath: '' };
+    }
+    return undefined;
+  }
+
+  private parseDragPayload(value: unknown): { files: Array<{ projectPath: string; projectIndex: number; sectionName: string; filePath: string; fileName: string }> } {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (parsed && Array.isArray(parsed.files)) {
+          return { files: parsed.files.filter((file: unknown): file is { projectPath: string; projectIndex: number; sectionName: string; filePath: string; fileName: string } => {
+            const candidate = file as { projectPath?: unknown; projectIndex?: unknown; sectionName?: unknown; filePath?: unknown; fileName?: unknown };
+            return typeof candidate.projectPath === 'string'
+              && typeof candidate.projectIndex === 'number'
+              && typeof candidate.sectionName === 'string'
+              && typeof candidate.filePath === 'string'
+              && typeof candidate.fileName === 'string';
+          }) };
+        }
+      } catch {
+        return { files: [] };
+      }
+    }
+    return { files: [] };
+  }
+
 
   getTreeItem(element: CpmTreeNode): vscode.TreeItem {
     switch (element.kind) {

@@ -9,7 +9,7 @@
  *
  * @par Main features
  * - loads error/logging settings from an INI file;
- * - formats error messages with code, file, line and function;
+ * - formats error messages with code, file, line, function and a date-stamped separator block;
  * - mirrors messages to stderr when configured;
  * - limits log size through a maximum number of log lines.
  *
@@ -46,14 +46,14 @@
 #include <cstdio>
 #include <ctime>
 
-#include "../myUtil.h"
+#include "../cpm_utility.h"
 
 #define check_negerror(__x, __msg) do { \
     if ((erreur.code = __x) < 0) { \
         erreur.errorStatus = true; \
         erreur.message = (__msg); \
-        std::cerr << "[" << jc_utility::now_timestamp() << "] " << erreur.message << std::endl; \
-        jc_utility::append_error_log(erreur.path, erreur.code, erreur.message); \
+        std::cerr << "[" << cpm_utility::now_timestamp() << "] " << erreur.message << std::endl; \
+        cpm_utility::append_error_log(erreur.path, erreur.code, erreur.message, __FILE__, __LINE__, __func__); \
         goto err; \
     } \
     else {erreur.code = 0;}\
@@ -63,8 +63,8 @@
     if ((erreur.code = __x) == 0) {\
         erreur.errorStatus = true;\
         erreur.message = (__msg);\
-        std::cerr << "[" << jc_utility::now_timestamp() << "] " << erreur.message << std::endl;\
-        jc_utility::append_error_log(erreur.path, erreur.code, erreur.message);\
+        std::cerr << "[" << cpm_utility::now_timestamp() << "] " << erreur.message << std::endl;\
+        cpm_utility::append_error_log(erreur.path, erreur.code, erreur.message, __FILE__, __LINE__, __func__);\
         goto err;\
     }\
     else {erreur.code = 0;}\
@@ -74,8 +74,8 @@
     if ((erreur.code = __x) <= 0) { \
         erreur.errorStatus = true; \
         erreur.message = (__msg); \
-        std::cerr << "[" << jc_utility::now_timestamp() << "] " << erreur.message << std::endl; \
-        jc_utility::append_error_log(erreur.path, erreur.code, erreur.message); \
+        std::cerr << "[" << cpm_utility::now_timestamp() << "] " << erreur.message << std::endl; \
+        cpm_utility::append_error_log(erreur.path, erreur.code, erreur.message, __FILE__, __LINE__, __func__); \
         goto err; \
     } \
     else {erreur.code = 0;}\
@@ -85,8 +85,8 @@
     if ((erreur.code = __x) <= 0) { \
         erreur.errorStatus = true; \
         erreur.message = (__msg); \
-        std::cerr << "[" << jc_utility::now_timestamp() << "] " << erreur.message << std::endl; \
-        jc_utility::append_error_log(erreur.path, erreur.code, erreur.message); \
+        std::cerr << "[" << cpm_utility::now_timestamp() << "] " << erreur.message << std::endl; \
+        cpm_utility::append_error_log(erreur.path, erreur.code, erreur.message, __FILE__, __LINE__, __func__); \
         return erreur.code; \
     } \
     else {erreur.code = 0;}\
@@ -96,8 +96,8 @@
     if ((erreur.code = __x) < 0) { \
         erreur.errorStatus = true; \
         erreur.message = "Error code: " + std::to_string(__x); \
-        std::cerr << "[" << jc_utility::now_timestamp() << "] " << erreur.message << std::endl; \
-        jc_utility::append_error_log(erreur.path, erreur.code, erreur.message); \
+        std::cerr << "[" << cpm_utility::now_timestamp() << "] " << erreur.message << std::endl; \
+        cpm_utility::append_error_log(erreur.path, erreur.code, erreur.message, __FILE__, __LINE__, __func__); \
         goto err; \
     } \
     else {erreur.code = 0;}\
@@ -107,8 +107,8 @@
     erreur.code = (__x); \
     erreur.errorStatus = true; \
     erreur.message = (__msg); \
-    std::cerr << "[" << jc_utility::now_timestamp() << "] " << erreur.message << std::endl; \
-    jc_utility::append_error_log(erreur.path, erreur.code, erreur.message); \
+    std::cerr << "[" << cpm_utility::now_timestamp() << "] " << erreur.message << std::endl; \
+    cpm_utility::append_error_log(erreur.path, erreur.code, erreur.message, __FILE__, __LINE__, __func__); \
     goto err; \
 } while(0)
 
@@ -116,8 +116,8 @@
     erreur.code = (__x); \
     erreur.errorStatus = true; \
     erreur.message = "Error code: " + std::to_string(__x); \
-    std::cerr << "[" << jc_utility::now_timestamp() << "] " << erreur.message << std::endl; \
-    jc_utility::append_error_log(erreur.path, erreur.code, erreur.message); \
+    std::cerr << "[" << cpm_utility::now_timestamp() << "] " << erreur.message << std::endl; \
+    cpm_utility::append_error_log(erreur.path, erreur.code, erreur.message, __FILE__, __LINE__, __func__); \
     goto err; \
 } while(0)
 
@@ -135,6 +135,7 @@ namespace jc_error
 		std::tm* dateAndTime;
 	
 		void printErrorLog();
+        void report(int errorCode, const std::string& errorMessage, const char* file = nullptr, int line = 0, const char* functionName = nullptr);
 
 	private:
 	protected:

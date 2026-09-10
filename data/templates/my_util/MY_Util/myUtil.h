@@ -4,105 +4,125 @@
  *
  * @details
  * This bundle is intended to be readable immediately after insertion into a
- * CPM project. The comments below summarize what the module provides, when it
- * is useful and how to start using the public API.
+ * CPM project. It groups helpers that are frequently needed in small C++
+ * programs: INI loading, strings, filesystem operations, executable location,
+ * environment variables, timestamps and simple text-file I/O.
  *
  * @par Main features
  * - reads simple INI files with typed accessors;
- * - provides string helpers for trimming and formatting;
- * - offers filesystem/path utilities used by several MY_Util modules;
- * - groups small cross-platform helpers that do not justify a dedicated module.
+ * - retrieves the executable path and executable directory as std::filesystem::path;
+ * - creates folders and checks file/directory existence;
+ * - reads, writes and appends text files;
+ * - provides common string helpers: trim, case conversion, split, join,
+ *   startsWith, endsWith, contains and replaceAll;
+ * - reads environment variables and formats timestamps.
  *
  * @par Typical applications
- * - configuration loading for small C++ tools;
- * - shared utility layer for communication and Web UI examples;
- * - quick prototypes where a compact helper collection is acceptable.
+ * - loading a configuration file stored next to the executable;
+ * - locating scripts, resources, DLLs or logs relative to the executable;
+ * - creating output/log directories before writing reports;
+ * - sharing compact utility code between generated C++ bundles.
  *
  * @par Usage notes
- * - Prefer dedicated modules for transport-specific work; this file contains generic helpers.
- * - Keep utility.ini close to the executable when using relative paths.
+ * - This header requires C++17 because it uses std::filesystem.
+ * - On Windows, getExecutablePath() uses GetModuleFileNameW and supports paths
+ *   longer than MAX_PATH by growing the internal buffer.
+ * - For transport-specific work, prefer the dedicated Communication modules.
  *
  * @par Example of use
  * @code{.cpp}
  * #include "myUtil.h"
- * 
+ *
+ * namespace fs = std::filesystem;
+ *
+ * fs::path appDir = jc_utility::getExecutableDirectory();
+ * fs::path logDir = appDir / "logs";
+ * jc_utility::ensure_directory(logDir);
+ *
  * jc_utility::iniReader ini;
- * if (ini.load("utility.ini"))
+ * if (ini.load((appDir / "utility.ini").string()))
  * {
  *     int timeoutMs = ini.getOr<int>("app", "timeout_ms", 1000);
- *     std::cout << "Timeout: " << timeoutMs << std::endl;
+ *     jc_utility::append_text_file(logDir / "app.log",
+ *         jc_utility::now_timestamp() + " timeout=" + std::to_string(timeoutMs) + "\n");
  * }
  * @endcode
  */
 #pragma once
 
-//#include "sources/fonctions/navigation/navigation.h"
-
-#include <sstream>
-#include <type_traits>
-#include <cstdint>
-#include <fstream>
 #include <algorithm>
 #include <cctype>
-#include <iostream>
-#include <unordered_map>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <ctime>
 #include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <math.h>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <system_error>
+#include <thread>
+#include <type_traits>
+#include <unordered_map>
 #include <vector>
-#include <math.h>
-#include <ctime>
-#include <iomanip>
 #if defined(_WIN32)
 #include <windows.h>
 #elif defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <limits.h>
 #include <unistd.h>
-#else // Linux (Raspberry Pi inclus)
-#include <unistd.h>
+#else
 #include <limits.h>
+#include <unistd.h>
 #endif
 
-//using fs = std::filesystem::path;
 using UINT32 = uint32_t;
 
-namespace jc_utility 
+namespace jc_utility
 {
     namespace fs = std::filesystem;
 
-    class iniReader 
+    class iniReader
     {
-        public:
-            bool load(const std::string& path);  // parse tout le fichier
+    public:
+        /** @brief Parses all sections and key/value pairs from an INI file. */
+        bool load(const std::string& path);
 
-            bool has(const std::string& section, const std::string& key) const;
+        /** @brief Returns true when a section/key pair exists. */
+        bool has(const std::string& section, const std::string& key) const;
 
-            // R�cup�re une valeur typ�e. false si introuvable ou conversion impossible.
-            template<typename T>
-            bool get(const std::string& section, const std::string& key, T& out) const;
+        /** @brief Reads a typed value. Returns false when missing or conversion fails. */
+        template<typename T>
+        bool get(const std::string& section, const std::string& key, T& out) const;
 
-            // R�cup�re ou renvoie une valeur par d�faut.
-            template<typename T>
-            T getOr(const std::string& section, const std::string& key, const T& def) const;
+        /** @brief Reads a typed value or returns the supplied default value. */
+        template<typename T>
+        T getOr(const std::string& section, const std::string& key, const T& def) const;
 
-        private:
-            std::unordered_map<std::string, std::unordered_map<std::string, std::string>> data_;
+    private:
+        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> data_;
 
-            static std::string trim_(std::string s);
-            static std::string toLower_(std::string s);
-            static bool parseBool_(const std::string& s, bool& out);
+        static std::string trim_(std::string s);
+        static std::string toLower_(std::string s);
+        static bool parseBool_(const std::string& s, bool& out);
 
-            template<typename T>
-            static bool convert_(const std::string& s, T& out);
+        template<typename T>
+        static bool convert_(const std::string& s, T& out);
 
-            const std::string* findValue_(const std::string& section, const std::string& key) const;
+        const std::string* findValue_(const std::string& section, const std::string& key) const;
     };
 
     class MyString : public std::string
     {
-    public:     
+    public:
         using std::string::string;
+        MyString() = default;
+        MyString(const std::string& value) : std::string(value) {}
+        MyString(const char* value) : std::string(value != nullptr ? value : "") {}
 
         MyString& trim()
         {
@@ -118,32 +138,29 @@ namespace jc_utility
             return *this;
         }
 
-        std::string toStdString() const {return *this;}
+        std::string toStdString() const { return *this; }
 
         void fromStdString(const std::string& s)
         {
-			this->clear();
+            this->clear();
             this->append(s);
-		}
-
-        MyString operator+ (const std::string s)
-        {
-            return MyString(*this + s);
         }
 
-        MyString operator^ (int nb)
+        MyString operator+(const std::string& s) const
         {
-            MyString s = *this;
-            MyString r;
-            if (nb <= 0)  return MyString(*this);
-            for (int i = 0; i < nb; ++i) 
+            return MyString(static_cast<const std::string&>(*this) + s);
+        }
+
+        MyString operator^(int nb) const
+        {
+            if (nb <= 0) return MyString(*this);
+            MyString result;
+            for (int i = 0; i < nb; ++i)
             {
-                r = (*this + s);
-                s = r;          
+                result += static_cast<const std::string&>(*this);
             }
-            return MyString(r);
+            return result;
         }
-
     };
 
     template<typename T>
@@ -157,12 +174,8 @@ namespace jc_utility
             return parseBool_(s, out);
         }
         else {
-            // Simple et portable : stringstream
-            // (pour int/double/float/long etc.)
             std::istringstream iss(s);
             iss >> out;
-
-            // refuse "123abc" (doit consommer toute la string)
             if (!iss) return false;
             char c;
             if (iss >> c) return false;
@@ -186,30 +199,12 @@ namespace jc_utility
         return def;
     }
 
-    inline int xstoi(const std::string& s, UINT32& out)
+    /** @brief Parses an unsigned 32-bit integer written in decimal or 0x-prefixed hexadecimal. */
+    inline bool parseHexU32(const std::string& s, uint32_t& out)
     {
-        size_t idx = 0;
-        int val_l = 0;
-        int idx_loop = 0;
-        if (s.empty()) return -10;
-		idx = s.find_first_of("xX");
-        if (idx == 0) return -10;
-		std::string sub = s.substr(idx + 1);
-        if (sub.empty()) return -20;
-        for (int i = 0; i < sub.length(); i++) {
-			auto c = sub.c_str()[i];
-            if (c >= 'A') val_l = c - 'A' + 10;
-            else  val_l = c - '0'; 
-            out += (val_l * pow(16, i));
-            idx_loop++;
-		}
-        return 0;
-	}
-
-    inline bool parseHexU32(const std::string& s, uint32_t& out) {
         try {
             size_t pos = 0;
-            unsigned long v = std::stoul(s, &pos, 0); // base 0 => accepte 0x...
+            unsigned long v = std::stoul(s, &pos, 0);
             if (pos != s.size()) return false;
             out = static_cast<uint32_t>(v);
             return true;
@@ -217,57 +212,16 @@ namespace jc_utility
         catch (...) { return false; }
     }
 
-    inline fs::path executable_path()
+    /** @brief Legacy helper kept for compatibility. Returns 0 on success. */
+    inline int xstoi(const std::string& s, UINT32& out)
     {
-#if defined(_WIN32)
-        std::wstring buf(MAX_PATH, L'\0');
-        DWORD len = 0;
-
-        while (true) {
-            len = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
-            if (len == 0) {
-                throw std::runtime_error("GetModuleFileNameW failed");
-            }
-            if (len < buf.size() - 1) { // OK, buffer assez grand
-                buf.resize(len);
-                return fs::path(buf);
-            }
-            // buffer trop petit -> on agrandit
-            buf.resize(buf.size() * 2);
-        }
-
-#elif defined(__APPLE__)
-        uint32_t size = 0;
-        _NSGetExecutablePath(nullptr, &size);
-        std::vector<char> buf(size);
-
-        if (_NSGetExecutablePath(buf.data(), &size) != 0) {
-            throw std::runtime_error("_NSGetExecutablePath failed");
-        }
-
-        // Canonicalise (r�sout symlinks / chemins relatifs)
-        char realbuf[PATH_MAX];
-        if (realpath(buf.data(), realbuf) == nullptr) {
-            // si realpath �choue, on retourne le chemin brut
-            return fs::path(buf.data());
-        }
-        return fs::path(realbuf);
-
-#else // Linux
-        std::vector<char> buf(PATH_MAX);
-        ssize_t count = readlink("/proc/self/exe", buf.data(), buf.size());
-        if (count <= 0) {
-            throw std::runtime_error("readlink(/proc/self/exe) failed");
-        }
-        return fs::path(std::string(buf.data(), static_cast<size_t>(count)));
-#endif
+        uint32_t value = 0;
+        if (!parseHexU32(s, value)) return -10;
+        out = value;
+        return 0;
     }
 
-    inline fs::path executable_dir()
-    {
-        return executable_path().parent_path();
-    }
-
+    /** @brief Removes leading and trailing whitespace from a string copy. */
     inline std::string trim_copy(std::string s)
     {
         auto notSpace = [](unsigned char c) { return !std::isspace(c); };
@@ -276,6 +230,7 @@ namespace jc_utility
         return s;
     }
 
+    /** @brief Converts a string copy to lowercase. */
     inline std::string toLower_copy(std::string s)
     {
         std::transform(s.begin(), s.end(), s.begin(),
@@ -283,19 +238,80 @@ namespace jc_utility
         return s;
     }
 
-    inline std::string now_timestamp()
+    /** @brief Converts a string copy to uppercase. */
+    inline std::string toUpper_copy(std::string s)
+    {
+        std::transform(s.begin(), s.end(), s.begin(),
+            [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+        return s;
+    }
+
+    inline bool starts_with(const std::string& text, const std::string& prefix)
+    {
+        return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
+    }
+
+    inline bool ends_with(const std::string& text, const std::string& suffix)
+    {
+        return text.size() >= suffix.size() && text.compare(text.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
+
+    inline bool contains(const std::string& text, const std::string& needle)
+    {
+        return needle.empty() || text.find(needle) != std::string::npos;
+    }
+
+    inline std::string replace_all(std::string text, const std::string& from, const std::string& to)
+    {
+        if (from.empty()) return text;
+        std::size_t pos = 0;
+        while ((pos = text.find(from, pos)) != std::string::npos)
+        {
+            text.replace(pos, from.size(), to);
+            pos += to.size();
+        }
+        return text;
+    }
+
+    inline std::vector<std::string> split(const std::string& text, char separator, bool keepEmpty = false)
+    {
+        std::vector<std::string> items;
+        std::string item;
+        std::istringstream stream(text);
+        while (std::getline(stream, item, separator))
+        {
+            if (keepEmpty || !item.empty()) items.push_back(item);
+        }
+        if (keepEmpty && !text.empty() && text.back() == separator) items.emplace_back();
+        return items;
+    }
+
+    inline std::string join(const std::vector<std::string>& items, const std::string& separator)
+    {
+        std::ostringstream stream;
+        for (std::size_t i = 0; i < items.size(); ++i)
+        {
+            if (i != 0) stream << separator;
+            stream << items[i];
+        }
+        return stream.str();
+    }
+
+    /** @brief Returns a timestamp formatted with strftime syntax. */
+    inline std::string now_timestamp(const char* format = "%d-%m-%Y %H-%M-%S")
     {
         std::time_t t = std::time(nullptr);
         std::tm tm{};
-
 #if defined(_WIN32)
         localtime_s(&tm, &t);
 #else
         localtime_r(&t, &tm);
 #endif
-
-        char buf[22]; // "YYYY-MM-DD HH:MM:SS" = 19 + '\0'
-        std::strftime(buf, sizeof(buf), "%d-%m-%Y %H-%M-%S", &tm);
+        char buf[64];
+        if (std::strftime(buf, sizeof(buf), format != nullptr ? format : "%d-%m-%Y %H-%M-%S", &tm) == 0)
+        {
+            return {};
+        }
         return std::string(buf);
     }
 
@@ -303,6 +319,7 @@ namespace jc_utility
         int year, month, day, hour, minute, second;
     };
 
+    /** @brief Returns current local date/time fields. */
     inline DateTime now_fields()
     {
         std::time_t t = std::time(nullptr);
@@ -312,21 +329,194 @@ namespace jc_utility
 #else
         localtime_r(&t, &tm);
 #endif
-        return {
-            tm.tm_year + 1900,
-            tm.tm_mon + 1,
-            tm.tm_mday,
-            tm.tm_hour,
-            tm.tm_min,
-            tm.tm_sec
-        };
+        return { tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec };
+    }
+
+    /** @brief Returns the full path of the running executable. */
+    inline fs::path getExecutablePath()
+    {
+#if defined(_WIN32)
+        std::wstring buffer(MAX_PATH, L'\0');
+        for (;;)
+        {
+            DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+            if (length == 0) throw std::runtime_error("GetModuleFileNameW failed");
+            if (length < buffer.size() - 1)
+            {
+                buffer.resize(length);
+                return fs::path(buffer);
+            }
+            buffer.resize(buffer.size() * 2);
+        }
+#elif defined(__APPLE__)
+        uint32_t size = 0;
+        _NSGetExecutablePath(nullptr, &size);
+        std::vector<char> buffer(size);
+        if (_NSGetExecutablePath(buffer.data(), &size) != 0) throw std::runtime_error("_NSGetExecutablePath failed");
+        char realbuf[PATH_MAX];
+        if (realpath(buffer.data(), realbuf) != nullptr) return fs::path(realbuf);
+        return fs::path(buffer.data());
+#else
+        std::vector<char> buffer(PATH_MAX);
+        ssize_t count = readlink("/proc/self/exe", buffer.data(), buffer.size());
+        if (count <= 0) throw std::runtime_error("readlink(/proc/self/exe) failed");
+        return fs::path(std::string(buffer.data(), static_cast<size_t>(count)));
+#endif
+    }
+
+    /** @brief Returns the directory that contains the running executable. */
+    inline fs::path getExecutableDirectory()
+    {
+        return getExecutablePath().parent_path();
+    }
+
+    /** @brief Returns the executable directory as a std::string. */
+    inline std::string getExecutableDirectoryString()
+    {
+        return getExecutableDirectory().string();
+    }
+
+    /** @brief Compatibility alias for getExecutablePath(). */
+    inline fs::path executable_path()
+    {
+        return getExecutablePath();
+    }
+
+    /** @brief Compatibility alias for getExecutableDirectory(). */
+    inline fs::path executable_dir()
+    {
+        return getExecutableDirectory();
+    }
+
+    inline fs::path current_working_directory()
+    {
+        return fs::current_path();
+    }
+
+    inline fs::path absolute_path(const fs::path& pathValue)
+    {
+        std::error_code ec;
+        fs::path result = fs::absolute(pathValue, ec);
+        return ec ? pathValue : result;
+    }
+
+    inline fs::path normalize_path(const fs::path& pathValue)
+    {
+        std::error_code ec;
+        fs::path result = fs::weakly_canonical(pathValue, ec);
+        if (!ec) return result;
+        return absolute_path(pathValue).lexically_normal();
+    }
+
+    inline bool path_exists(const fs::path& pathValue)
+    {
+        std::error_code ec;
+        return fs::exists(pathValue, ec);
+    }
+
+    inline bool file_exists(const fs::path& pathValue)
+    {
+        std::error_code ec;
+        return fs::is_regular_file(pathValue, ec);
+    }
+
+    inline bool directory_exists(const fs::path& pathValue)
+    {
+        std::error_code ec;
+        return fs::is_directory(pathValue, ec);
+    }
+
+    inline bool ensure_directory(const fs::path& directoryPath)
+    {
+        if (directoryPath.empty()) return false;
+        std::error_code ec;
+        if (fs::is_directory(directoryPath, ec)) return true;
+        return fs::create_directories(directoryPath, ec) || fs::is_directory(directoryPath, ec);
+    }
+
+    inline bool read_text_file(const fs::path& filePath, std::string& contents)
+    {
+        std::ifstream file(filePath, std::ios::binary);
+        if (!file)
+        {
+            contents.clear();
+            return false;
+        }
+        std::ostringstream stream;
+        stream << file.rdbuf();
+        contents = stream.str();
+        return true;
+    }
+
+    inline bool write_text_file(const fs::path& filePath, const std::string& contents, bool append = false)
+    {
+        fs::path parent = filePath.parent_path();
+        if (!parent.empty() && !ensure_directory(parent)) return false;
+        std::ofstream file(filePath, std::ios::binary | (append ? std::ios::app : std::ios::trunc));
+        if (!file) return false;
+        file << contents;
+        return static_cast<bool>(file);
+    }
+
+    inline bool append_text_file(const fs::path& filePath, const std::string& contents)
+    {
+        return write_text_file(filePath, contents, true);
+    }
+
+    inline std::string get_env(const std::string& name, const std::string& fallback = "")
+    {
+        const char* value = std::getenv(name.c_str());
+        return value != nullptr ? std::string(value) : fallback;
+    }
+
+    inline void sleep_ms(unsigned int milliseconds)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+    }
+
+    inline std::string safe_filename(std::string text, char replacement = '_')
+    {
+        if (text.empty()) return "unnamed";
+        const std::string forbidden = "<>:\"/\\|?*";
+        for (char& ch : text)
+        {
+            if (static_cast<unsigned char>(ch) < 32 || forbidden.find(ch) != std::string::npos)
+            {
+                ch = replacement;
+            }
+        }
+        text = trim_copy(text);
+        while (!text.empty() && (text.back() == '.' || text.back() == ' ')) text.pop_back();
+        return text.empty() ? std::string("unnamed") : text;
+    }
+
+    inline std::string make_error_log_block(int code, const std::string& msg, const char* file = nullptr, int line = 0, const char* functionName = nullptr)
+    {
+        const std::string stamp = now_timestamp("%d/%m/%Y - %H:%M:%S");
+        const std::string sideSep(26, '=');
+        const std::string header = sideSep + stamp + sideSep;
+        const std::string footer(header.size(), '=');
+
+        std::ostringstream stream;
+        stream << header << '\n'
+               << "Code: " << code << '\n'
+               << "Message: " << msg << '\n'
+               << "Error at:" << '\n';
+        if (file != nullptr && file[0] != '\0') stream << "\tFile: " << file << '\n';
+        if (line > 0) stream << "\tLine: " << line << '\n';
+        if (functionName != nullptr && functionName[0] != '\0') stream << "\tFunction: " << functionName << '\n';
+        stream << footer << '\n';
+        return stream.str();
+    }
+
+    inline void append_error_log(const std::string& path, int code, const std::string& msg, const char* file, int line, const char* functionName)
+    {
+        append_text_file(path, make_error_log_block(code, msg, file, line, functionName));
     }
 
     inline void append_error_log(const std::string& path, int code, const std::string& msg)
     {
-        std::ofstream f(path, std::ios::out | std::ios::app);
-        f << "[" << now_timestamp() << "] => "
-            << "Error code: " << code << " | Message: " << msg << "\n";
+        append_text_file(path, make_error_log_block(code, msg));
     }
 
-}
+} // namespace jc_utility

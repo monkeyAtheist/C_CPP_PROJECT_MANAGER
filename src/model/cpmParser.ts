@@ -1413,6 +1413,37 @@ export class CpmParser {
     writeText(projectPath, document.toString());
   }
 
+  moveFilesToFolderInProject(projectPath: string, sectionNames: string[], folder: string): number {
+    const normalizedFolder = normalizeLogicalFolder(folder);
+    const sectionNameSet = new Set(sectionNames.map((name) => name.trim()).filter(Boolean));
+    if (sectionNameSet.size === 0) {
+      return 0;
+    }
+
+    const document = IniDocument.parse(readText(projectPath));
+    let moved = 0;
+    for (const section of document.sections.filter((candidate) => /^File \d{4}$/i.test(candidate.name))) {
+      if (!sectionNameSet.has(section.name)) {
+        continue;
+      }
+      const currentFolder = normalizeLogicalFolder(unquote(section.get('Folder')) ?? '');
+      if (currentFolder.toLowerCase() === normalizedFolder.toLowerCase()) {
+        continue;
+      }
+      section.set('Folder', quote(normalizedFolder));
+      moved += 1;
+    }
+
+    if (moved > 0 && normalizedFolder) {
+      this.ensureProjectFolder(document, normalizedFolder);
+    }
+    if (moved > 0) {
+      writeText(projectPath, document.toString());
+    }
+    return moved;
+  }
+
+
   synchronizeWorkspaceBreakpoints(
     workspacePath: string,
     projectIndex: number,

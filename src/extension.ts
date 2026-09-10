@@ -35,7 +35,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const projectSettings = new CpmProjectSettingsService(workspaces, parser, output);
   const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output, buildTraceOutput, buildDiagnostics);
   const treeProvider = new CpmTreeProvider(workspaces);
-  const treeView = vscode.window.createTreeView('cpm.workspaceExplorer', { treeDataProvider: treeProvider, showCollapseAll: true });
+  const treeView = vscode.window.createTreeView('cpm.workspaceExplorer', { treeDataProvider: treeProvider, dragAndDropController: treeProvider, showCollapseAll: true, canSelectMany: true });
   const symbols = new CpmSymbolService(context.extensionPath, workspaces);
   const fileSymbolsProvider = new CpmFileSymbolsProvider(symbols);
   const fileSymbolsView = vscode.window.createTreeView('cpm.fileSymbols', { treeDataProvider: fileSymbolsProvider });
@@ -232,6 +232,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.toggleObjOption', (node?: FileNode) => node ? workspaces.toggleCompileIntoObjectFile(node.ref, node.file) : undefined),
     register('cpm.replaceFile', (node?: FileNode) => node ? workspaces.replaceFile(node.ref, node.file) : undefined),
     register('cpm.renameFile', (node?: FileNode) => node ? workspaces.renameFile(node.ref, node.file) : undefined),
+    register('cpm.moveFileToFolder', (node?: FileNode) => node ? workspaces.moveFileToFolder(node.ref, node.file) : undefined),
     register('cpm.compileFile', (node?: FileNode) => node ? builds.compileFile(node.file.absolutePath, node.ref) : undefined),
     register('cpm.generatePrototypes', (node?: FileNode) => node ? workspaces.generatePrototypes(node.ref, node.file) : undefined),
     register('cpm.prepareDllImportLibraryGeneration', (node?: FileNode) => node ? builds.prepareDllImportLibraryGeneration(node.file.absolutePath) : undefined),

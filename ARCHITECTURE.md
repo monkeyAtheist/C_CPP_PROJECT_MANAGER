@@ -21,10 +21,10 @@ For multi-architecture SDL SDKs, include directory resolution now returns the pr
 - `src/services/cpmBuildService.ts`: generic build pipeline based on `gcc`, `g++`, `ar` and `gdb`; handles build, rebuild, clean, run and VS Code `cppdbg` launch.
 - `src/services/cpmProjectSettingsService.ts`: project build actions, run options and build-order dependencies. Current files are stored in `.vscode/cpm-build.json`; legacy `.vscode/labwindows-cvi-build.json` is still readable for migration.
 - `src/services/cpmCppToolsService.ts`: optional Microsoft C/C++ IntelliSense synchronization and lightweight toolchain include-path discovery.
-- `src/services/cpmTemplateService.ts`: C/C++ starter files, snippets, DLL helpers, error/logging modules and MY_Util bundle integration.
+- `src/services/cpmTemplateService.ts`: C/C++ starter files, snippets, DLL helpers, error/logging modules and CPM_Utility bundle integration.
 - `src/services/cpmColorValueService.ts`: editor context-menu color picker webview and color value insertion/copy helpers.
 - `src/services/cpmLibraryPackService.ts`: embedded JC Lib / CPM library-pack seeding and migration.
-- `src/providers/cpmTreeProvider.ts`: native VS Code tree views for workspaces, actions, file symbols and libraries.
+- `src/providers/cpmTreeProvider.ts`: native VS Code tree views for workspaces, actions, file symbols and libraries. The workspace tree also owns the internal file drag-and-drop controller for logical folder moves.
 - `src/jcLibEmbedded.ts`: embedded library explorer and structured prototype/snippet UI.
 - `src/views/homePanel.ts`: global workspace and toolchain dashboard.
 - `src/views/buildSettingsPanel.ts`: generic CPM build-settings editor.
@@ -45,7 +45,7 @@ C/C++ PM activity-bar container
 
 The extension keeps the existing `.cws/.prj` model because it already supports a workspace containing multiple projects, project-local source/header/library references, target type and output path. Unknown sections and keys are preserved when the files are rewritten.
 
-Adding a file appends a new project file section and records its path. Removing or excluding a file updates the project reference only; disk files are not deleted unless a command explicitly renames or replaces them.
+Adding a file appends a new project file section and records its path. Removing, excluding or moving a file between CPM logical folders updates the project reference only; disk files are not deleted or relocated unless a command explicitly renames or replaces them. Logical file moves are implemented by updating the `Folder` field of the relevant `File XXXX` sections and ensuring the target folder is declared in `[Folders]`.
 
 ## Build pipeline
 
@@ -99,7 +99,7 @@ main.c / main.cpp
 headers and classes
 Windows DLL starter
 error/logging module with .ini configuration
-MY_Util module bundles
+CPM_Utility module bundles
 custom user templates and snippets
 ```
 
@@ -138,7 +138,7 @@ CPM prepends the selected toolchain bin directory to the Run/Debug process PATH 
 
 ## Generated C Python bridge bundle
 
-The template service can generate a pure C Python execution bridge (`cpm_python_exec.c/.h`) from internal templates. It is exposed as a C module bundle and intentionally remains separate from the MY_Util C++ bridge and companion Python scripts.
+The template service can generate a pure C Python execution bridge (`cpm_python_exec.c/.h`) from internal templates. It is exposed as a C module bundle and intentionally remains separate from the CPM_Utility C++ bridge and companion Python scripts.
 
 ### 0.2.30 bundle clarification
 
@@ -213,3 +213,30 @@ The editor context menu now imports the JC Lib 0.8.24 utility surface into CPM-s
 
 The embedded JC Lib manager now includes the JC Lib 0.8.27 structured packs. Pack imports preserve the source environment/library hierarchy, including the refreshed SDL, Lua, Embedded and Windows API / Devices layouts, plus the new Assembly and Visual Basic / VBA packs.
 
+
+### 0.2.55 utility/error bundle update
+
+Generated CPM error bundles now use a structured, date-stamped error block instead of a minimal raw message. The C++ variant also exposes `CPM_ERROR(code, message)` for direct reports. The embedded CPM_Utility core helper has been expanded with common C++17 helpers for executable path discovery, filesystem checks, directory creation, text-file I/O, environment variables and string transformations.
+
+
+### 0.2.56 source-template escaping
+
+CPM source templates that emit C/C++ code containing escape sequences are stored with `String.raw` when the emitted code must preserve backslashes. This is required for generated logging statements such as `stream << header << '\n'` and for Windows helpers using `L'\0'`. Without raw template storage, JavaScript/TypeScript expands these sequences before file generation and corrupts the emitted C/C++ source.
+
+
+## CPM_Utility consolidation
+
+The embedded C++ helper layer is exposed as `CPM_Utility`. The extension still stores several legacy communication modules under the internal template tree, but the user-facing bundle name and generated core helper files are `cpm_utility.cpp` and `cpm_utility.h`. A compatibility namespace alias keeps existing `jc_utility::...` code valid.
+
+
+## 0.2.58 Notes
+
+The embedded JC Lib scripting data was refreshed for the Windows CMD & Batch library while preserving the broader CPM Scripting / System pack. The C++ utility bundle keeps a single CPM-oriented identity around `CPM_Utility` and introduces `CPM_String` with compatibility aliases for older `MyString` code.
+
+## 0.2.60 — CPM_String sequence-removal operators
+
+The `CPM_Utility` template now extends `CPM_String` with subtraction-style removal operators. `operator-` returns a copy with the requested sequence removed, while `operator-=` mutates the current object. The implementation removes all exact occurrences and trims only leading/trailing whitespace exposed by the removal, preserving internal whitespace for normal text use.
+
+## 0.2.59 — CPM_String compound operators
+
+The `CPM_Utility` template keeps `CPM_String` as the unified string helper and adds compound append/repeat operators so generated utility code can build separators and formatted text in-place.

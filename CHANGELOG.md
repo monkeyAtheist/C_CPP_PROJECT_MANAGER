@@ -1,3 +1,54 @@
+# Changelog
+
+## 0.2.61
+- Added logical file moves in the C/C++ Workspace tree.
+- Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
+- Added drag-and-drop support inside the CPM workspace tree: drag one or more project files onto a logical folder, or onto the project node to move them back to the project root.
+- Project file references are updated in the `.prj` file; disk files are not moved by this logical-folder operation.
+
+## 0.2.60
+- Added `CPM_String::operator-` overloads for `std::string`, C strings and single characters.
+- Added in-place sequence removal with `CPM_String::operator-=` overloads.
+- Added `remove_all_in_place(...)`, `removed_all(...)`, `trim_edges()` and `trim_edges_copy()` helpers.
+- Updated CPM_Utility documentation with sequence-removal examples such as `text -= "bonjour"`.
+
+## 0.2.59
+- Added `CPM_String::operator+=` overloads for `std::string`, C strings and single characters.
+- Added in-place repetition operators `CPM_String::operator*=` and `CPM_String::operator^=`.
+- Updated CPM_Utility examples to document compound string operations.
+
+
+## 0.2.58
+
+- Updated the embedded Scripting / System pack with the JC Lib 0.8.28 Windows CMD & Batch structure.
+- Added `CPM_String` to the `CPM_Utility` C++ bundle and kept `MyString` as a compatibility alias.
+- Added string repetition helpers: `CPM_String("=") * 10`, `10 * CPM_String("-")`, `"*"_cpm * 8` and `cpm_utility::repeat(...)`.
+- Documented why raw C++ string literals cannot support the exact expression `"=" * 10` without a CPM user-defined type.
+
+## 0.2.57 - CPM_Utility consolidation
+
+- Consolidated the former C++ `MY_Util` and generated `cpm_util` workflows into a canonical `CPM_Utility` bundle.
+- Added `cpm_utility.cpp` / `cpm_utility.h` as the default C++ utility bundle.
+- Added helpers for executable path, executable directory, filesystem operations, text I/O, INI loading, string processing, timestamps, delays, Unix timestamps and stopwatch timing.
+- Preserved source compatibility through the `jc_utility` namespace alias while recommending `cpm_utility` for new code.
+- Updated C++ error management to include `cpm_utility.h` instead of the old `myUtil.h`.
+
+## 0.2.56 - Escaped error-log bundle templates
+
+- Fixed generated C++ CPM error-management sources where `\n`, `\t` and `\0` sequences could be expanded too early by the TypeScript template and appear as literal line breaks or NUL characters in the generated `.cpp` file.
+- Converted the affected C/C++ source templates to raw template strings so generated code keeps valid C/C++ escape sequences such as `'\n'`, `"\n"`, `"\tFile"` and `L'\0'`.
+- Applied the same escaping fix to the generated C error source and C++ core utility source, including append-log helpers and executable-path helpers.
+- Added template-level validation for the generated utility/error sources to ensure the emitted C/C++ no longer contains broken string or character literals.
+
+## 0.2.55 - Error log formatting and C++ utility helpers
+
+- Integrated the improved CPM C++ error-log block formatting supplied through `CPM_Error.zip`, while keeping the generated module portable across Windows/Linux/macOS.
+- Updated generated C and C++ error modules to emit date-stamped separator blocks with code, message, file, line and function context.
+- Added `CPM_ERROR(code, message)` to the generated C++ error header for direct one-line reports outside the `goto error` macros.
+- Expanded the generated C++ core utility bundle with executable path/directory helpers, filesystem helpers, text-file I/O, environment-variable access and common string helpers.
+- Expanded the bundled `MY_Util` core module with `getExecutablePath()`, `getExecutableDirectory()`, path normalization, directory creation, file read/write/append helpers, string helpers, `safe_filename()` and `sleep_ms()`.
+- Updated `CPM_Utility/ErrorManagement` macros to write structured error blocks with source file, line and function context.
+
 ## 0.2.54 - Structured CPM build reports
 
 - Reworked the main `C/C++ Project Manager` output channel into a structured build report with clear build order, project/toolchain, compilation, link and final summary sections.
@@ -111,7 +162,7 @@
 - Audited generated and copied module-bundle headers for C and C++ bundles.
 - Expanded header Doxygen blocks with explicit feature lists, typical applications, usage notes and minimal examples.
 - Covered C communication bundles: UART, IPC, Ethernet TCP/UDP, Wi-Fi TCP/UDP, Bluetooth RFCOMM, CAN/SocketCAN, I2C and SPI.
-- Covered C++ MY_Util bundles: generic utilities, error management, Python bridge, Web UI, UART, IPC, Ethernet, Wi-Fi, Bluetooth, CAN, I2C, SPI, CommsManager and CommsListenService.
+- Covered C++ CPM_Utility bundles: generic utilities, error management, Python bridge, Web UI, UART, IPC, Ethernet, Wi-Fi, Bluetooth, CAN, I2C, SPI, CommsManager and CommsListenService.
 - Covered generated CPM bundles in the creation workflow: C/C++ core utilities, C/C++ error management, C Python execution bridge, C Lua execution bridge and C Web UI backend.
 - Corrected several header examples so they use the actual public API names exposed by the generated/copied headers.
 
@@ -167,7 +218,7 @@
 - Added C bundle equivalents for Wi-Fi and Bluetooth Classic RFCOMM communication.
 - Added `Module bundles > C > Wi-Fi communication` generating `cpm_wifi.c`, `cpm_wifi.h` and a README.
 - Added `Module bundles > C > Bluetooth RFCOMM communication` generating `cpm_bluetooth.c`, `cpm_bluetooth.h` and a README.
-- Added separate C++ bundle entries for the original MY_Util Wi-Fi and Bluetooth classes.
+- Added separate C++ bundle entries for the original CPM_Utility Wi-Fi and Bluetooth classes.
 - Updated the C full communication stack to include UART, IPC, Ethernet, Wi-Fi, Bluetooth, I2C and SPI.
 - Documented the scope limits: Wi-Fi uses regular TCP/UDP after OS network connection, while the generated Bluetooth C module is Windows RFCOMM-first and returns an unsupported status elsewhere.
 
@@ -177,7 +228,7 @@
 - Added `Module bundles > C > I2C communication` generating `cpm_i2c.c`, `cpm_i2c.h` and a README.
 - Added `Module bundles > C > SPI communication` generating `cpm_spi.c`, `cpm_spi.h` and a README.
 - Updated the C full communication stack to include UART, IPC, Ethernet, I2C and SPI.
-- Added separate C++ bundle entries for the original MY_Util I2C and SPI classes.
+- Added separate C++ bundle entries for the original CPM_Utility I2C and SPI classes.
 
 ## 0.2.30
 
@@ -191,7 +242,7 @@
 
 ## 0.2.29
 
-- Added pure C communication bundle equivalents for the exposed MY_Util C++ communication bundles.
+- Added pure C communication bundle equivalents for the exposed CPM_Utility C++ communication bundles.
 - Added `Module bundles > C > UART communication` generating `cpm_uart.c` / `cpm_uart.h`.
 - Added `Module bundles > C > IPC communication` generating `cpm_ipc.c` / `cpm_ipc.h`.
 - Added `Module bundles > C > Ethernet TCP-UDP communication` generating `cpm_socket.c` / `cpm_socket.h`.
@@ -223,6 +274,12 @@
 
 # Changelog
 
+## 0.2.61
+- Added logical file moves in the C/C++ Workspace tree.
+- Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
+- Added drag-and-drop support inside the CPM workspace tree: drag one or more project files onto a logical folder, or onto the project node to move them back to the project root.
+- Project file references are updated in the `.prj` file; disk files are not moved by this logical-folder operation.
+
 ## 0.2.25
 
 - Grouped the new-file/starter picker into C files, C++ files, Windows/DLL, module bundles, scripts/text and saved templates.
@@ -233,7 +290,7 @@
 
 - Renamed the MY_Util creation entry to a generic `Module bundle...` action.
 - Grouped module bundles by language with C and C++ sections.
-- Removed repetitive `MY_Util /` prefixes from bundle labels.
+- Removed repetitive `CPM_Utility /` prefixes from bundle labels.
 - Added generated C module bundles for core utility helpers and CPM error management.
 
 
@@ -348,6 +405,12 @@
 - Publishes native-command state transitions through a VS Code event so the view and status bar update immediately after persistent-session commands.
 
 # Changelog
+
+## 0.2.61
+- Added logical file moves in the C/C++ Workspace tree.
+- Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
+- Added drag-and-drop support inside the CPM workspace tree: drag one or more project files onto a logical folder, or onto the project node to move them back to the project root.
+- Project file references are updated in the `.prj` file; disk files are not moved by this logical-folder operation.
 
 ## 0.6.24
 
@@ -470,6 +533,12 @@
 
 # Changelog
 
+## 0.2.61
+- Added logical file moves in the C/C++ Workspace tree.
+- Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
+- Added drag-and-drop support inside the CPM workspace tree: drag one or more project files onto a logical folder, or onto the project node to move them back to the project root.
+- Project file references are updated in the `.prj` file; disk files are not moved by this logical-folder operation.
+
 ## 0.6.21
 
 - Keep a persistent DDE conversation open before `Run Project` so native debug controls remain available while the CVI user program is executing.
@@ -503,6 +572,12 @@
 
 # Changelog
 
+## 0.2.61
+- Added logical file moves in the C/C++ Workspace tree.
+- Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
+- Added drag-and-drop support inside the CPM workspace tree: drag one or more project files onto a logical folder, or onto the project node to move them back to the project root.
+- Project file references are updated in the `.prj` file; disk files are not moved by this logical-folder operation.
+
 ## 0.6.21
 
 - Keep a persistent DDE conversation open before `Run Project` so native debug controls remain available while the CVI user program is executing.
@@ -530,6 +605,12 @@
 - Reordered the sidebar so CVI Workspace appears before the collapsible CVI Actions summary.
 
 # Changelog
+
+## 0.2.61
+- Added logical file moves in the C/C++ Workspace tree.
+- Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
+- Added drag-and-drop support inside the CPM workspace tree: drag one or more project files onto a logical folder, or onto the project node to move them back to the project root.
+- Project file references are updated in the `.prj` file; disk files are not moved by this logical-folder operation.
 
 ## 0.6.21
 
@@ -578,6 +659,12 @@
 
 # Changelog
 
+## 0.2.61
+- Added logical file moves in the C/C++ Workspace tree.
+- Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
+- Added drag-and-drop support inside the CPM workspace tree: drag one or more project files onto a logical folder, or onto the project node to move them back to the project root.
+- Project file references are updated in the `.prj` file; disk files are not moved by this logical-folder operation.
+
 ## 0.6.21
 
 - Keep a persistent DDE conversation open before `Run Project` so native debug controls remain available while the CVI user program is executing.
@@ -596,6 +683,12 @@
 - Adds the 128 × 128 Marketplace icon.
 
 # Changelog
+
+## 0.2.61
+- Added logical file moves in the C/C++ Workspace tree.
+- Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
+- Added drag-and-drop support inside the CPM workspace tree: drag one or more project files onto a logical folder, or onto the project node to move them back to the project root.
+- Project file references are updated in the `.prj` file; disk files are not moved by this logical-folder operation.
 
 ## 0.6.21
 

@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.54",
+  "version": "0.2.61",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -74,7 +74,8 @@
     "onCommand:cpm.insertColorValue",
     "onCommand:cpm.configureSdl",
     "onCommand:cpm.createSdlWorkspaceProject",
-    "onCommand:cpm.createSdlProjectInWorkspace"
+    "onCommand:cpm.createSdlProjectInWorkspace",
+    "onCommand:cpm.moveFileToFolder"
   ],
   "main": "./out/extension.js",
   "scripts": {
@@ -277,6 +278,11 @@
       {
         "command": "cpm.renameFile",
         "title": "Rename File..."
+      },
+      {
+        "command": "cpm.moveFileToFolder",
+        "title": "Move File To Folder...",
+        "icon": "$(move)"
       },
       {
         "command": "cpm.replaceFile",
@@ -989,14 +995,19 @@
           "group": "modification@1"
         },
         {
-          "command": "cpm.replaceFile",
+          "command": "cpm.moveFileToFolder",
           "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "modification@2"
         },
         {
-          "command": "cpm.removeFile",
+          "command": "cpm.replaceFile",
           "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
           "group": "modification@3"
+        },
+        {
+          "command": "cpm.removeFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "modification@4"
         },
         {
           "command": "cpm.compileFile",
@@ -1265,6 +1276,10 @@
         },
         {
           "command": "cpm.openFunctionPanel",
+          "when": "false"
+        },
+        {
+          "command": "cpm.moveFileToFolder",
           "when": "false"
         }
       ],

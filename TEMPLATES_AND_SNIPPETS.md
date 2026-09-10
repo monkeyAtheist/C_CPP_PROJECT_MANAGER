@@ -20,6 +20,13 @@ The wizard can generate one file or a coordinated starter set. Existing files ar
 - **Overwrite generated files**;
 - cancel the operation.
 
+
+## Workspace tree organization
+
+Files shown in the C/C++ Workspace tree can be moved between CPM logical folders without editing the `.prj` file manually. Right-click a file and choose **Move File To Folder...**, or drag project files onto a folder. Dropping files onto the project node clears their logical folder and shows them at project root.
+
+The operation only changes the CPM project metadata. It does not move the physical source/header file on disk.
+
 ## User creation templates
 
 Run **C/C++ Project Manager: Manage Creation Templates...**. A text file can be saved as a reusable template or imported from disk.
@@ -68,7 +75,7 @@ The DLL starter references `hinstDLL` and `lpvReserved` directly in the generate
 
 ## Module bundles
 
-The `Module bundle...` creation action is grouped by language. C bundles currently generate CPM-native utility files such as `cpm_util.c/.h/.ini` and `cpm_error.c/.h/.ini`. C++ bundles copy the bundled MY_Util modules without repeating the `MY_Util /` prefix in each item label.
+The `Module bundle...` creation action is grouped by language. C bundles currently generate CPM-native utility files such as `cpm_util.c/.h/.ini` and `cpm_error.c/.h/.ini`. C++ bundles copy the bundled CPM_Utility modules without repeating the `CPM_Utility /` prefix in each item label.
 
 
 
@@ -81,7 +88,7 @@ The module-bundle picker is separated into C modules, C++ modules and script mod
 
 The file creation command is now organized as category pickers rather than one long list. The first picker exposes `C`, `C++`, `Module bundles`, `Scripts and text`, and `Saved templates` when user templates exist.
 
-Module bundles are also organized by folder-like categories: `C`, `C++`, and `Scripts`. Generated bundle default folders now use `Bundle/C`, `Bundle/C++`, and `Bundle/Scripts`. The generated CPM core utility and error-management bundles exist in both C and C++ forms. Generated C rewrites are available for Python execution, Web UI backend, UART, IPC and Ethernet TCP/UDP. C++ MY_Util modules remain available for projects that want the original class-based APIs.
+Module bundles are also organized by folder-like categories: `C`, `C++`, and `Scripts`. Generated bundle default folders now use `Bundle/C`, `Bundle/C++`, and `Bundle/Scripts`. The generated CPM core utility and error-management bundles exist in both C and C++ forms. Generated C rewrites are available for Python execution, Web UI backend, UART, IPC and Ethernet TCP/UDP. C++ CPM_Utility modules remain available for projects that want the original class-based APIs.
 
 
 ### C communication bundles
@@ -93,7 +100,7 @@ Module bundles are also organized by folder-like categories: `C`, `C++`, and `Sc
 - `Ethernet TCP-UDP communication`: creates `cpm_socket.c` / `cpm_socket.h`.
 - `Full communication stack`: creates all three communication modules together.
 
-The C APIs are intentionally procedural and independent from the original MY_Util C++ classes. Under Windows, the Ethernet module requires `ws2_32` at link time.
+The C APIs are intentionally procedural and independent from the original CPM_Utility C++ classes. Under Windows, the Ethernet module requires `ws2_32` at link time.
 
 ### C Python execution bridge
 
@@ -102,7 +109,7 @@ The C APIs are intentionally procedural and independent from the original MY_Uti
 - `cpm_python_exec.h`
 - `cpm_python_exec.c`
 
-The API is pure C and supports one-shot script execution as well as a persistent session with stdin/stdout pipes. It mirrors the useful behavior of the MY_Util C++ bridge without copying the companion Python scripts. Generic scripts are available under `Module bundles > Scripts > Python worker protocol starter`; the old project-specific scripts are available under `Module bundles > Scripts > Robot demo Python scripts`.
+The API is pure C and supports one-shot script execution as well as a persistent session with stdin/stdout pipes. It mirrors the useful behavior of the CPM_Utility C++ bridge without copying the companion Python scripts. Generic scripts are available under `Module bundles > Scripts > Python worker protocol starter`; the old project-specific scripts are available under `Module bundles > Scripts > Robot demo Python scripts`.
 
 
 ### 0.2.28 Web UI bundle split
@@ -119,7 +126,7 @@ C bundles now include README/API notes where useful. When a socket or Web UI bac
 
 ### 0.2.31 C I2C/SPI communication bundles
 
-`Module bundles > C` now offers `I2C communication` and `SPI communication` alongside UART, IPC and Ethernet. The full C communication stack now creates all five low-level communication modules. The C++ bundle list also exposes the original MY_Util I2C and SPI classes as individual selectable bundles.
+`Module bundles > C` now offers `I2C communication` and `SPI communication` alongside UART, IPC and Ethernet. The full C communication stack now creates all five low-level communication modules. The C++ bundle list also exposes the original CPM_Utility I2C and SPI classes as individual selectable bundles.
 
 
 
@@ -166,7 +173,7 @@ The Lua header documents the main API directly in Doxygen form: one-shot executi
 
 ### 0.2.40 bundle header documentation audit
 
-The bundle headers now include a stronger self-contained documentation block. Each audited header starts with Doxygen sections for main features, typical applications, usage notes and a short example using the public API. This was applied to the generated C bundles, the generated C++ bundles and the copied MY_Util communication/external/Web UI bundles.
+The bundle headers now include a stronger self-contained documentation block. Each audited header starts with Doxygen sections for main features, typical applications, usage notes and a short example using the public API. This was applied to the generated C bundles, the generated C++ bundles and the copied CPM_Utility communication/external/Web UI bundles.
 
 This avoids missing important runtime behavior such as script argument passing or stdout capture: the Python and Lua execution bridge headers now explicitly document both argument access on the script side and output capture in the C/C++ result structures.
 
@@ -207,3 +214,32 @@ The editor context menu now imports the JC Lib 0.8.24 utility surface into CPM-s
 
 The embedded JC Lib manager now includes the JC Lib 0.8.27 structured packs. Pack imports preserve the source environment/library hierarchy, including the refreshed SDL, Lua, Embedded and Windows API / Devices layouts, plus the new Assembly and Visual Basic / VBA packs.
 
+
+### 0.2.55 C++ utility and error helpers
+
+The consolidated `CPM_Utility core utilities` bundle includes common helpers used repeatedly in CPM projects: executable path/directory discovery, `std::filesystem` existence checks, directory creation, text-file read/write/append, environment-variable lookup, timestamp formatting and string utilities.
+
+The generated C/C++ error-management bundles now write structured error blocks with a date separator, error code, message, source file, line and function. `CPM_Utility/ErrorManagement` also forwards macro failures to the same structured log style.
+
+
+### 0.2.56 generated error source escaping
+
+The generated CPM C and C++ error-management source templates now preserve escape sequences in emitted files. Log formatting code is generated as valid C/C++ source using `\n`, `\t` and `\0` rather than accidental literal newlines or NUL characters inside string/character literals.
+
+
+## CPM_Utility C++ bundle
+
+The C++ utility bundle now creates `cpm_utility.cpp`, `cpm_utility.h` and `utility.ini`. It supersedes the old CPM_Utility/core utility split and provides executable location, filesystem, text I/O, INI, string, date/time, delay, stopwatch and formatted error-log helpers.
+
+
+## 0.2.58 — CPM_Utility / CPM_String
+
+`CPM_Utility` now exposes `CPM_String` as the preferred string helper. `MyString` remains available as a compatibility alias. Use `CPM_String("=") * 10`, `10 * CPM_String("-")`, `"*"_cpm * 8`, or `cpm_utility::repeat("//", 4)` for repeated text generation.
+
+## 0.2.60 — CPM_Utility / CPM_String sequence removal
+
+`CPM_String` now supports `-` and `-=` for removing string sequences. Example: `CPM_String text = "bonjour ça va ?"_cpm; text -= "bonjour";` gives `"ça va ?"`. `remove_all_in_place(...)` and `removed_all(...)` are also available when an explicit function call is preferred over operators.
+
+## 0.2.59 — CPM_Utility / CPM_String compound operators
+
+`CPM_String` now supports `+=`, `*=` and `^=` in addition to the existing `+`, `*` and `^` operators. Example: `CPM_String line = "="_cpm; line *= 72;`.

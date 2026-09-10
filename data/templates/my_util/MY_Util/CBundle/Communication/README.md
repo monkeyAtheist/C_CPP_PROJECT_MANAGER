@@ -1,6 +1,6 @@
 # CPM C communication stack
 
-This bundle groups pure C communication helpers converted or rewritten from the MY_Util C++ communication modules.
+This bundle groups pure C communication helpers converted or rewritten from the CPM_Utility C++ communication modules.
 
 Included modules:
 

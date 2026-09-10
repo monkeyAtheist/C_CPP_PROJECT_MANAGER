@@ -2,7 +2,7 @@
   "id": "scripting-system-pack",
   "name": "Scripting / System Pack",
   "language": "other",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "readOnly": false,
   "environments": [
     {
@@ -14251,7 +14251,7 @@
                     },
                     {
                       "name": "set variable from batch argument",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "set \"NAME=EXPANSION\"",
                       "insertText": "set \"{{name}}={{expansion}}\"",
                       "library": "Windows CMD & Batch",
@@ -14482,7 +14482,7 @@
                           }
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "set \"NAME=EXPANSION\"",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
@@ -14714,14 +14714,14 @@
                           }
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "reference",
                       "declaration": "%~ modifier argument",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "set clear variable",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "set \"NAME=\"",
                       "insertText": "set \"{{name}}=\"",
                       "library": "Windows CMD & Batch",
@@ -14736,14 +14736,14 @@
                           "defaultValue": "TEMP_VALUE"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "set \"NAME=\"",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "set prompt variable",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "set /p \"NAME=PROMPT\"",
                       "insertText": "set /p \"{{name}}={{prompt}}\"",
                       "library": "Windows CMD & Batch",
@@ -14764,14 +14764,14 @@
                           "defaultValue": "Enter value: "
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "set /p \"NAME=PROMPT\"",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "set arithmetic assignment",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "set /a \"NAME OP EXPRESSION\"",
                       "insertText": "set /a \"{{name}}{{operator}}{{expression}}\"",
                       "library": "Windows CMD & Batch",
@@ -14934,14 +14934,14 @@
                           "defaultValue": "1"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "set /a \"NAME OP EXPRESSION\"",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "setlocal environment scope",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "setlocal [arguments]",
                       "insertText": "setlocal {{arguments}}",
                       "library": "Windows CMD & Batch",
@@ -15052,14 +15052,14 @@
                           }
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "setlocal [arguments]",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "endlocal environment scope",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "endlocal",
                       "insertText": "endlocal",
                       "library": "Windows CMD & Batch",
@@ -15067,78 +15067,83 @@
                       "description": "End the current local environment scope and restore variables and extension settings saved by setlocal.",
                       "longDescription": "End the current local environment scope and restore variables and extension settings saved by setlocal.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/setlocal\nOfficial Microsoft Learn Windows command reference. Verify target-host command extensions and script assumptions before deployment.",
                       "parameters": [],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "endlocal",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "shift positional arguments",
-                      "returnType": "batch statement",
-                      "signature": "shift [/n N]",
+                      "returnType": "command exit status / batch statement",
+                      "signature": "shift [/N]",
                       "insertText": "shift {{start}}",
                       "library": "Windows CMD & Batch",
                       "category": "Batch Language & Script Structure",
-                      "description": "Shift positional batch arguments so the next argument becomes available as %1. An optional /n value controls the first argument shifted.",
-                      "longDescription": "Shift positional batch arguments so the next argument becomes available as %1. An optional /n value controls the first argument shifted.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/shift\nOfficial Microsoft Learn Windows command reference. Verify target-host command extensions and script assumptions before deployment.",
+                      "description": "Shift positional batch arguments. With command extensions enabled, /N (0..8) starts shifting at that argument index; for example SHIFT /2 leaves %0 and %1 unchanged.",
+                      "longDescription": "Shift positional batch arguments. With command extensions enabled, /N (0..8) starts shifting at that argument index; for example SHIFT /2 leaves %0 and %1 unchanged.\n\nSHIFT has no effect on %*. There is no reverse shift.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/shift\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [
                         {
                           "name": "start",
-                          "type": "optional shift start",
-                          "description": "Choose the first positional argument to shift.",
+                          "type": "optional /N start index",
+                          "description": "Optional start index. Microsoft documents values 0 through 8; for example /2 starts at %2.",
                           "defaultValue": "",
                           "editorType": "enum",
                           "options": [
                             {
                               "value": "",
-                              "label": "Shift from %0 / default",
-                              "description": "Use the default shift behavior."
+                              "label": "Default shift",
+                              "description": "Shift using the default behavior."
                             },
                             {
-                              "value": "/n 1",
+                              "value": "/0",
+                              "label": "Start at %0",
+                              "description": "Leave parameters below %0 unchanged and shift starting at %0."
+                            },
+                            {
+                              "value": "/1",
                               "label": "Start at %1",
-                              "description": "Shift arguments starting at %1."
+                              "description": "Leave parameters below %1 unchanged and shift starting at %1."
                             },
                             {
-                              "value": "/n 2",
+                              "value": "/2",
                               "label": "Start at %2",
-                              "description": "Shift arguments starting at %2."
+                              "description": "Leave parameters below %2 unchanged and shift starting at %2."
                             },
                             {
-                              "value": "/n 3",
+                              "value": "/3",
                               "label": "Start at %3",
-                              "description": "Shift arguments starting at %3."
+                              "description": "Leave parameters below %3 unchanged and shift starting at %3."
                             },
                             {
-                              "value": "/n 4",
+                              "value": "/4",
                               "label": "Start at %4",
-                              "description": "Shift arguments starting at %4."
+                              "description": "Leave parameters below %4 unchanged and shift starting at %4."
                             },
                             {
-                              "value": "/n 5",
+                              "value": "/5",
                               "label": "Start at %5",
-                              "description": "Shift arguments starting at %5."
+                              "description": "Leave parameters below %5 unchanged and shift starting at %5."
                             },
                             {
-                              "value": "/n 6",
+                              "value": "/6",
                               "label": "Start at %6",
-                              "description": "Shift arguments starting at %6."
+                              "description": "Leave parameters below %6 unchanged and shift starting at %6."
                             },
                             {
-                              "value": "/n 7",
+                              "value": "/7",
                               "label": "Start at %7",
-                              "description": "Shift arguments starting at %7."
+                              "description": "Leave parameters below %7 unchanged and shift starting at %7."
                             },
                             {
-                              "value": "/n 8",
+                              "value": "/8",
                               "label": "Start at %8",
-                              "description": "Shift arguments starting at %8."
+                              "description": "Leave parameters below %8 unchanged and shift starting at %8."
                             }
                           ],
                           "pickerConfig": {
                             "title": "Select start",
                             "selectionLabel": "Selected value",
-                            "subtitle": "Choose the first positional argument to shift.",
+                            "subtitle": "Optional start index. Microsoft documents values 0 through 8; for example /2 starts at %2.",
                             "multiSelect": false,
                             "valueSeparator": " ",
                             "emptyValue": "",
@@ -15149,53 +15154,53 @@
                                 "description": "Select a documented CMD / Batch value. Compatible options can be combined only when multi-selection is enabled.",
                                 "groups": [
                                   {
-                                    "label": "Available options",
-                                    "description": "Choose the value matching the intended batch-script behavior.",
+                                    "label": "Start index",
+                                    "description": "Select the documented SHIFT /N form.",
                                     "items": [
                                       {
-                                        "value": "",
-                                        "label": "Shift from %0 / default",
-                                        "description": "Use the default shift behavior."
+                                        "value": "/0",
+                                        "label": "Start at %0",
+                                        "description": "Leave parameters below %0 unchanged and shift starting at %0."
                                       },
                                       {
-                                        "value": "/n 1",
+                                        "value": "/1",
                                         "label": "Start at %1",
-                                        "description": "Shift arguments starting at %1."
+                                        "description": "Leave parameters below %1 unchanged and shift starting at %1."
                                       },
                                       {
-                                        "value": "/n 2",
+                                        "value": "/2",
                                         "label": "Start at %2",
-                                        "description": "Shift arguments starting at %2."
+                                        "description": "Leave parameters below %2 unchanged and shift starting at %2."
                                       },
                                       {
-                                        "value": "/n 3",
+                                        "value": "/3",
                                         "label": "Start at %3",
-                                        "description": "Shift arguments starting at %3."
+                                        "description": "Leave parameters below %3 unchanged and shift starting at %3."
                                       },
                                       {
-                                        "value": "/n 4",
+                                        "value": "/4",
                                         "label": "Start at %4",
-                                        "description": "Shift arguments starting at %4."
+                                        "description": "Leave parameters below %4 unchanged and shift starting at %4."
                                       },
                                       {
-                                        "value": "/n 5",
+                                        "value": "/5",
                                         "label": "Start at %5",
-                                        "description": "Shift arguments starting at %5."
+                                        "description": "Leave parameters below %5 unchanged and shift starting at %5."
                                       },
                                       {
-                                        "value": "/n 6",
+                                        "value": "/6",
                                         "label": "Start at %6",
-                                        "description": "Shift arguments starting at %6."
+                                        "description": "Leave parameters below %6 unchanged and shift starting at %6."
                                       },
                                       {
-                                        "value": "/n 7",
+                                        "value": "/7",
                                         "label": "Start at %7",
-                                        "description": "Shift arguments starting at %7."
+                                        "description": "Leave parameters below %7 unchanged and shift starting at %7."
                                       },
                                       {
-                                        "value": "/n 8",
+                                        "value": "/8",
                                         "label": "Start at %8",
-                                        "description": "Shift arguments starting at %8."
+                                        "description": "Leave parameters below %8 unchanged and shift starting at %8."
                                       }
                                     ]
                                   }
@@ -15205,8 +15210,8 @@
                           }
                         }
                       ],
-                      "symbolKind": "function",
-                      "declaration": "shift [/n N]",
+                      "symbolKind": "command",
+                      "declaration": "shift [/N]",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     }
@@ -15339,7 +15344,7 @@
                     },
                     {
                       "name": "if string comparison",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "if [/i] [not] STRING1==STRING2 COMMAND",
                       "insertText": "if {{caseInsensitive}} {{not}} \"{{left}}\"==\"{{right}}\" {{command}}",
                       "library": "Windows CMD & Batch",
@@ -15470,14 +15475,14 @@
                           "defaultValue": "echo Match"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "if [/i] [not] STRING1==STRING2 COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "if numeric comparison",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "if [not] NUMBER1 compareop NUMBER2 COMMAND",
                       "insertText": "if {{not}} {{left}} {{operator}} {{right}} {{command}}",
                       "library": "Windows CMD & Batch",
@@ -15648,14 +15653,14 @@
                           "defaultValue": "echo Count is at least one"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "if [not] NUMBER1 compareop NUMBER2 COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "if exist path",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "if [not] exist PATH COMMAND",
                       "insertText": "if {{not}} exist \"{{path}}\" {{command}}",
                       "library": "Windows CMD & Batch",
@@ -15728,14 +15733,14 @@
                           "defaultValue": "echo Path exists"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "if [not] exist PATH COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "if defined variable",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "if [not] defined NAME COMMAND",
                       "insertText": "if {{not}} defined {{name}} {{command}}",
                       "library": "Windows CMD & Batch",
@@ -15808,14 +15813,14 @@
                           "defaultValue": "echo Variable is defined"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "if [not] defined NAME COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "if errorlevel threshold",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "if [not] errorlevel NUMBER COMMAND",
                       "insertText": "if {{not}} errorlevel {{level}} {{command}}",
                       "library": "Windows CMD & Batch",
@@ -15888,14 +15893,14 @@
                           "defaultValue": "exit /b %errorlevel%"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "if [not] errorlevel NUMBER COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "if cmd extensions version",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "if [not] cmdextversion NUMBER COMMAND",
                       "insertText": "if {{not}} cmdextversion {{version}} {{command}}",
                       "library": "Windows CMD & Batch",
@@ -15968,14 +15973,14 @@
                           "defaultValue": "echo Command extensions available"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "if [not] cmdextversion NUMBER COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "for items in set",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "for %%VARIABLE in (SET) do COMMAND",
                       "insertText": "for %%{{variable}} in ({{set}}) do {{command}}",
                       "library": "Windows CMD & Batch",
@@ -16078,14 +16083,14 @@
                           "defaultValue": "echo %%F"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "for %%VARIABLE in (SET) do COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "for /d directories",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "for /d %%VARIABLE in (SET) do COMMAND",
                       "insertText": "for /d %%{{variable}} in ({{set}}) do {{command}}",
                       "library": "Windows CMD & Batch",
@@ -16188,14 +16193,14 @@
                           "defaultValue": "echo %%~fD"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "for /d %%VARIABLE in (SET) do COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "for /r recursive files",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "for /r [PATH] %%VARIABLE in (SET) do COMMAND",
                       "insertText": "for /r \"{{root}}\" %%{{variable}} in ({{set}}) do {{command}}",
                       "library": "Windows CMD & Batch",
@@ -16305,14 +16310,14 @@
                           "defaultValue": "echo %%~fF"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "for /r [PATH] %%VARIABLE in (SET) do COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "for /l numeric range",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "for /l %%VARIABLE in (START,STEP,END) do COMMAND",
                       "insertText": "for /l %%{{variable}} in ({{start}},{{step}},{{end}}) do {{command}}",
                       "library": "Windows CMD & Batch",
@@ -16427,20 +16432,20 @@
                           "defaultValue": "echo %%I"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "for /l %%VARIABLE in (START,STEP,END) do COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "for /f parse command output",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "for /f \"options\" %%VARIABLE in ('COMMAND') do COMMAND",
-                      "insertText": "for /f \"{{tokens}} {{delims}} {{skip}} {{eol}} {{usebackq}}\" %%{{variable}} in ('{{source}}') do {{command}}",
+                      "insertText": "for /f \"{{tokens}} {{delims}} {{skip}} {{eol}}\" %%{{variable}} in ('{{source}}') do {{command}}",
                       "library": "Windows CMD & Batch",
                       "category": "Batch Language & Script Structure",
-                      "description": "Parse the output of a nested command line by line.",
-                      "longDescription": "Parse the output of a nested command line by line.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for\nOfficial Microsoft Learn Windows command reference. Verify target-host command extensions and script assumptions before deployment.",
+                      "description": "Parse stdout from a nested command. This card uses the classic FOR /F quoting rule where a single-quoted item in IN(...) is executed by Cmd.exe.",
+                      "longDescription": "Parse stdout from a nested command. This card uses the classic FOR /F quoting rule where a single-quoted item in IN(...) is executed by Cmd.exe.\n\nUse a separate usebackq form only when you specifically need its alternative quoting rules.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [
                         {
                           "name": "tokens",
@@ -16762,58 +16767,6 @@
                                         "value": "eol=§",
                                         "label": "Rare marker",
                                         "description": "Use a rarely occurring marker to avoid accidental filtering."
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "name": "usebackq",
-                          "type": "optional usebackq",
-                          "description": "Enable alternative quoting rules when needed.",
-                          "defaultValue": "",
-                          "editorType": "enum",
-                          "options": [
-                            {
-                              "value": "",
-                              "label": "Classic quoting rules",
-                              "description": "Use classic FOR /F quoting rules."
-                            },
-                            {
-                              "value": "usebackq",
-                              "label": "Alternative quoting rules",
-                              "description": "Enable back-quoted commands and double-quoted file names."
-                            }
-                          ],
-                          "pickerConfig": {
-                            "title": "Select usebackq",
-                            "selectionLabel": "Selected value",
-                            "subtitle": "Enable alternative quoting rules when needed.",
-                            "multiSelect": false,
-                            "valueSeparator": " ",
-                            "emptyValue": "",
-                            "applyDefaultIfEmpty": false,
-                            "sections": [
-                              {
-                                "label": "Documented batch choices",
-                                "description": "Select a documented CMD / Batch value. Compatible options can be combined only when multi-selection is enabled.",
-                                "groups": [
-                                  {
-                                    "label": "Available options",
-                                    "description": "Choose the value matching the intended batch-script behavior.",
-                                    "items": [
-                                      {
-                                        "value": "",
-                                        "label": "Classic quoting rules",
-                                        "description": "Use classic FOR /F quoting rules."
-                                      },
-                                      {
-                                        "value": "usebackq",
-                                        "label": "Alternative quoting rules",
-                                        "description": "Enable back-quoted commands and double-quoted file names."
                                       }
                                     ]
                                   }
@@ -16917,20 +16870,20 @@
                           "defaultValue": "echo %%L"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "for /f \"options\" %%VARIABLE in ('COMMAND') do COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "for /f parse text file",
-                      "returnType": "batch statement",
-                      "signature": "for /f \"options\" %%VARIABLE in (FILE) do COMMAND",
-                      "insertText": "for /f \"{{tokens}} {{delims}} {{skip}} {{eol}} {{usebackq}}\" %%{{variable}} in ({{source}}) do {{command}}",
+                      "returnType": "command exit status / batch statement",
+                      "signature": "for /f \"usebackq options\" %%VARIABLE in (\"FILE\") do COMMAND",
+                      "insertText": "for /f \"usebackq {{tokens}} {{delims}} {{skip}} {{eol}}\" %%{{variable}} in (\"{{source}}\") do {{command}}",
                       "library": "Windows CMD & Batch",
                       "category": "Batch Language & Script Structure",
-                      "description": "Parse a text file line by line with explicit tokenization controls.",
-                      "longDescription": "Parse a text file line by line with explicit tokenization controls.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for\nOfficial Microsoft Learn Windows command reference. Verify target-host command extensions and script assumptions before deployment.",
+                      "description": "Parse a text file line by line. This card deliberately uses usebackq so a double-quoted file path can contain spaces.",
+                      "longDescription": "Parse a text file line by line. This card deliberately uses usebackq so a double-quoted file path can contain spaces.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [
                         {
                           "name": "tokens",
@@ -17252,58 +17205,6 @@
                                         "value": "eol=§",
                                         "label": "Rare marker",
                                         "description": "Use a rarely occurring marker to avoid accidental filtering."
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "name": "usebackq",
-                          "type": "optional usebackq",
-                          "description": "Enable alternative quoting rules when needed.",
-                          "defaultValue": "",
-                          "editorType": "enum",
-                          "options": [
-                            {
-                              "value": "",
-                              "label": "Classic quoting rules",
-                              "description": "Use classic FOR /F quoting rules."
-                            },
-                            {
-                              "value": "usebackq",
-                              "label": "Alternative quoting rules",
-                              "description": "Enable back-quoted commands and double-quoted file names."
-                            }
-                          ],
-                          "pickerConfig": {
-                            "title": "Select usebackq",
-                            "selectionLabel": "Selected value",
-                            "subtitle": "Enable alternative quoting rules when needed.",
-                            "multiSelect": false,
-                            "valueSeparator": " ",
-                            "emptyValue": "",
-                            "applyDefaultIfEmpty": false,
-                            "sections": [
-                              {
-                                "label": "Documented batch choices",
-                                "description": "Select a documented CMD / Batch value. Compatible options can be combined only when multi-selection is enabled.",
-                                "groups": [
-                                  {
-                                    "label": "Available options",
-                                    "description": "Choose the value matching the intended batch-script behavior.",
-                                    "items": [
-                                      {
-                                        "value": "",
-                                        "label": "Classic quoting rules",
-                                        "description": "Use classic FOR /F quoting rules."
-                                      },
-                                      {
-                                        "value": "usebackq",
-                                        "label": "Alternative quoting rules",
-                                        "description": "Enable back-quoted commands and double-quoted file names."
                                       }
                                     ]
                                   }
@@ -17398,7 +17299,7 @@
                           "name": "source",
                           "type": "FOR /F source",
                           "description": "Text-file source. Use usebackq when double-quoting a path containing spaces.",
-                          "defaultValue": "\"config.txt\"",
+                          "defaultValue": "config.txt",
                           "editorType": "pathFile"
                         },
                         {
@@ -17408,20 +17309,20 @@
                           "defaultValue": "echo %%L"
                         }
                       ],
-                      "symbolKind": "function",
-                      "declaration": "for /f \"options\" %%VARIABLE in (FILE) do COMMAND",
+                      "symbolKind": "command",
+                      "declaration": "for /f \"usebackq options\" %%VARIABLE in (\"FILE\") do COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "for /f parse literal string",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "for /f \"options\" %%VARIABLE in (\"STRING\") do COMMAND",
-                      "insertText": "for /f \"{{tokens}} {{delims}} {{skip}} {{eol}} {{usebackq}}\" %%{{variable}} in (\"{{source}}\") do {{command}}",
+                      "insertText": "for /f \"{{tokens}} {{delims}} {{skip}} {{eol}}\" %%{{variable}} in (\"{{source}}\") do {{command}}",
                       "library": "Windows CMD & Batch",
                       "category": "Batch Language & Script Structure",
-                      "description": "Parse a literal string or a quoted expansion through FOR /F.",
-                      "longDescription": "Parse a literal string or a quoted expansion through FOR /F.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for\nOfficial Microsoft Learn Windows command reference. Verify target-host command extensions and script assumptions before deployment.",
+                      "description": "Parse an immediate literal string with the classic FOR /F quoting rules.",
+                      "longDescription": "Parse an immediate literal string with the classic FOR /F quoting rules.\n\nWith usebackq enabled, quoting rules change; this card intentionally does not enable it.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [
                         {
                           "name": "tokens",
@@ -17743,58 +17644,6 @@
                                         "value": "eol=§",
                                         "label": "Rare marker",
                                         "description": "Use a rarely occurring marker to avoid accidental filtering."
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "name": "usebackq",
-                          "type": "optional usebackq",
-                          "description": "Enable alternative quoting rules when needed.",
-                          "defaultValue": "",
-                          "editorType": "enum",
-                          "options": [
-                            {
-                              "value": "",
-                              "label": "Classic quoting rules",
-                              "description": "Use classic FOR /F quoting rules."
-                            },
-                            {
-                              "value": "usebackq",
-                              "label": "Alternative quoting rules",
-                              "description": "Enable back-quoted commands and double-quoted file names."
-                            }
-                          ],
-                          "pickerConfig": {
-                            "title": "Select usebackq",
-                            "selectionLabel": "Selected value",
-                            "subtitle": "Enable alternative quoting rules when needed.",
-                            "multiSelect": false,
-                            "valueSeparator": " ",
-                            "emptyValue": "",
-                            "applyDefaultIfEmpty": false,
-                            "sections": [
-                              {
-                                "label": "Documented batch choices",
-                                "description": "Select a documented CMD / Batch value. Compatible options can be combined only when multi-selection is enabled.",
-                                "groups": [
-                                  {
-                                    "label": "Available options",
-                                    "description": "Choose the value matching the intended batch-script behavior.",
-                                    "items": [
-                                      {
-                                        "value": "",
-                                        "label": "Classic quoting rules",
-                                        "description": "Use classic FOR /F quoting rules."
-                                      },
-                                      {
-                                        "value": "usebackq",
-                                        "label": "Alternative quoting rules",
-                                        "description": "Enable back-quoted commands and double-quoted file names."
                                       }
                                     ]
                                   }
@@ -17898,7 +17747,7 @@
                           "defaultValue": "echo %%L"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "for /f \"options\" %%VARIABLE in (\"STRING\") do COMMAND",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
@@ -18148,14 +17997,14 @@
                           }
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "reference",
                       "declaration": "%%~ modifier VARIABLE",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "call batch subroutine",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "call :LABEL [arguments]",
                       "insertText": "call :{{label}} {{arguments}}",
                       "library": "Windows CMD & Batch",
@@ -18176,14 +18025,14 @@
                           "defaultValue": "Release"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "call :LABEL [arguments]",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "call batch file",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "call BATCH [arguments]",
                       "insertText": "call \"{{file}}\" {{arguments}}",
                       "library": "Windows CMD & Batch",
@@ -18205,14 +18054,14 @@
                           "defaultValue": "Release"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "call BATCH [arguments]",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "goto batch label",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "goto :LABEL",
                       "insertText": "goto :{{label}}",
                       "library": "Windows CMD & Batch",
@@ -18227,14 +18076,14 @@
                           "defaultValue": "cleanup"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "goto :LABEL",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "exit batch scope",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "exit [/b] [exitCode]",
                       "insertText": "exit {{scope}} {{code}}",
                       "library": "Windows CMD & Batch",
@@ -18301,20 +18150,20 @@
                           "defaultValue": "0"
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "exit [/b] [exitCode]",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
                     {
                       "name": "choice operator prompt",
-                      "returnType": "batch statement",
+                      "returnType": "command exit status / batch statement",
                       "signature": "choice [options]",
                       "insertText": "choice {{flags}} /c {{choices}} /m \"{{message}}\" {{default}} {{timeout}}",
                       "library": "Windows CMD & Batch",
                       "category": "Batch Language & Script Structure",
-                      "description": "Prompt the operator to select one key from a controlled list of choices.",
-                      "longDescription": "Prompt the operator to select one key from a controlled list of choices.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/choice\nOfficial Microsoft Learn Windows command reference. Verify target-host command extensions and script assumptions before deployment.",
+                      "description": "Prompt for one controlled single-character choice. CHOICE returns the 1-based index through ERRORLEVEL; test ERRORLEVEL values in descending order.",
+                      "longDescription": "Prompt for one controlled single-character choice. CHOICE returns the 1-based index through ERRORLEVEL; test ERRORLEVEL values in descending order. If a timeout is used, /T must be paired with /D and the default key must exist in /C.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/choice\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [
                         {
                           "name": "flags",
@@ -18393,17 +18242,17 @@
                         {
                           "name": "default",
                           "type": "optional default",
-                          "description": "Optional default selection, for example /d N.",
+                          "description": "Optional default key as /d X. Required when /t is used.",
                           "defaultValue": ""
                         },
                         {
                           "name": "timeout",
                           "type": "optional timeout",
-                          "description": "Optional timeout in seconds, for example /t 10.",
+                          "description": "Optional timeout as /t N. Microsoft syntax requires /d together with /t.",
                           "defaultValue": ""
                         }
                       ],
-                      "symbolKind": "function",
+                      "symbolKind": "command",
                       "declaration": "choice [options]",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
@@ -18515,6 +18364,36 @@
                               "value": "COMPUTERNAME",
                               "label": "Computer name",
                               "description": "Local Windows host name."
+                            },
+                            {
+                              "value": "ERRORLEVEL",
+                              "label": "Current ERRORLEVEL",
+                              "description": "CMD dynamic value for the current command status."
+                            },
+                            {
+                              "value": "CMDEXTVERSION",
+                              "label": "Command extensions version",
+                              "description": "CMD dynamic command-extension version."
+                            },
+                            {
+                              "value": "CMDCMDLINE",
+                              "label": "Cmd.exe command line",
+                              "description": "Original command line that launched the current Cmd.exe."
+                            },
+                            {
+                              "value": "RANDOM",
+                              "label": "Pseudo-random integer",
+                              "description": "CMD dynamic pseudo-random value from 0 through 32767."
+                            },
+                            {
+                              "value": "DATE",
+                              "label": "Current date",
+                              "description": "Current date text using the machine locale."
+                            },
+                            {
+                              "value": "TIME",
+                              "label": "Current time",
+                              "description": "Current time text using the machine locale."
                             }
                           ],
                           "pickerConfig": {
@@ -18603,6 +18482,90 @@
                                         "value": "COMPUTERNAME",
                                         "label": "Computer name",
                                         "description": "Local Windows host name."
+                                      },
+                                      {
+                                        "value": "ERRORLEVEL",
+                                        "constant": "ERRORLEVEL",
+                                        "label": "Current ERRORLEVEL",
+                                        "description": "CMD dynamic value for the current command status.",
+                                        "detail": "",
+                                        "defaultValue": "",
+                                        "sourceTypes": [
+                                          "All"
+                                        ],
+                                        "valueKind": "",
+                                        "valuePlaceholder": "",
+                                        "valueOptions": []
+                                      },
+                                      {
+                                        "value": "CMDEXTVERSION",
+                                        "constant": "CMDEXTVERSION",
+                                        "label": "Command extensions version",
+                                        "description": "CMD dynamic command-extension version.",
+                                        "detail": "",
+                                        "defaultValue": "",
+                                        "sourceTypes": [
+                                          "All"
+                                        ],
+                                        "valueKind": "",
+                                        "valuePlaceholder": "",
+                                        "valueOptions": []
+                                      },
+                                      {
+                                        "value": "CMDCMDLINE",
+                                        "constant": "CMDCMDLINE",
+                                        "label": "Cmd.exe command line",
+                                        "description": "Original command line that launched the current Cmd.exe.",
+                                        "detail": "",
+                                        "defaultValue": "",
+                                        "sourceTypes": [
+                                          "All"
+                                        ],
+                                        "valueKind": "",
+                                        "valuePlaceholder": "",
+                                        "valueOptions": []
+                                      },
+                                      {
+                                        "value": "RANDOM",
+                                        "constant": "RANDOM",
+                                        "label": "Pseudo-random integer",
+                                        "description": "CMD dynamic pseudo-random value from 0 through 32767.",
+                                        "detail": "",
+                                        "defaultValue": "",
+                                        "sourceTypes": [
+                                          "All"
+                                        ],
+                                        "valueKind": "",
+                                        "valuePlaceholder": "",
+                                        "valueOptions": []
+                                      },
+                                      {
+                                        "value": "DATE",
+                                        "constant": "DATE",
+                                        "label": "Current date",
+                                        "description": "Current date text using the machine locale.",
+                                        "detail": "",
+                                        "defaultValue": "",
+                                        "sourceTypes": [
+                                          "All"
+                                        ],
+                                        "valueKind": "",
+                                        "valuePlaceholder": "",
+                                        "valueOptions": []
+                                      },
+                                      {
+                                        "value": "TIME",
+                                        "constant": "TIME",
+                                        "label": "Current time",
+                                        "description": "Current time text using the machine locale.",
+                                        "detail": "",
+                                        "defaultValue": "",
+                                        "sourceTypes": [
+                                          "All"
+                                        ],
+                                        "valueKind": "",
+                                        "valuePlaceholder": "",
+                                        "valueOptions": []
                                       }
                                     ]
                                   }
@@ -18731,8 +18694,82 @@
                       "declaration": "reg query HKLM\\...\\Environment",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
+                    },
+                    {
+                      "name": "setx environment variable",
+                      "returnType": "command exit status",
+                      "signature": "setx VARIABLE VALUE [OPTIONS]",
+                      "insertText": "setx {{name}} \"{{value}}\" {{flags}}",
+                      "library": "Windows CMD & Batch",
+                      "category": "Batch Language & Script Structure",
+                      "description": "Persist a user or machine environment variable for future processes. SETX does not modify the current CMD environment.",
+                      "longDescription": "Persist a user or machine environment variable for future processes. SETX does not modify the current CMD environment. Existing variable references are expanded when written and Microsoft documents a 1024-character assignment limit; avoid rewriting a long PATH blindly.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/setx\nOfficial Microsoft Learn Windows command reference.",
+                      "parameters": [
+                        {
+                          "name": "name",
+                          "type": "variable name",
+                          "description": "Environment-variable name.",
+                          "editorType": "text",
+                          "defaultValue": "DEVICE_ROOT"
+                        },
+                        {
+                          "name": "value",
+                          "type": "variable value",
+                          "description": "Persisted environment-variable value.",
+                          "editorType": "text",
+                          "defaultValue": "C:\\Apps\\Device"
+                        },
+                        {
+                          "name": "flags",
+                          "type": "setx flags",
+                          "description": "Optional persistence switches.",
+                          "editorType": "enum",
+                          "defaultValue": "",
+                          "options": [
+                            {
+                              "value": "/m",
+                              "label": "Machine scope",
+                              "description": "Set the variable in the system environment. Requires appropriate privileges."
+                            }
+                          ],
+                          "optional": true,
+                          "pickerConfig": {
+                            "title": "Select flags",
+                            "selectionLabel": "Combined options",
+                            "subtitle": "Optional persistence switches.",
+                            "multiSelect": true,
+                            "valueSeparator": " ",
+                            "emptyValue": "",
+                            "applyDefaultIfEmpty": false,
+                            "sections": [
+                              {
+                                "label": "Documented command options",
+                                "description": "Choose documented options for this command. Compatible switches can be combined when multi-selection is enabled.",
+                                "groups": [
+                                  {
+                                    "label": "Available options",
+                                    "description": "Select the option or options matching the intended command behavior.",
+                                    "items": [
+                                      {
+                                        "value": "/m",
+                                        "label": "Machine scope",
+                                        "description": "Set the variable in the system environment. Requires appropriate privileges."
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ],
+                      "symbolKind": "command",
+                      "declaration": "setx VARIABLE VALUE [OPTIONS]",
+                      "environment": "Scripting / System",
+                      "header": "Windows CMD & Batch"
                     }
-                  ]
+                  ],
+                  "description": "Environment variables & known paths commands, parameterized cards, recipes and references for Windows CMD / Batch."
                 }
               ]
             },
@@ -19304,14 +19341,14 @@
                       "header": "Windows CMD & Batch"
                     },
                     {
-                      "name": "xcopy",
+                      "name": "xcopy (legacy)",
                       "returnType": "command exit status",
                       "signature": "xcopy SOURCE DESTINATION [options]",
                       "insertText": "xcopy {{source}} {{destination}} {{flags}}",
                       "library": "Windows CMD & Batch",
                       "category": "Files, Text & Deployment",
-                      "description": "Copy files and directory trees with the legacy xcopy command.",
-                      "longDescription": "Copy files and directory trees with the legacy xcopy command.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/xcopy\nOfficial command documentation. Verify command availability and version-specific extensions on the target operating system.",
+                      "description": "Legacy file/tree copy command. Prefer Robocopy for resilient deployment and mirroring workflows; retain XCOPY for compatibility scripts.",
+                      "longDescription": "Legacy file/tree copy command. Prefer Robocopy for resilient deployment and mirroring workflows; retain XCOPY for compatibility scripts.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/xcopy\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [
                         {
                           "name": "source",
@@ -20624,75 +20661,144 @@
                       "header": "Windows CMD & Batch"
                     },
                     {
-                      "name": "setx environment variable",
+                      "name": "mkdir / md (CMD)",
                       "returnType": "command exit status",
-                      "signature": "setx VARIABLE VALUE [OPTIONS]",
-                      "insertText": "setx {{name}} \"{{value}}\" {{flags}}",
+                      "signature": "mkdir DIRECTORY",
+                      "insertText": "mkdir \"{{directory}}\"",
                       "library": "Windows CMD & Batch",
                       "category": "Files, Text & Deployment",
-                      "description": "Persist a user or machine environment variable from CMD.",
-                      "longDescription": "Persist a user or machine environment variable from CMD.\n\nSource: https://learn.microsoft.com/windows-server/administration/windows-commands/setx\nOfficial reference documentation. Verify command availability, installed version and target-platform behavior before execution.",
+                      "description": "Create one or more directories. Intermediate directories are created as required.",
+                      "longDescription": "Create one or more directories. Intermediate directories are created as required.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/mkdir\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [
                         {
-                          "name": "name",
-                          "type": "variable name",
-                          "description": "Environment-variable name.",
+                          "name": "directory",
+                          "type": "directory path",
+                          "description": "Directory to create.",
+                          "editorType": "pathFolder",
+                          "defaultValue": "build"
+                        }
+                      ],
+                      "symbolKind": "command",
+                      "declaration": "mkdir DIRECTORY",
+                      "environment": "Scripting / System",
+                      "header": "Windows CMD & Batch"
+                    },
+                    {
+                      "name": "ren / rename (CMD)",
+                      "returnType": "command exit status",
+                      "signature": "ren OLD NEW",
+                      "insertText": "ren \"{{source}}\" \"{{newName}}\"",
+                      "library": "Windows CMD & Batch",
+                      "category": "Files, Text & Deployment",
+                      "description": "Rename a file or directory without changing its parent path.",
+                      "longDescription": "Rename a file or directory without changing its parent path.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/rename\nOfficial Microsoft Learn Windows command reference.",
+                      "parameters": [
+                        {
+                          "name": "source",
+                          "type": "source path",
+                          "description": "Existing file or directory.",
                           "editorType": "text",
-                          "defaultValue": "DEVICE_ROOT"
+                          "defaultValue": "old.txt"
                         },
                         {
-                          "name": "value",
-                          "type": "variable value",
-                          "description": "Persisted environment-variable value.",
+                          "name": "newName",
+                          "type": "new name",
+                          "description": "New file or directory name.",
                           "editorType": "text",
-                          "defaultValue": "C:\\Apps\\Device"
+                          "defaultValue": "new.txt"
+                        }
+                      ],
+                      "symbolKind": "command",
+                      "declaration": "ren OLD NEW",
+                      "environment": "Scripting / System",
+                      "header": "Windows CMD & Batch"
+                    },
+                    {
+                      "name": "attrib (CMD)",
+                      "returnType": "command exit status",
+                      "signature": "attrib [ATTRIBUTES] [PATH]",
+                      "insertText": "attrib {{attributes}} \"{{target}}\"",
+                      "library": "Windows CMD & Batch",
+                      "category": "Files, Text & Deployment",
+                      "description": "Display or change file attributes such as read-only, archive, system and hidden.",
+                      "longDescription": "Display or change file attributes such as read-only, archive, system and hidden.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/attrib\nOfficial Microsoft Learn Windows command reference.",
+                      "parameters": [
+                        {
+                          "name": "attributes",
+                          "type": "attribute operations",
+                          "description": "Examples: +R, -R, +H, -H, +A, -A.",
+                          "editorType": "text",
+                          "defaultValue": "+R"
                         },
                         {
-                          "name": "flags",
-                          "type": "setx flags",
-                          "description": "Optional persistence switches.",
+                          "name": "target",
+                          "type": "target path",
+                          "description": "File or wildcard target.",
+                          "editorType": "text",
+                          "defaultValue": "config.ini"
+                        }
+                      ],
+                      "symbolKind": "command",
+                      "declaration": "attrib [ATTRIBUTES] [PATH]",
+                      "environment": "Scripting / System",
+                      "header": "Windows CMD & Batch"
+                    },
+                    {
+                      "name": "mklink (CMD)",
+                      "returnType": "command exit status",
+                      "signature": "mklink [[/D] | [/H] | [/J]] LINK TARGET",
+                      "insertText": "mklink {{type}} \"{{link}}\" \"{{target}}\"",
+                      "library": "Windows CMD & Batch",
+                      "category": "Files, Text & Deployment",
+                      "description": "Create a symbolic link, hard link or directory junction. Some symbolic-link scenarios require elevation or Developer Mode.",
+                      "longDescription": "Create a symbolic link, hard link or directory junction. Some symbolic-link scenarios require elevation or Developer Mode.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/mklink\nOfficial Microsoft Learn Windows command reference.",
+                      "parameters": [
+                        {
+                          "name": "type",
+                          "type": "link type",
+                          "description": "Empty=file symbolic link, /D=directory symbolic link, /H=hard link, /J=directory junction.",
                           "editorType": "enum",
                           "defaultValue": "",
                           "options": [
                             {
-                              "value": "/m",
-                              "label": "Machine scope",
-                              "description": "Set the variable in the system environment. Requires appropriate privileges."
+                              "value": "",
+                              "label": "File symbolic link",
+                              "description": "Create a symbolic link to a file."
+                            },
+                            {
+                              "value": "/D",
+                              "label": "Directory symbolic link",
+                              "description": "Create a symbolic link to a directory."
+                            },
+                            {
+                              "value": "/H",
+                              "label": "Hard link",
+                              "description": "Create a hard link to a file."
+                            },
+                            {
+                              "value": "/J",
+                              "label": "Directory junction",
+                              "description": "Create a directory junction."
                             }
-                          ],
-                          "optional": true,
-                          "pickerConfig": {
-                            "title": "Select flags",
-                            "selectionLabel": "Combined options",
-                            "subtitle": "Optional persistence switches.",
-                            "multiSelect": true,
-                            "valueSeparator": " ",
-                            "emptyValue": "",
-                            "applyDefaultIfEmpty": false,
-                            "sections": [
-                              {
-                                "label": "Documented command options",
-                                "description": "Choose documented options for this command. Compatible switches can be combined when multi-selection is enabled.",
-                                "groups": [
-                                  {
-                                    "label": "Available options",
-                                    "description": "Select the option or options matching the intended command behavior.",
-                                    "items": [
-                                      {
-                                        "value": "/m",
-                                        "label": "Machine scope",
-                                        "description": "Set the variable in the system environment. Requires appropriate privileges."
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
+                          ]
+                        },
+                        {
+                          "name": "link",
+                          "type": "link path",
+                          "description": "New link path.",
+                          "editorType": "text",
+                          "defaultValue": "link.txt"
+                        },
+                        {
+                          "name": "target",
+                          "type": "target path",
+                          "description": "Existing target path.",
+                          "editorType": "text",
+                          "defaultValue": "target.txt"
                         }
                       ],
                       "symbolKind": "command",
-                      "declaration": "setx VARIABLE VALUE [OPTIONS]",
+                      "declaration": "mklink [[/D] | [/H] | [/J]] LINK TARGET",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     }
@@ -21798,12 +21904,12 @@
                     {
                       "name": "findstr Windows hosts alias (CMD)",
                       "returnType": "command exit status",
-                      "signature": "findstr /i /r PATTERN hosts",
-                      "insertText": "findstr /i /r \"{{pattern}}\" \"%SystemRoot%\\System32\\drivers\\etc\\hosts\"",
+                      "signature": "findstr /i /l TEXT hosts",
+                      "insertText": "findstr /i /l \"{{pattern}}\" \"%SystemRoot%\\System32\\drivers\\etc\\hosts\"",
                       "library": "Windows CMD & Batch",
                       "category": "Files, Text & Deployment",
-                      "description": "Search the Windows hosts file for an IP address, hostname or alias.",
-                      "longDescription": "Search the Windows hosts file for an IP address, hostname or alias.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/findstr\nOfficial reference documentation. Review platform requirements, privileges and generated values before execution.",
+                      "description": "Search the Windows hosts file for a literal IP address, hostname or alias, ignoring case. Use the general FINDSTR card when a regular expression is required.",
+                      "longDescription": "Search the Windows hosts file for a literal IP address, hostname or alias, ignoring case. Use the general FINDSTR card when a regular expression is required.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/findstr\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [
                         {
                           "name": "pattern",
@@ -21814,7 +21920,7 @@
                         }
                       ],
                       "symbolKind": "command",
-                      "declaration": "findstr /i /r PATTERN hosts",
+                      "declaration": "findstr /i /l TEXT hosts",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     },
@@ -21825,8 +21931,8 @@
                       "insertText": "ipconfig /displaydns",
                       "library": "Windows CMD & Batch",
                       "category": "Files, Text & Deployment",
-                      "description": "Display the Windows DNS resolver cache, including recently resolved aliases.",
-                      "longDescription": "Display the Windows DNS resolver cache, including recently resolved aliases.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ipconfig\nOfficial reference documentation. Review platform requirements, privileges and generated values before execution.",
+                      "description": "Display the DNS Client resolver cache. Microsoft notes that this cache includes entries preloaded from the local Hosts file plus recently resolved DNS records.",
+                      "longDescription": "Display the DNS Client resolver cache. Microsoft notes that this cache includes entries preloaded from the local Hosts file plus recently resolved DNS records.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ipconfig\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [],
                       "symbolKind": "command",
                       "declaration": "ipconfig /displaydns",
@@ -21840,15 +21946,16 @@
                       "insertText": "ipconfig /flushdns",
                       "library": "Windows CMD & Batch",
                       "category": "Files, Text & Deployment",
-                      "description": "Clear the Windows DNS resolver cache after changing hostname mappings.",
-                      "longDescription": "Clear the Windows DNS resolver cache after changing hostname mappings.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ipconfig\nOfficial reference documentation. Review platform requirements, privileges and generated values before execution.",
+                      "description": "Flush and reset the DNS Client resolver cache for troubleshooting. This does not delete entries from the Hosts file itself.",
+                      "longDescription": "Flush and reset the DNS Client resolver cache for troubleshooting. This does not delete entries from the Hosts file itself.\n\nSource: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ipconfig\nOfficial Microsoft Learn Windows command reference.",
                       "parameters": [],
                       "symbolKind": "command",
                       "declaration": "ipconfig /flushdns",
                       "environment": "Scripting / System",
                       "header": "Windows CMD & Batch"
                     }
-                  ]
+                  ],
+                  "description": "Windows hosts file & resolver cache commands, parameterized cards, recipes and references for Windows CMD / Batch."
                 }
               ]
             },
@@ -27224,7 +27331,8 @@
                       "header": "Windows CMD & Batch"
                     }
                   ],
-                  "groups": []
+                  "groups": [],
+                  "description": "Devices, USB & serial ports commands, parameterized cards, recipes and references for Windows CMD / Batch."
                 }
               ]
             },
@@ -51660,5 +51768,5 @@
       ]
     }
   ],
-  "description": "Structured cross-platform scripting, shell, Windows, Linux, Git, OpenSSH, Docker and DevOps command pack with documented parameters, conditional CLI arguments, terminal execution previews, environment-path helpers, local host aliases and key-backed OpenSSH aliases."
+  "description": "Structured cross-platform scripting, shell, Windows, Linux, Git, OpenSSH, Docker and DevOps command pack with documented parameters, conditional CLI arguments, terminal execution previews, environment-path helpers, local host aliases and key-backed OpenSSH aliases. Windows CMD & Batch refreshed from JC Lib 0.8.28 with corrected structured parameters and picker metadata."
 }

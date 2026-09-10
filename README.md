@@ -26,7 +26,9 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Create or open a workspace containing one or more C/C++ projects.
 - Uses a compact Qt-style CPM/PM sidebar logo for clearer identification in the VS Code activity bar.
 - Add existing `.c`, `.cpp`, `.h`, `.hpp`, `.a`, `.lib`, `.o` and `.obj` files to a project.
+- Organize project files by moving references between CPM logical folders with drag-and-drop or **Move File To Folder...**.
 - Create starter files from embedded C/C++ templates.
+- Generate richer C/C++ utility and error-management bundles with executable-path helpers, filesystem helpers and structured error logs with preserved C/C++ escape sequences.
 - Select executable, dynamic-library or static-library targets.
 - Build, rebuild, clean, run and debug the active project.
 - Detect C/C++ toolchains from `PATH`, common MinGW/MSYS2/Clang locations and manually configured folders.
@@ -36,6 +38,13 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Insert color values from the editor context menu in C/C++ friendly formats, including SDL and Qt initializers.
 - Use editor context-menu utilities for character/encoding conversion, number/bit conversion, truth table / FSM generation and digital-filter coefficient design.
 - Generate C and C++ utility module bundles, including pure C Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges, plus separate companion script/frontend bundles.
+
+
+## Workspace file organization
+
+The C/C++ Workspace tree supports logical file organization inside the `.prj` file. Drag one or more files onto another logical folder to update their `Folder` entry. Dropping onto the project node moves the selected files back to the project root. The same operation is available from a file context menu through **Move File To Folder...**.
+
+This operation updates project references only; it does not move, copy or delete the physical files on disk. Use **Rename File...** when the file itself must be renamed on disk.
 
 ## Toolchain selection
 
@@ -87,13 +96,13 @@ SDL builds now auto-detect common add-on usage from project sources. If the proj
 
 ### 0.2.25 workflow update
 
-The new-file picker is grouped by category: C, C++, module bundles, scripts/text and saved templates. Module bundles are split into C, C++ and Scripts. The C group includes generated pure C core/error modules plus Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges; C++ MY_Util modules and companion assets remain separate bundles.
+The new-file picker is grouped by category: C, C++, module bundles, scripts/text and saved templates. Module bundles are split into C, C++ and Scripts. The C group includes generated pure C core/error modules plus Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges; C++ CPM_Utility modules and companion assets remain separate bundles.
 
 
 
 ### 0.2.29 C communication bundles
 
-The common MY_Util C++ communication bundles now have pure C equivalents for UART, IPC and Ethernet TCP/UDP. They are available under `Module bundles > C`, either individually or through `Full communication stack`.
+The common CPM_Utility C++ communication bundles now have pure C equivalents for UART, IPC and Ethernet TCP/UDP. They are available under `Module bundles > C`, either individually or through `Full communication stack`.
 
 ### 0.2.28 Web UI bundle split
 
@@ -129,7 +138,7 @@ The default backend targets Linux SocketCAN. It supports classical CAN, CAN FD, 
 
 ### 0.2.38 bundle documentation
 
-Generated and copied bundle headers now include Doxygen-style usage examples directly in the inserted `.h` / `.hpp` files. The generated C implementation files also include `@file`, `@brief`, `@param` and `@return` documentation blocks on helpers and API functions where applicable. This covers the CPM-native C bundles and the copied MY_Util C/C++ communication, Python, Web UI, utility and error-management modules.
+Generated and copied bundle headers now include Doxygen-style usage examples directly in the inserted `.h` / `.hpp` files. The generated C implementation files also include `@file`, `@brief`, `@param` and `@return` documentation blocks on helpers and API functions where applicable. This covers the CPM-native C bundles and the copied CPM_Utility C/C++ communication, Python, Web UI, utility and error-management modules.
 
 
 ### 0.2.43 Generic toolchain runtime handling
@@ -184,3 +193,26 @@ The build settings page also provides `Export build parameters` and `Import buil
 
 The embedded JC Lib manager now includes the JC Lib 0.8.27 structured packs. Pack imports preserve the source environment/library hierarchy, including the refreshed SDL, Lua, Embedded and Windows API / Devices layouts, plus the new Assembly and Visual Basic / VBA packs.
 
+
+
+### 0.2.56 error-template escaping fix
+
+The generated CPM error-management and C++ utility templates now use raw template storage for source code sections that contain C/C++ escape sequences. This prevents `\n`, `\t` and `\0` from being expanded by the extension generator before the `.c`/`.cpp` file is written.
+
+### CPM_Utility C++ helper bundle
+
+The C++ module bundles now use `CPM_Utility` as the canonical utility layer. It generates `cpm_utility.cpp`, `cpm_utility.h` and `utility.ini`, replacing the older split between `MY_Util` and generated `cpm_util` helpers. The bundle includes executable-path helpers, filesystem helpers, text-file I/O, INI parsing, string helpers, timestamp/date/time helpers, delay helpers and a small stopwatch for profiling.
+
+
+
+### 0.2.58 — CPM_Utility string helpers and scripting pack refresh
+
+The embedded scripting pack now includes the JC Lib 0.8.28 Windows CMD & Batch structure. The `CPM_Utility` bundle also provides `CPM_String`, with repeat helpers such as `CPM_String("=") * 10`, `10 * CPM_String("-")`, `"*"_cpm * 8` and `cpm_utility::repeat("//", 4)`.
+
+### 0.2.60 — CPM_String sequence removal
+
+`CPM_String` now supports sequence removal through `operator-` and `operator-=`. Example: `CPM_String text = "bonjour ça va ?"_cpm; text -= "bonjour";` produces `"ça va ?"` after removing the matching sequence and trimming leading/trailing whitespace.
+
+### 0.2.59 — CPM_String compound operators
+
+`CPM_Utility` now exposes compound operators for `CPM_String`: `+=` for append, `*=` for in-place repetition and `^=` as the compatibility repeat alias.
