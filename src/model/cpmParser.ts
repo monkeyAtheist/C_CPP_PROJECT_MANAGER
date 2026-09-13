@@ -53,6 +53,8 @@ export interface CpmNativeTargetSettings {
   outputPath: string;
   applicationTitle: string;
   iconFile: string;
+  windowIconFile: string;
+  applyWindowIconAutomatically: boolean;
   runtimeSupport: string;
   runtimeBinding: string;
   generateSourceDocumentation: string;
@@ -774,6 +776,8 @@ export class CpmParser {
       outputPath: resolveStoredPath(createExecutable, outputKey),
       applicationTitle: unquote(config.get('Application Title')) ?? '',
       iconFile: resolveStoredPath(config, 'Icon File'),
+      windowIconFile: resolveStoredPath(config, 'Window Icon File') || resolveStoredPath(config, 'Application Image File'),
+      applyWindowIconAutomatically: parseBoolean(config.get('Apply Window Icon Automatically'), true),
       runtimeSupport: unquote(config.get('Runtime Support')) ?? 'Full Runtime Support',
       runtimeBinding: unquote(config.get('Runtime Binding')) ?? 'Shared',
       generateSourceDocumentation: unquote(config.get('Generate Source Documentation')) ?? 'None',
@@ -839,6 +843,8 @@ export class CpmParser {
     setOutputPath(createExecutable, mode, projectPath, settings.outputPath);
     config.set('Application Title', quote(settings.applicationTitle));
     setProjectReferencedPath(config, 'Icon File', projectPath, settings.iconFile);
+    setProjectReferencedPath(config, 'Window Icon File', projectPath, settings.windowIconFile);
+    setBoolean(config, 'Apply Window Icon Automatically', settings.applyWindowIconAutomatically);
     config.set('Runtime Support', quote(settings.runtimeSupport));
     config.set('Runtime Binding', quote(settings.runtimeBinding));
     config.set('Generate Source Documentation', quote(settings.generateSourceDocumentation));

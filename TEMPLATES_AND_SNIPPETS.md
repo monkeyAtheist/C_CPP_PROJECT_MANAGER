@@ -263,3 +263,12 @@ The settings refactor does not change template generation or library-pack insert
 
 No template or snippet content was changed. The update fixes Build Settings webview navigation and keeps the CPM_Utility and embedded library packs unchanged from v0.2.64.
 
+
+
+## Application icon settings
+
+The CPM build-settings editor now exposes application icon fields directly in the Project page. These fields are part of the project configuration rather than library snippets:
+
+- `Icon File` / **Executable icon (Windows .ico)** for Windows resource embedding.
+- `Window Icon File` / **SDL window / application icon image** for SDL runtime window icons.
+- `Apply Window Icon Automatically` to enable generated SDL2/SDL3 `SDL_CreateWindow(...)` wrapping.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.66 - Application icons for CPM targets
+
+- Added an **Application icons** section to the CPM project settings page.
+- Restored and exposed the existing per-configuration executable icon field as **Executable icon (Windows .ico)**.
+- Added **SDL window / application icon image** and **Apply SDL window icon automatically** project settings.
+- Generic Windows executable builds now generate a temporary `.rc` file and compile it with `windres` / `llvm-windres` to embed the configured `.ico` into the `.exe`.
+- SDL2/SDL3 builds can now copy a window icon asset beside the executable and auto-wrap `SDL_CreateWindow(...)` through a generated helper when enabled. BMP is supported by SDL alone; PNG/JPG/WebP require the matching SDL_image package.
+
 ## 0.2.65 - Settings page navigation fix
 
 - Fixed the Build Settings webview page tabs not switching pages.

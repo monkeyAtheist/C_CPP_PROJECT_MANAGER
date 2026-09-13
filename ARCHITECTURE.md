@@ -262,3 +262,10 @@ This keeps the build model compatible with previous releases while reducing coup
 
 From v0.2.65, the Build Settings webview uses a two-layer guard for thematic pages: the JavaScript controller applies the active page/filter state, and a CSS fallback hides non-Overview sections while the controller is not initialized. The embedded script also avoids raw `\r?\n` regex text inside the TypeScript HTML template to prevent runtime line-break injection in the webview script.
 
+
+
+### CPM application icon pipeline
+
+CPM stores icon settings per native project configuration in the `.prj` file. `Icon File` is used for the Windows executable icon, while `Window Icon File` and `Apply Window Icon Automatically` control SDL runtime icon support. During an executable build, the generic build service can generate `cpm_application_icon.rc`, compile it with `windres`/`llvm-windres`, and append the generated resource object to the link command.
+
+For SDL targets, CPM can also generate `cpm_application_icon_autoload.h/.c` in the build generated directory. The header is force-included for project sources so `SDL_CreateWindow(...)` is wrapped and `SDL_SetWindowIcon(...)` is called immediately after window creation. The source file is compiled as an additional generated translation unit and the selected image is copied beside the executable after a successful link.

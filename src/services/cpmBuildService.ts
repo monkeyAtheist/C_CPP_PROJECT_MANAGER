@@ -5,7 +5,7 @@ import * as os from 'os';
 import { execFileSync, spawn } from 'child_process';
 import * as vscode from 'vscode';
 import { CpmBuildMode, CpmProjectFile, CpmWorkspaceProjectRef } from '../model/types';
-import { CpmParser } from '../model/cpmParser';
+import { CpmNativeTargetSettings, CpmParser } from '../model/cpmParser';
 import { CpmWorkspaceService } from './cpmWorkspaceService';
 import { CpmProjectSettingsService } from './cpmProjectSettingsService';
 import { normalizeRuntimePath } from '../utils/pathUtils';
@@ -86,6 +86,12 @@ interface BuildArtifacts {
   targetPath: string;
   objectDirectory: string;
   objectFiles: string[];
+}
+
+interface ApplicationIconGeneration {
+  success: boolean;
+  forceIncludeHeader?: string;
+  generatedSource?: string;
 }
 
 export class CpmBuildService {
@@ -346,6 +352,7 @@ export class CpmBuildService {
     this.deployToolchainRuntimeDlls(executablePath, config);
     const sdlPlan = project ? this.resolveSdlPlan(ref, project.files, project.targetType) : undefined;
     this.deploySdlRuntimeDlls(executablePath, sdlPlan);
+    this.deployApplicationIconAssets(ref, executablePath, this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode));
     const env = this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(run.environmentOptions), config, executablePath);
     const child = spawn(executablePath, args, { cwd, env, detached: true, shell: false, stdio: 'ignore' });
     child.unref();
@@ -388,6 +395,7 @@ export class CpmBuildService {
     this.deployToolchainRuntimeDlls(targetPath, config);
     const sdlPlan = project ? this.resolveSdlPlan(ref, project.files, project.targetType) : undefined;
     this.deploySdlRuntimeDlls(targetPath, sdlPlan);
+    this.deployApplicationIconAssets(ref, targetPath, this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode));
     const args = runSettings.arguments.trim() ? this.projectSettings.parseArguments(runSettings.arguments) : [];
     const cwd = runSettings.workingDirectory.trim() ? normalizeRuntimePath(runSettings.workingDirectory.trim()) : path.dirname(targetPath);
     const debugEnvironment = this.debugEnvironmentFromProcessEnv(this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(runSettings.environmentOptions), config, targetPath));
@@ -465,6 +473,12 @@ export class CpmBuildService {
       return false;
     }
 
+    const iconGeneration = await this.prepareApplicationIconGeneration(ref, project.targetType, artifacts, project.files, config);
+    if (!iconGeneration.success) {
+      return false;
+    }
+    const forceIncludeHeaders = iconGeneration.forceIncludeHeader ? [iconGeneration.forceIncludeHeader] : [];
+
     const compilePlan = sourceFiles.map((source) => {
       const objectPath = this.objectPathForSource(source.absolutePath, ref.absolutePath, artifacts.objectDirectory);
       const shouldCompile = rebuild || !fs.existsSync(objectPath) || fs.statSync(source.absolutePath).mtimeMs > fs.statSync(objectPath).mtimeMs;
@@ -497,7 +511,7 @@ export class CpmBuildService {
     const objectFiles: string[] = [];
     for (const item of compilePlan) {
       if (item.shouldCompile) {
-        const args = this.compileArguments(item.source.absolutePath, item.objectPath, ref, project.files, config);
+        const args = this.compileArguments(item.source.absolutePath, item.objectPath, ref, project.files, config, forceIncludeHeaders);
         const success = await this.spawnTool(this.compilerForSource(item.source.absolutePath, config), args, path.dirname(ref.absolutePath), `Compile ${path.basename(item.source.absolutePath)}`);
         if (!success) {
           this.output.appendLine('  [SKIP] Link step skipped because compilation failed.');
@@ -507,6 +521,17 @@ export class CpmBuildService {
         this.output.appendLine(`  [CACHE] ${path.basename(item.source.absolutePath)}`);
       }
       objectFiles.push(item.objectPath);
+    }
+
+    if (iconGeneration.generatedSource) {
+      const iconObjectPath = this.objectPathForSource(iconGeneration.generatedSource, ref.absolutePath, artifacts.objectDirectory);
+      const args = this.compileArguments(iconGeneration.generatedSource, iconObjectPath, ref, project.files, config);
+      const success = await this.spawnTool(this.compilerForSource(iconGeneration.generatedSource, config), args, path.dirname(ref.absolutePath), `Compile ${path.basename(iconGeneration.generatedSource)}`);
+      if (!success) {
+        this.output.appendLine('  [SKIP] Link step skipped because application-icon helper compilation failed.');
+        return false;
+      }
+      objectFiles.push(iconObjectPath);
     }
 
     artifacts.objectFiles = objectFiles;
@@ -537,6 +562,12 @@ export class CpmBuildService {
       this.output.appendLine('');
     }
 
+    const targetSettings = this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode);
+    const windowsResourceObjects = await this.compileWindowsApplicationIconResource(ref, targetType, artifacts, targetSettings, config);
+    if (windowsResourceObjects === undefined) {
+      return false;
+    }
+
     const sdlPlan = this.resolveSdlPlan(ref, files, targetType);
     if (sdlPlan) {
       this.output.appendLine(`[C/C++ SDL] SDK: ${sdlPlan.rootPath}`);
@@ -552,6 +583,7 @@ export class CpmBuildService {
       ...this.runtimeLinkFlags(config, targetType, sdlPlan),
       ...(targetType === 'Dynamic Link Library' ? ['-shared'] : []),
       ...artifacts.objectFiles,
+      ...windowsResourceObjects,
       ...fileLibraries,
       ...config.libraryPaths.flatMap((value) => ['-L', resolveAgainstProject(value, ref.absolutePath)]),
       ...(sdlPlan?.linkArgs ?? []),
@@ -563,8 +595,109 @@ export class CpmBuildService {
     if (success) {
       this.deployToolchainRuntimeDlls(artifacts.targetPath, config);
       this.deploySdlRuntimeDlls(artifacts.targetPath, sdlPlan);
+      this.deployApplicationIconAssets(ref, artifacts.targetPath, targetSettings);
     }
     return success;
+  }
+
+
+  private async prepareApplicationIconGeneration(ref: CpmWorkspaceProjectRef, targetType: string, artifacts: BuildArtifacts, files: CpmProjectFile[], config: GenericCompilerConfiguration): Promise<ApplicationIconGeneration> {
+    const targetSettings = this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode);
+    if (targetType === 'Static Library' || !targetSettings.windowIconFile || !targetSettings.applyWindowIconAutomatically) {
+      return { success: true };
+    }
+    const sdlPlan = this.resolveSdlPlan(ref, files, targetType);
+    if (!sdlPlan) {
+      return { success: true };
+    }
+    const iconPath = resolveAgainstProject(targetSettings.windowIconFile, ref.absolutePath);
+    if (!fs.existsSync(iconPath)) {
+      this.output.appendLine(`[C/C++] ERROR: configured SDL window icon image not found: ${iconPath}`);
+      vscode.window.showErrorMessage('Configured SDL window icon image not found. Open the C/C++ Project Manager output channel for details.');
+      return { success: false };
+    }
+
+    const extension = path.extname(iconPath).toLowerCase();
+    const needsSdlImage = extension !== '.bmp';
+    const hasSdlImage = sdlPlan.packages.includes(`${sdlPlan.version}_image`);
+    if (needsSdlImage && !hasSdlImage) {
+      this.output.appendLine(`[C/C++] ERROR: SDL window icon image ${path.basename(iconPath)} is not a BMP file. Add ${sdlPlan.version}_image to SDL packages or use a BMP icon.`);
+      vscode.window.showErrorMessage(`SDL window icon images other than BMP require ${sdlPlan.version}_image.`);
+      return { success: false };
+    }
+
+    const generatedDirectory = path.join(path.dirname(artifacts.objectDirectory), 'generated');
+    if (!await this.ensureDirectory(generatedDirectory, 'generated application-icon directory')) {
+      return { success: false };
+    }
+    const headerPath = path.join(generatedDirectory, 'cpm_application_icon_autoload.h');
+    const sourcePath = path.join(generatedDirectory, 'cpm_application_icon_autoload.c');
+    const deployedIconName = `cpm_app_icon${extension || '.bmp'}`;
+    const deployedIconPath = path.join(path.dirname(artifacts.targetPath), deployedIconName);
+    const fallbackPath = fs.existsSync(deployedIconPath) ? deployedIconPath : iconPath;
+
+    fs.writeFileSync(headerPath, renderSdlIconAutoloadHeader(sdlPlan.version), 'utf8');
+    fs.writeFileSync(sourcePath, renderSdlIconAutoloadSource(sdlPlan.version, deployedIconName, fallbackPath, hasSdlImage), 'utf8');
+    this.output.appendLine(`[C/C++] SDL window icon autoload: ${path.basename(targetSettings.windowIconFile)}.`);
+    return { success: true, forceIncludeHeader: headerPath, generatedSource: sourcePath };
+  }
+
+  private async compileWindowsApplicationIconResource(ref: CpmWorkspaceProjectRef, targetType: string, artifacts: BuildArtifacts, targetSettings: CpmNativeTargetSettings, config: GenericCompilerConfiguration): Promise<string[] | undefined> {
+    if (targetType !== 'Executable' || !targetSettings.iconFile) {
+      return [];
+    }
+    const iconPath = resolveAgainstProject(targetSettings.iconFile, ref.absolutePath);
+    if (!fs.existsSync(iconPath)) {
+      this.output.appendLine(`[C/C++] ERROR: configured executable icon not found: ${iconPath}`);
+      vscode.window.showErrorMessage('Configured executable icon not found. Open the C/C++ Project Manager output channel for details.');
+      return undefined;
+    }
+    if (path.extname(iconPath).toLowerCase() !== '.ico') {
+      this.output.appendLine(`[C/C++] ERROR: executable icon must be a Windows .ico file: ${iconPath}`);
+      vscode.window.showErrorMessage('Executable icon embedding requires a Windows .ico file.');
+      return undefined;
+    }
+    const windres = findWindresExecutable(config);
+    if (!windres) {
+      this.output.appendLine('[C/C++] ERROR: unable to find windres.exe or llvm-windres.exe near the selected toolchain or in PATH.');
+      vscode.window.showErrorMessage('Unable to embed executable icon: windres.exe was not found.');
+      return undefined;
+    }
+    const generatedDirectory = path.join(path.dirname(artifacts.objectDirectory), 'generated');
+    if (!await this.ensureDirectory(generatedDirectory, 'generated resource directory')) {
+      return undefined;
+    }
+    const rcPath = path.join(generatedDirectory, 'cpm_application_icon.rc');
+    const resObjectPath = path.join(artifacts.objectDirectory, 'cpm_application_icon.res.o');
+    fs.writeFileSync(rcPath, renderWindowsIconResource(iconPath), 'utf8');
+    const arch = inferRequestedArchitecture(config.cppCompilerPath || config.cCompilerPath || 'g++', this.modeFlags(config));
+    const targetArg = arch?.id === 'x64' ? ['--target=pe-x86-64'] : arch?.id === 'x86' ? ['--target=pe-i386'] : [];
+    const args = ['-i', rcPath, '-o', resObjectPath, ...targetArg];
+    const success = await this.spawnTool(windres, args, path.dirname(ref.absolutePath), `Compile application icon resource`);
+    if (!success) {
+      return undefined;
+    }
+    this.output.appendLine(`[C/C++] Windows executable icon embedded: ${path.basename(iconPath)}.`);
+    return [resObjectPath];
+  }
+
+  private deployApplicationIconAssets(ref: CpmWorkspaceProjectRef, targetPath: string, targetSettings: CpmNativeTargetSettings): void {
+    if (!targetSettings.windowIconFile) {
+      return;
+    }
+    const sourcePath = normalizeRuntimePath(targetSettings.windowIconFile);
+    const absoluteSource = path.isAbsolute(sourcePath) || path.win32.isAbsolute(sourcePath) ? sourcePath : path.resolve(path.dirname(ref.absolutePath), sourcePath);
+    if (!fs.existsSync(absoluteSource)) {
+      return;
+    }
+    const extension = path.extname(absoluteSource).toLowerCase() || '.bmp';
+    const destinationPath = path.join(path.dirname(targetPath), `cpm_app_icon${extension}`);
+    try {
+      fs.copyFileSync(absoluteSource, destinationPath);
+      this.output.appendLine(`[C/C++] Application icon asset copied: ${destinationPath}`);
+    } catch (error) {
+      this.output.appendLine(`[C/C++] Warning: unable to copy application icon asset: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   private diagnoseLinkedLibraries(libraryPaths: string[], objectPaths: string[], config: GenericCompilerConfiguration): { compatible: boolean; messages: string[] } {
@@ -604,7 +737,7 @@ export class CpmBuildService {
     return { compatible, messages };
   }
 
-  private compileArguments(sourcePath: string, objectPath: string, ref: CpmWorkspaceProjectRef, projectFiles: CpmProjectFile[], config: GenericCompilerConfiguration): string[] {
+  private compileArguments(sourcePath: string, objectPath: string, ref: CpmWorkspaceProjectRef, projectFiles: CpmProjectFile[], config: GenericCompilerConfiguration, forceIncludeHeaders: string[] = []): string[] {
     const sdlPlan = this.resolveSdlPlan(ref, projectFiles, 'Executable');
     const includePaths = unique([
       path.dirname(ref.absolutePath),
@@ -621,6 +754,7 @@ export class CpmBuildService {
       ...config.defineSymbols.map((name) => `-D${name}`),
       ...includePaths.flatMap((value) => ['-I', value]),
       ...(sdlPlan?.compileFlags ?? []),
+      ...forceIncludeHeaders.flatMap((headerPath) => ['-include', headerPath]),
       ...config.compilerFlags,
       ...(isCSource(sourcePath) ? config.cCompilerFlags : config.cppCompilerFlags),
       '-o', objectPath
@@ -1657,6 +1791,57 @@ function createNoSpaceToolchainAlias(filePath: string): string | undefined {
   }
 
   return undefined;
+}
+
+
+function findWindresExecutable(config: GenericCompilerConfiguration): string | undefined {
+  const compilerDirectories = unique([config.cppCompilerPath, config.cCompilerPath]
+    .map((value) => value ? resolveExecutableFromPath(value) : '')
+    .filter(Boolean)
+    .map((value) => path.dirname(normalizeRuntimePath(value)))
+    .filter((value) => fs.existsSync(value)));
+  const names = ['windres.exe', 'windres', 'llvm-windres.exe', 'llvm-windres'];
+  const candidates = unique([
+    ...compilerDirectories.flatMap((directory) => names.map((name) => path.join(directory, name))),
+    resolveExecutableFromPath('windres'),
+    resolveExecutableFromPath('llvm-windres'),
+    resolveExecutableFromPath('windres.exe'),
+    resolveExecutableFromPath('llvm-windres.exe')
+  ]);
+  return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
+function renderWindowsIconResource(iconPath: string): string {
+  return `#include <windows.h>\n\n#define IDI_CPM_APPLICATION_ICON 101\nIDI_CPM_APPLICATION_ICON ICON \"${escapeRcString(iconPath)}\"\n`;
+}
+
+function renderSdlIconAutoloadHeader(version: string): string {
+  if (version === 'SDL3') {
+    return `#pragma once\n\n#if defined(CPM_USE_SDL3)\n#include <SDL3/SDL.h>\n\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n\nSDL_Window *cpm_sdl3_create_window_with_icon(const char *title, int w, int h, SDL_WindowFlags flags);\n\n#ifdef __cplusplus\n}\n#endif\n\n#if !defined(CPM_DISABLE_SDL_WINDOW_ICON_AUTOWRAP)\n#define SDL_CreateWindow(title, w, h, flags) cpm_sdl3_create_window_with_icon((title), (w), (h), (flags))\n#endif\n#endif\n`;
+  }
+  return `#pragma once\n\n#if defined(CPM_USE_SDL2)\n#include <SDL.h>\n\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n\nSDL_Window *cpm_sdl2_create_window_with_icon(const char *title, int x, int y, int w, int h, Uint32 flags);\n\n#ifdef __cplusplus\n}\n#endif\n\n#if !defined(CPM_DISABLE_SDL_WINDOW_ICON_AUTOWRAP)\n#define SDL_CreateWindow(title, x, y, w, h, flags) cpm_sdl2_create_window_with_icon((title), (x), (y), (w), (h), (flags))\n#endif\n#endif\n`;
+}
+
+function renderSdlIconAutoloadSource(version: string, deployedIconName: string, fallbackIconPath: string, useSdlImage: boolean): string {
+  const imageInclude = useSdlImage
+    ? version === 'SDL3'
+      ? '#include <SDL3_image/SDL_image.h>\n'
+      : '#include <SDL_image.h>\n'
+    : '';
+  const loadExpression = useSdlImage ? 'IMG_Load(path)' : 'SDL_LoadBMP(path)';
+  const destroySurface = version === 'SDL3' ? 'SDL_DestroySurface(surface);' : 'SDL_FreeSurface(surface);';
+  const sdlWindowFactory = version === 'SDL3'
+    ? `SDL_Window *cpm_sdl3_create_window_with_icon(const char *title, int w, int h, SDL_WindowFlags flags)\n{\n    SDL_Window *window = SDL_CreateWindow(title, w, h, flags);\n    cpm_apply_window_icon(window);\n    return window;\n}\n`
+    : `SDL_Window *cpm_sdl2_create_window_with_icon(const char *title, int x, int y, int w, int h, Uint32 flags)\n{\n    SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, flags);\n    cpm_apply_window_icon(window);\n    return window;\n}\n`;
+  return `#define CPM_DISABLE_SDL_WINDOW_ICON_AUTOWRAP\n#include \"cpm_application_icon_autoload.h\"\n${imageInclude}\n#include <stddef.h>\n#include <string.h>\n\nstatic const char *CPM_APPLICATION_ICON_FILE = \"${escapeCString(deployedIconName)}\";\nstatic const char *CPM_APPLICATION_ICON_FALLBACK = \"${escapeCString(fallbackIconPath)}\";\n\nstatic char *cpm_build_base_icon_path(void)\n{\n    char *base = SDL_GetBasePath();\n    if (base == NULL)\n    {\n        return NULL;\n    }\n    const size_t baseLen = strlen(base);\n    const size_t nameLen = strlen(CPM_APPLICATION_ICON_FILE);\n    char *fullPath = (char *)SDL_malloc(baseLen + nameLen + 1U);\n    if (fullPath == NULL)\n    {\n        SDL_free(base);\n        return NULL;\n    }\n    memcpy(fullPath, base, baseLen);\n    memcpy(fullPath + baseLen, CPM_APPLICATION_ICON_FILE, nameLen + 1U);\n    SDL_free(base);\n    return fullPath;\n}\n\nstatic SDL_Surface *cpm_load_icon_surface(const char *path)\n{\n    if (path == NULL || path[0] == '\\0')\n    {\n        return NULL;\n    }\n    return ${loadExpression};\n}\n\nstatic void cpm_apply_window_icon(SDL_Window *window)\n{\n    if (window == NULL)\n    {\n        return;\n    }\n    SDL_Surface *surface = NULL;\n    char *baseIconPath = cpm_build_base_icon_path();\n    surface = cpm_load_icon_surface(baseIconPath);\n    if (surface == NULL)\n    {\n        surface = cpm_load_icon_surface(CPM_APPLICATION_ICON_FALLBACK);\n    }\n    SDL_free(baseIconPath);\n    if (surface != NULL)\n    {\n        SDL_SetWindowIcon(window, surface);\n        ${destroySurface}\n    }\n}\n\n${sdlWindowFactory}`;
+}
+
+function escapeRcString(value: string): string {
+  return normalizeRuntimePath(value).replace(/\\/g, '\\\\').replace(/\"/g, '\\\"');
+}
+
+function escapeCString(value: string): string {
+  return normalizeRuntimePath(value).replace(/\\/g, '\\\\').replace(/\"/g, '\\\"');
 }
 
 function isGccLikeTool(executable: string): boolean {

@@ -239,3 +239,12 @@ The Diagnostics page also exposes `cpm.buildLogDetail`, while full compiler comm
 
 The thematic Build Settings editor keeps its page navigation active after the webview loads. The inline controller now avoids escape sequences that can break the generated script, and non-Overview sections are hidden until the controller is initialized.
 
+
+### Application icons
+
+The project settings editor contains an **Application icons** section for executable and DLL-oriented targets.
+
+- **Executable icon (Windows .ico)** embeds a Windows icon into generated `.exe` files by producing a temporary resource script and compiling it with `windres` or `llvm-windres` from the selected toolchain.
+- **SDL window / application icon image** copies the selected image beside the executable. When **Apply SDL window icon automatically** is enabled and the project uses SDL2 or SDL3, CPM generates a small `SDL_CreateWindow(...)` wrapper so the icon is applied to the created window.
+
+For SDL window icons, BMP works with the core SDL runtime. PNG, JPG and WebP should be used together with the corresponding `SDL2_image` or `SDL3_image` package.
