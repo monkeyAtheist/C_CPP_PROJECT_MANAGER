@@ -216,3 +216,26 @@ The embedded scripting pack now includes the JC Lib 0.8.28 Windows CMD & Batch s
 ### 0.2.59 — CPM_String compound operators
 
 `CPM_Utility` now exposes compound operators for `CPM_String`: `+=` for append, `*=` for in-place repetition and `^=` as the compatibility repeat alias.
+
+### CPM 0.2.62 - Marketplace package footprint
+
+The embedded JC Lib payload is now curated for CPM publication. The VSIX keeps the C, C++, C/C++ preprocessor/core, OpenCV, build/toolchains, SDL, Windows API/devices, scripting/system, Python, JavaScript/HTML/CSS, TypeScript, database, PHP and embedded-systems packs. Larger non-essential packs such as legacy/default/CVI, Qt, Java, C#, Kotlin, VBA, Lua and Assembly are no longer shipped in the CPM VSIX. This reduces upload size and lowers the risk of Visual Studio Marketplace request timeouts during publication.
+
+
+See `docs/PUBLISHING_MARKETPLACE.md` for the Marketplace publication workflow and the curated embedded pack list.
+
+### Detached workspace settings fallback
+
+When a `.cws` or `.prj` is opened directly from CPM without opening the containing folder as a VS Code workspace, CPM cannot use VS Code `Workspace Settings`. In this mode, project Build Settings now write generic compiler, runtime and SDL parameters to `<workspace-root>/.vscode/settings.json` and the build pipeline reads those values back directly.
+
+
+### Project settings thematic editor
+
+CPM 0.2.64 reorganizes the project settings webview into thematic pages: Overview, Project, Toolchain, Build, Run & Debug, SDL, Dependencies and Diagnostics. Each page has its own section jump selector and local filter, which makes the settings editor easier to extend without returning to a single long scroll page.
+
+The Diagnostics page also exposes `cpm.buildLogDetail`, while full compiler commands remain available through the dedicated Build Trace output channel.
+
+### v0.2.65 - Build Settings navigation fix
+
+The thematic Build Settings editor keeps its page navigation active after the webview loads. The inline controller now avoids escape sequences that can break the generated script, and non-Overview sections are hidden until the controller is initialized.
+

@@ -8238,7 +8238,7 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
     case 'opencv_full':
       return combineSingleLibrary('opencv_full', 'OpenCV language pack', 'OpenCV Language', ['opencv_core', 'opencv_vision']);
     case 'c_all':
-      return combinePreservingLibraries('c_all', 'All C pack', ['c_core', 'c_dll', 'cvi_core']);
+      return combinePreservingLibraries('c_all', 'All C pack', ['c_core', 'c_dll']);
     case 'cpp_all':
       return combinePreservingLibraries('cpp_all', 'All C++ pack', ['cpp_core', 'cpp_dll']);
     case 'qt_all':
@@ -8284,7 +8284,7 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
     case 'scripting_all':
       return combinePreservingLibraries('scripting_all', 'All scripting and system pack', ['system_automation_core', 'powershell_core', 'batch_core', 'bash_core', 'linux_admin_core', 'devops_core']);
     case 'additional_all':
-      return combinePreservingLibraries('additional_all', 'All additional language packs', ['python_core', 'java_core', 'web_core', 'csharp_core', 'php_core', 'kotlin_core', 'typescript_core', 'vba_core']);
+      return combinePreservingLibraries('additional_all', 'Curated additional language packs', ['python_core', 'web_core', 'typescript_core', 'php_core']);
     case 'assembly_core':
       return bundledPackFileSelection('assembly_core', 'Assembly complete structured pack', 'assembly_language_pack.json', ['Assembly']);
     case 'assembly_fundamentals':
@@ -8344,7 +8344,7 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
     case 'examples_all':
       return combinePreservingLibraries('examples_all', 'All example packs', ['opencv_robotics_example', 'win32_hooks_example', 'uart_protocol_example', 'instrumentation_example']);
     case 'all_packs':
-      return combinePreservingLibraries('all_packs', 'All packs', ['c_all', 'cpp_all', 'preprocessor_core', 'qt_all', 'opencv_all', 'build_all', 'scripting_all', 'python_core', 'java_core', 'web_core', 'csharp_core', 'php_core', 'kotlin_core', 'typescript_core', 'vba_core', 'database_all', 'embedded_all', 'assembly_all', 'lua_all', 'sdl_all', 'windows_all', 'win32_hooks_example', 'uart_protocol_example', 'instrumentation_example']);
+      return combinePreservingLibraries('all_packs', 'Curated CPM packs', ['c_all', 'cpp_all', 'preprocessor_core', 'opencv_all', 'build_all', 'sdl_all', 'windows_all', 'scripting_all', 'python_core', 'web_core', 'typescript_core', 'database_all', 'php_core', 'embedded_all']);
     default:
       return direct(id as LanguagePackMode);
   }
@@ -8352,29 +8352,21 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
 
 async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSelection | undefined> {
   const families = [
-    { label: 'Add all packs', description: 'Insert every grouped pack plus the premium example packs in one operation', value: 'all' },
-    { label: 'C pack', description: 'C language pack with expert ABI, unions, function pointers, pointer patterns, callbackData casting, Win32/CVI callbacks, buses/protocols, plus C DLL helpers and CVI helpers', value: 'c' },
+    { label: 'Add all curated CPM packs', description: 'Insert the reduced Marketplace-safe CPM pack set in one operation', value: 'all' },
+    { label: 'C pack', description: 'C language pack with expert ABI, unions, function pointers, pointer patterns, callbackData casting, buses/protocols, plus C DLL helpers', value: 'c' },
     { label: 'C++ pack', description: 'Structured C++ pack loaded from cpp_language_pack.json: types, parametric API calls, STL, concurrency, files, interop, Qt helpers, and DLL patterns', value: 'cpp' },
     { label: 'Preprocessor pack', description: 'Shared C/C++ preprocessor content: macros, variadic macros, pragmas, #if, # and ##', value: 'preprocessor' },
-    { label: 'Qt pack', description: 'Structured Qt C++ pack loaded from qt_pack.json, plus Qt for Python / PySide6, editable declarative QML templates, multimedia, SQL, and tests', value: 'qt' },
-    { label: 'OpenCV pack', description: 'OpenCV language pack merged with Vision Premium, plus robotics/camera examples', value: 'opencv' },
+    { label: 'OpenCV pack', description: 'OpenCV language pack with camera and vision helpers', value: 'opencv' },
     { label: 'Build pack', description: 'CMake, CTest, CPack, GCC, G++, Clang, LLVM, MinGW, MSVC, Make, Ninja, and C/C++ dependency helpers', value: 'build' },
     { label: 'SDL pack', description: 'Audited SDL2 and SDL3 structured content with documented advanced pickers and migration helpers', value: 'sdl' },
     { label: 'Windows API / Devices pack', description: 'Win32 GUI plus Windows device APIs including audio, input, camera, HID, Bluetooth, serial, and USB helpers', value: 'windows' },
     { label: 'Scripting / System pack', description: 'Cross-platform automation, PowerShell 7, Windows CMD/Batch, Bash/POSIX shell, Linux systemd administration, Git, SSH, Docker, and DevOps helpers', value: 'scripting' },
     { label: 'Python language pack', description: 'Complete structured Python pack: language, typing, collections, files/configuration, persistence, asyncio, HTTP/FastAPI, Linux, serial, USB, BLE, scientific computing, AI, GUI, automation, and robotics', value: 'python_core' },
-    { label: 'Java language pack', description: 'Complete structured Java pack: language, OOP, records, generics, collections, streams, NIO, JSON, JDBC, virtual threads, networking, native interop, build tools, desktop UI, Spring Boot, and automation', value: 'java_core' },
     { label: 'JavaScript / HTML / CSS pack', description: 'Curated structured web pack: functional JavaScript groups, DOM, Fetch, storage, Service Workers, IndexedDB, Canvas, WebGL, HTML, CSS, React, Vue, Svelte, Electron, VS Code webviews, Node.js, Express, tooling and retained architectural recipes', value: 'web_core' },
-    { label: 'C# language pack', description: 'Complete structured C#/.NET pack: language, LINQ, files, JSON, EF Core, async/tasks, networking, native interop, desktop UI, ASP.NET Core, Razor Pages, MVC, .cshtml, Minimal APIs, Identity, Blazor, SignalR, tests, NuGet, and deployment', value: 'csharp_core' },
     { label: 'PHP language pack', description: 'Complete structured PHP 8.5 pack: language, callables, OOP, SPL, files/configuration, PDO, security, HTTP, Composer, PHPUnit, Twig, Laravel, Symfony, WordPress, workers, and Linux deployment', value: 'php_core' },
-    { label: 'Kotlin language pack', description: 'Structured Kotlin 2.4 pack: language, null safety, OOP, extensions, collections, coroutines, Flow, serialization, databases, Ktor, Spring Boot, Android Compose, desktop Compose, Kotlin Multiplatform, Java interop, native integration, testing, Gradle, and device-I/O notes', value: 'kotlin_core' },
     { label: 'TypeScript language pack', description: 'Structured TypeScript pack: declarations, narrowing, generics, modules, typed DOM, frameworks, Node.js, validation, tests, TSConfig, desktop bridges and device I/O', value: 'typescript_core' },
-    { label: 'Visual Basic / VBA pack', description: 'Structured Visual Basic for Applications pack: VBA syntax, modules, errors, files, COM, Excel Application/Workbook/Worksheet/Range APIs, Excel events, UserForms, and Office automation', value: 'vba_core' },
-    { label: 'Assembly pack', description: 'Structured assembly pack: x86/x64, ARM Cortex-M/Thumb, AVR 8-bit, RISC-V, toolchain commands, startup, ISR, ABI, linker and microcontroller workflows', value: 'assembly' },
     { label: 'Database pack', description: 'Structured SQL, NoSQL, client C APIs, ODBC, SQLAlchemy/Alembic, hiredis and operations pack with parameterized direct cards and retained recipes', value: 'database' },
-    { label: 'Lua pack', description: 'Lua standard, industrial/test-bench Lua, MPTLua, and Stormworks microcontroller Lua content', value: 'lua' },
     { label: 'Embedded pack', description: 'Embedded-specific patterns, Arduino AVR registers and ISR vectors, ESP32 Arduino peripherals/connectivity, and Raspberry Pi Linux hardware interfaces', value: 'embedded' },
-    { label: 'Example packs', description: 'Real-world examples for robotics, hooks/input, UART protocols, and test benches', value: 'examples' }
   ];
 
   const family = await vscode.window.showQuickPick(families, {
@@ -8385,16 +8377,15 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
   if (family.value === 'all') {
     return buildStarterPackSelection('all_packs');
   }
-  if (['python_core', 'java_core', 'web_core', 'csharp_core', 'php_core', 'kotlin_core', 'typescript_core', 'vba_core'].includes(family.value)) {
+  if (['python_core', 'web_core', 'php_core', 'typescript_core'].includes(family.value)) {
     return buildStarterPackSelection(family.value);
   }
 
   const groupedChoices: Record<string, { label: string; description: string; value: string }[]> = {
     c: [
-      { label: 'Add all C pack', description: 'Add C language pack, C DLL helpers, and CVI helpers at once', value: 'c_all' },
+      { label: 'Add all C pack', description: 'Add C language pack and C DLL helpers at once', value: 'c_all' },
       { label: 'C language pack', description: 'Unified structured ISO C and systems C pack: Standard Library, language basics, C23 keywords, preprocessor, pointers, callbacks, memory, files/configuration, POSIX and Windows APIs, threads, sockets, HTTP, serial, USB, buses, diagnostics, CMake, portability, and ABI patterns', value: 'c_core' },
       { label: 'C DLL helpers', description: 'Windows DLL helpers and manual loading patterns for C', value: 'c_dll' },
-      { label: 'CVI helpers', description: 'Common CVI callback, UI, and thread-pool snippets', value: 'cvi_core' }
     ],
     cpp: [
       { label: 'Add all C++ pack', description: 'Add the complete C++ language pack and C++ DLL helpers together', value: 'cpp_all' },
@@ -8411,7 +8402,7 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
       { label: 'Qt QML pack', description: 'Qt Quick, bindings, loaders, Connections, and C++ backend integration', value: 'qml_core' },
     ],
     opencv: [
-      { label: 'Add all OpenCV pack', description: 'Add OpenCV language content and the camera/robotics example pack together', value: 'opencv_all' },
+      { label: 'Add all OpenCV pack', description: 'Add OpenCV language content and camera/vision helpers together', value: 'opencv_all' },
       { label: 'OpenCV language pack', description: 'OpenCV core + vision premium merged into one richer pack', value: 'opencv_full' },
       { label: 'OpenCV camera and robotics example pack', description: 'Camera loops, overlays, tracking, state machines, and vision-to-command patterns', value: 'opencv_robotics_example' }
     ],
@@ -8449,15 +8440,11 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
       { label: 'Git, SSH, Docker & DevOps pack', description: 'Git daily workflows and recovery, OpenSSH keys and forwarding, Docker CLI, Dockerfiles, Compose, CI, environment files, and release automation helpers', value: 'devops_core' }
     ],
     additional: [
-      { label: 'Add all additional language packs', description: 'Add Python, Java, JavaScript/HTML/CSS, C#, PHP, Kotlin, TypeScript, and Visual Basic / VBA packs together', value: 'additional_all' },
+      { label: 'Add curated additional language packs', description: 'Add Python, JavaScript/HTML/CSS, TypeScript, and PHP packs together', value: 'additional_all' },
       { label: 'Python language pack', description: 'Complete structured Python pack: language, typing, collections, files/config, persistence, asyncio, processes, HTTP/FastAPI, Linux, serial, USB, BLE, native DLL interop, testing, packaging, scientific computing, DSP, AI, GUI, automation, and robotics', value: 'python_core' },
-      { label: 'Java language pack', description: 'Complete structured Java pack: modern language syntax, OOP, records, sealed types, generics, reflection, collections, streams, NIO, JSON, JDBC, virtual threads, networking, serial/USB/BLE notes, JNI/JNA/FFM, JUnit, Maven, Gradle, jpackage, Swing, JavaFX, Spring Boot, Linux services, and automation patterns', value: 'java_core' },
       { label: 'JavaScript / HTML / CSS pack', description: 'Curated structured JavaScript / HTML / CSS pack: organized operators, objects, arrays, strings, RegExp, DOM, Fetch, storage, Service Workers, IndexedDB, Canvas, WebGL, HTML, CSS, frameworks, desktop bridges, Node.js, Express and retained architectural recipes', value: 'web_core' },
-      { label: 'C# language pack', description: 'Complete structured C#/.NET pack: C# 14 language syntax, nullable types, records, patterns, delegates, LINQ, files, JSON, EF Core, timers, async/tasks, networking, serial/USB notes, P/Invoke, Linux services, WPF, WinForms, MAUI, WebView2, ASP.NET Core, Razor Pages, MVC, .cshtml, Minimal APIs, Identity, Blazor, SignalR, testing, NuGet, and deployment', value: 'csharp_core' },
       { label: 'PHP language pack', description: 'Complete structured PHP 8.5 pack: modern syntax, callables, OOP, enums, attributes, SPL, streams, JSON, PDO, web security, sessions, cURL, Composer, PHPUnit, Twig, Laravel, Symfony, WordPress, workers, FPM, Docker, and Linux deployment', value: 'php_core' },
-      { label: 'Kotlin language pack', description: 'Structured Kotlin 2.4 pack: syntax, null safety, OOP, DSLs, collections, coroutines, Flow, JSON, JDBC, Ktor, Spring Boot, Android Compose, desktop Compose, Kotlin Multiplatform, JVM/native interop, testing, Gradle, Linux deployment, and hardware integration notes', value: 'kotlin_core' },
       { label: 'TypeScript language pack', description: 'Structured TypeScript pack: type system, narrowing, classes, generics, modules, typed browser APIs, frameworks, Node.js, backend validation, build tools, desktop bridges and protocol helpers', value: 'typescript_core' },
-      { label: 'Visual Basic / VBA pack', description: 'Structured VBA and Excel macro pack with parameterized event procedures, Range helpers, Workbook/Worksheet APIs, UserForms, and Office automation', value: 'vba_core' }
     ],
     database: [
       { label: 'Add all database pack', description: 'Add structured SQL, NoSQL, C client APIs, ODBC, SQLAlchemy/Alembic, hiredis and database operations libraries together', value: 'database_all' },

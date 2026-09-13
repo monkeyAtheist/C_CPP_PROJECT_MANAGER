@@ -46,6 +46,23 @@ export class CpmProjectSettingsService {
     return root ? path.join(root, '.vscode', 'cpm-build.json') : undefined;
   }
 
+  getCpmConfigurationValue<T>(key: string, fallback: T): T {
+    const value = vscode.workspace.getConfiguration('cpm').get<T>(key, fallback);
+    if (this.canUseNativeWorkspaceSettings()) {
+      return value;
+    }
+    const detached = this.readDetachedCpmConfigurationValue<T>(key);
+    return detached === undefined ? value : detached;
+  }
+
+  async updateCpmConfigurationValue(key: string, value: unknown): Promise<void> {
+    if (this.canUseNativeWorkspaceSettings()) {
+      await vscode.workspace.getConfiguration('cpm').update(key, value, vscode.ConfigurationTarget.Workspace);
+      return;
+    }
+    this.writeDetachedCpmConfigurationValue(key, value);
+  }
+
   getSettings(projectRef: CpmWorkspaceProjectRef, mode: CpmBuildMode = this.buildMode): CpmProjectBuildSettings {
     const store = this.loadStore();
     const stored = store.projects[this.projectKey(projectRef.absolutePath)];
@@ -171,7 +188,52 @@ export class CpmProjectSettingsService {
   }
 
   private get buildMode(): CpmBuildMode {
-    return vscode.workspace.getConfiguration('cpm').get<CpmBuildMode>('buildMode', 'debug');
+    return this.getCpmConfigurationValue<CpmBuildMode>('buildMode', 'debug');
+  }
+
+  private canUseNativeWorkspaceSettings(): boolean {
+    return (vscode.workspace.workspaceFolders?.length ?? 0) > 0;
+  }
+
+  private getDetachedSettingsPath(): string | undefined {
+    const root = this.getConfigurationRoot();
+    return root ? path.join(root, '.vscode', 'settings.json') : undefined;
+  }
+
+  private readDetachedCpmConfigurationValue<T>(key: string): T | undefined {
+    const settingsPath = this.getDetachedSettingsPath();
+    if (!settingsPath || !fs.existsSync(settingsPath)) {
+      return undefined;
+    }
+    try {
+      const settings = parseJsoncObject(fs.readFileSync(settingsPath, 'utf8'));
+      const value = settings[`cpm.${key}`];
+      return value === undefined ? undefined : value as T;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.output.appendLine(`[CPM] Warning: unable to read detached settings ${settingsPath}: ${message}`);
+      return undefined;
+    }
+  }
+
+  private writeDetachedCpmConfigurationValue(key: string, value: unknown): void {
+    const settingsPath = this.getDetachedSettingsPath();
+    if (!settingsPath) {
+      throw new Error('No C/C++ workspace directory is available to store compiler settings.');
+    }
+    let settings: Record<string, unknown> = {};
+    if (fs.existsSync(settingsPath)) {
+      try {
+        settings = parseJsoncObject(fs.readFileSync(settingsPath, 'utf8'));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Unable to read detached settings ${settingsPath}: ${message}`);
+      }
+    }
+    settings[`cpm.${key}`] = value;
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
+    this.output.appendLine(`[CPM] Detached setting saved: cpm.${key} -> ${settingsPath}`);
   }
 
   private getConfigurationRoot(): string | undefined {
@@ -234,6 +296,61 @@ export class CpmProjectSettingsService {
       });
     });
   }
+}
+
+function parseJsoncObject(raw: string): Record<string, unknown> {
+  const stripped = stripJsonComments(raw).trim();
+  if (!stripped) {
+    return {};
+  }
+  const parsed = JSON.parse(stripped) as unknown;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return {};
+  }
+  return parsed as Record<string, unknown>;
+}
+
+function stripJsonComments(raw: string): string {
+  let output = '';
+  let inString = false;
+  let escaped = false;
+  for (let index = 0; index < raw.length; index++) {
+    const current = raw[index];
+    const next = raw[index + 1];
+    if (inString) {
+      output += current;
+      if (escaped) {
+        escaped = false;
+      } else if (current === '\\') {
+        escaped = true;
+      } else if (current === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (current === '"') {
+      inString = true;
+      output += current;
+      continue;
+    }
+    if (current === '/' && next === '/') {
+      while (index < raw.length && raw[index] !== '\n') {
+        index++;
+      }
+      output += '\n';
+      continue;
+    }
+    if (current === '/' && next === '*') {
+      index += 2;
+      while (index < raw.length && !(raw[index] === '*' && raw[index + 1] === '/')) {
+        index++;
+      }
+      index++;
+      continue;
+    }
+    output += current;
+  }
+  return output;
 }
 
 function normalizeSettings(value?: Partial<CpmProjectBuildSettings>, fallbackRun?: Partial<CpmRunSettings>, nativeActions?: Partial<CpmProjectBuildSettings>, nativeBuildActions = false): CpmProjectBuildSettings {

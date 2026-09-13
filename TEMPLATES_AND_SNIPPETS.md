@@ -243,3 +243,23 @@ The C++ utility bundle now creates `cpm_utility.cpp`, `cpm_utility.h` and `utili
 ## 0.2.59 — CPM_Utility / CPM_String compound operators
 
 `CPM_String` now supports `+=`, `*=` and `^=` in addition to the existing `+`, `*` and `^` operators. Example: `CPM_String line = "="_cpm; line *= 72;`.
+
+### CPM 0.2.62 - Marketplace package footprint
+
+The embedded JC Lib payload is now curated for CPM publication. The VSIX keeps the C, C++, C/C++ preprocessor/core, OpenCV, build/toolchains, SDL, Windows API/devices, scripting/system, Python, JavaScript/HTML/CSS, TypeScript, database, PHP and embedded-systems packs. Larger non-essential packs such as legacy/default/CVI, Qt, Java, C#, Kotlin, VBA, Lua and Assembly are no longer shipped in the CPM VSIX. This reduces upload size and lowers the risk of Visual Studio Marketplace request timeouts during publication.
+
+
+
+## Build Settings persistence
+
+The Build Settings editor supports normal VS Code workspace settings and detached CPM workspaces. In detached mode, imported or edited compiler parameters are stored in `.vscode/settings.json` next to the loaded `.cws` / `.prj` root and are reused by build/run/debug operations.
+
+
+## CPM 0.2.64 settings navigation note
+
+The settings refactor does not change template generation or library-pack insertion. It only reorganizes the project settings editor so future template/build options can be placed into a clear page and section.
+
+### v0.2.65 note
+
+No template or snippet content was changed. The update fixes Build Settings webview navigation and keeps the CPM_Utility and embedded library packs unchanged from v0.2.64.
+

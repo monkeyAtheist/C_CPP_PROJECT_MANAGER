@@ -240,3 +240,25 @@ The `CPM_Utility` template now extends `CPM_String` with subtraction-style remov
 ## 0.2.59 — CPM_String compound operators
 
 The `CPM_Utility` template keeps `CPM_String` as the unified string helper and adds compound append/repeat operators so generated utility code can build separators and formatted text in-place.
+
+### CPM 0.2.62 - Marketplace package footprint
+
+The embedded JC Lib payload is now curated for CPM publication. The VSIX keeps the C, C++, C/C++ preprocessor/core, OpenCV, build/toolchains, SDL, Windows API/devices, scripting/system, Python, JavaScript/HTML/CSS, TypeScript, database, PHP and embedded-systems packs. Larger non-essential packs such as legacy/default/CVI, Qt, Java, C#, Kotlin, VBA, Lua and Assembly are no longer shipped in the CPM VSIX. This reduces upload size and lowers the risk of Visual Studio Marketplace request timeouts during publication.
+
+
+
+### Detached CPM configuration
+
+`CpmProjectSettingsService` centralizes CPM configuration reads and writes. When VS Code has no workspace folder opened but CPM has loaded a `.cws` or `.prj`, generic build settings are persisted manually to `<configuration-root>/.vscode/settings.json`. This avoids `ConfigurationTarget.Workspace` failures while keeping settings next to the CPM workspace instead of forcing them into global user settings.
+
+
+## CPM 0.2.64 settings webview organization
+
+The `BuildSettingsPanel` is now organized around thematic pages. The webview still posts the same save/import/export payloads to the extension host, but the visual hierarchy is page-oriented: project identity, toolchain, build inputs, run/debug, SDL, dependencies and diagnostics are separated.
+
+This keeps the build model compatible with previous releases while reducing coupling between unrelated controls in the UI.
+
+### Build Settings webview navigation guard
+
+From v0.2.65, the Build Settings webview uses a two-layer guard for thematic pages: the JavaScript controller applies the active page/filter state, and a CSS fallback hides non-Overview sections while the controller is not initialized. The embedded script also avoids raw `\r?\n` regex text inside the TypeScript HTML template to prevent runtime line-break injection in the webview script.
+

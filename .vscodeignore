@@ -6,14 +6,22 @@ src/**
 .gitignore
 
 scripts/**
-
 test-mocks/**
 *.bak
-
 *.vsix
 
+# Non-curated / legacy embedded library packs excluded from the Marketplace VSIX.
+data/assembly_language_pack.json
+data/csharp_language_pack.json
 data/cvi_pack.json
 data/default_pack.json
+data/java_language_pack.json
+data/kotlin_language_pack.json
+data/lua_pack.json
+data/qt_pack.json
+data/qt_python_pack.json
+data/vba_language_pack.json
+data/metadata/**
 native/cvi-*.ps1
 docs/history/**
 **/*_VALIDATION.json
@@ -22,4 +30,3 @@ docs/history/**
 **/SHA256SUMS-*.txt
 media/cvi*
 data/templates/*cvi*
-data/metadata/cvi_*

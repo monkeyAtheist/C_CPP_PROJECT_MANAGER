@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.2.65 - Settings page navigation fix
+
+- Fixed the Build Settings webview page tabs not switching pages.
+- Removed an unsafe inline regular-expression escape from the generated webview script; it could be converted into a literal line break and stop the script before event handlers were registered.
+- Added a CSS fallback so non-Overview sections remain hidden until the settings webview controller has initialized.
+- Kept the thematic settings layout introduced in 0.2.64: Overview, Project, Toolchain, Build, Run & Debug, SDL, Dependencies and Diagnostics.
+
+
+## 0.2.64
+
+- Reworked the CPM project settings editor into thematic pages inspired by the QPM settings UI.
+- Added local page navigation with `Overview`, `Project`, `Toolchain`, `Build`, `Run & Debug`, `SDL`, `Dependencies` and `Diagnostics`.
+- Added a per-page `Jump to a section...` selector and `Filter settings on this page...` search field.
+- Added an Overview control center with shortcuts to build/run, toolchain, IntelliSense, SDL and build diagnostics commands.
+- Split compiler/linker settings into clearer subsections: preprocessor/includes, linkage, compiler flags and build steps.
+- Added `cpm.buildLogDetail` editing directly in the Diagnostics page.
+- Added `docs/CPM_0.2.64_SETTINGS_AUDIT.md`.
+
+
+## 0.2.63
+
+- Fixed Build Settings save when a `.cws` / `.prj` is loaded directly in CPM without an opened VS Code workspace folder.
+- Added detached workspace settings fallback: generic compiler/toolchain/SDL settings are now written to `<workspace-root>/.vscode/settings.json` when VS Code cannot use `ConfigurationTarget.Workspace`.
+- Build, run and debug now read the detached CPM settings in this mode, so saved parameters are immediately reused by the build pipeline.
+- Build mode selection now uses the same fallback and no longer fails with “Unable to write to Workspace Settings because no workspace is opened”.
+
+
+## 0.2.62
+
+- Reduced the embedded JC Lib data footprint for Marketplace publishing.
+- Kept only the curated embedded library packs required for CPM usage: C, C++, C/C++ preprocessor/core, OpenCV, build/toolchains, SDL, Windows API/devices, scripting/system, Python, JavaScript/HTML/CSS, TypeScript, databases, PHP and embedded systems.
+- Removed large non-CPM packs from the shipped data payload: legacy/default/CVI, Qt, Java, C#, Kotlin, VBA, Lua and Assembly structured packs.
+- Updated the embedded library pack menu so unavailable pack families are no longer proposed by the CPM starter-pack picker.
+- Added marketplace-oriented package/publish scripts and documentation notes recommending VSIX size reduction over relying on request-timeout changes.
+
+# Changelog
+
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.
 - Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.

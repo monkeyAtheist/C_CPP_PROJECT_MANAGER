@@ -103,7 +103,7 @@ export class CpmBuildService {
   private currentReport: CpmBuildReport | undefined;
 
   get buildMode(): CpmBuildMode {
-    return vscode.workspace.getConfiguration('cpm').get<CpmBuildMode>('buildMode', 'debug');
+    return this.projectSettings.getCpmConfigurationValue<CpmBuildMode>('buildMode', 'debug');
   }
 
   async chooseBuildAction(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
@@ -150,7 +150,7 @@ export class CpmBuildService {
     if (!selected) {
       return;
     }
-    await vscode.workspace.getConfiguration('cpm').update('buildMode', selected.value, vscode.ConfigurationTarget.Workspace);
+    await this.projectSettings.updateCpmConfigurationValue('buildMode', selected.value);
     vscode.window.showInformationMessage(`C/C++ build mode: ${selected.label}.`);
   }
 
@@ -335,7 +335,7 @@ export class CpmBuildService {
       vscode.window.showErrorMessage(`The executable does not exist: ${executablePath}. Build the target before launching it.`);
       return;
     }
-    const fallbackArgs = vscode.workspace.getConfiguration('cpm').get<string[]>('runArguments', []);
+    const fallbackArgs = this.projectSettings.getCpmConfigurationValue<string[]>('runArguments', []);
     const args = run.arguments.trim() ? this.projectSettings.parseArguments(run.arguments) : fallbackArgs;
     const cwd = run.workingDirectory.trim() ? normalizeRuntimePath(run.workingDirectory.trim()) : path.dirname(executablePath);
     if (!fs.existsSync(cwd)) {
@@ -371,7 +371,7 @@ export class CpmBuildService {
         return false;
       }
       if (answer === 'Switch, build and debug') {
-        await vscode.workspace.getConfiguration('cpm').update('buildMode', debugMode, vscode.ConfigurationTarget.Workspace);
+        await this.projectSettings.updateCpmConfigurationValue('buildMode', debugMode);
       }
     }
     const success = await this.build(false, ref);
@@ -788,7 +788,7 @@ export class CpmBuildService {
   }
 
   private logDetail(): CpmBuildLogDetail {
-    const value = vscode.workspace.getConfiguration('cpm').get<string>('buildLogDetail', 'normal');
+    const value = this.projectSettings.getCpmConfigurationValue<string>('buildLogDetail', 'normal');
     return value === 'compact' || value === 'normal' || value === 'verbose' ? value : 'normal';
   }
 
@@ -1273,40 +1273,40 @@ export class CpmBuildService {
   }
 
   private getCompilerConfiguration(): GenericCompilerConfiguration {
-    const config = vscode.workspace.getConfiguration('cpm');
+    const get = <T,>(key: string, fallback: T): T => this.projectSettings.getCpmConfigurationValue<T>(key, fallback);
     return {
-      cCompilerPath: config.get<string>('cCompilerPath', 'gcc'),
-      cppCompilerPath: config.get<string>('cppCompilerPath', 'g++'),
-      archiverPath: config.get<string>('archiverPath', 'ar'),
-      debuggerPath: config.get<string>('debuggerPath', 'gdb'),
-      outputDirectory: config.get<string>('outputDirectory', 'build'),
-      cStandard: config.get<string>('cStandard', 'auto'),
-      cppStandard: config.get<string>('cppStandard', 'c++17'),
-      warningLevel: config.get<string>('warningLevel', 'wall-extra'),
-      optimizationLevel: config.get<string>('optimizationLevel', 'mode-default'),
-      debugInformation: config.get<string>('debugInformation', 'mode-default'),
-      architectureMode: config.get<string>('architectureMode', config.get<boolean>('useBuildModeArchitectureFlags', false) ? 'from-build-mode' : 'auto'),
-      compilerFlags: config.get<string[]>('compilerFlags', []),
-      cCompilerFlags: config.get<string[]>('cCompilerFlags', []),
-      cppCompilerFlags: config.get<string[]>('cppCompilerFlags', []),
-      linkerFlags: config.get<string[]>('linkerFlags', []),
-      includePaths: config.get<string[]>('includePaths', []),
-      libraryPaths: config.get<string[]>('libraryPaths', []),
-      libraries: config.get<string[]>('libraries', []),
-      defineSymbols: config.get<string[]>('defineSymbols', []),
-      useBuildModeArchitectureFlags: config.get<boolean>('useBuildModeArchitectureFlags', false),
-      deployRuntimeDlls: config.get<string>('deployRuntimeDlls', 'auto'),
-      runtimeDependencyMode: normalizeRuntimeDependencyMode(config.get<string>('runtimeDependencyMode', ''), config.get<string>('deployRuntimeDlls', 'auto')),
-      cleanRuntimeDllsOnDeploy: config.get<boolean>('cleanRuntimeDllsOnDeploy', true),
-      useLocalBuildCacheForOneDrive: config.get<boolean>('useLocalBuildCacheForOneDrive', true),
+      cCompilerPath: get<string>('cCompilerPath', 'gcc'),
+      cppCompilerPath: get<string>('cppCompilerPath', 'g++'),
+      archiverPath: get<string>('archiverPath', 'ar'),
+      debuggerPath: get<string>('debuggerPath', 'gdb'),
+      outputDirectory: get<string>('outputDirectory', 'build'),
+      cStandard: get<string>('cStandard', 'auto'),
+      cppStandard: get<string>('cppStandard', 'c++17'),
+      warningLevel: get<string>('warningLevel', 'wall-extra'),
+      optimizationLevel: get<string>('optimizationLevel', 'mode-default'),
+      debugInformation: get<string>('debugInformation', 'mode-default'),
+      architectureMode: get<string>('architectureMode', get<boolean>('useBuildModeArchitectureFlags', false) ? 'from-build-mode' : 'auto'),
+      compilerFlags: get<string[]>('compilerFlags', []),
+      cCompilerFlags: get<string[]>('cCompilerFlags', []),
+      cppCompilerFlags: get<string[]>('cppCompilerFlags', []),
+      linkerFlags: get<string[]>('linkerFlags', []),
+      includePaths: get<string[]>('includePaths', []),
+      libraryPaths: get<string[]>('libraryPaths', []),
+      libraries: get<string[]>('libraries', []),
+      defineSymbols: get<string[]>('defineSymbols', []),
+      useBuildModeArchitectureFlags: get<boolean>('useBuildModeArchitectureFlags', false),
+      deployRuntimeDlls: get<string>('deployRuntimeDlls', 'auto'),
+      runtimeDependencyMode: normalizeRuntimeDependencyMode(get<string>('runtimeDependencyMode', ''), get<string>('deployRuntimeDlls', 'auto')),
+      cleanRuntimeDllsOnDeploy: get<boolean>('cleanRuntimeDllsOnDeploy', true),
+      useLocalBuildCacheForOneDrive: get<boolean>('useLocalBuildCacheForOneDrive', true),
       sdl: {
-        enabled: normalizeSdlEnabled(config.get<string>('sdlEnabled', 'auto')),
-        version: normalizeSdlVersion(config.get<string>('sdlVersion', 'auto')),
-        rootPath: config.get<string>('sdlRootPath', '').trim(),
-        packages: config.get<string[]>('sdlPackages', ['SDL2']),
-        runtimeMode: normalizeSdlRuntimeMode(config.get<string>('sdlRuntimeMode', 'copy-dlls')),
-        subsystem: normalizeSdlSubsystem(config.get<string>('sdlSubsystem', 'windows')),
-        copyAllRuntimeDlls: config.get<boolean>('sdlCopyAllRuntimeDlls', true)
+        enabled: normalizeSdlEnabled(get<string>('sdlEnabled', 'auto')),
+        version: normalizeSdlVersion(get<string>('sdlVersion', 'auto')),
+        rootPath: get<string>('sdlRootPath', '').trim(),
+        packages: get<string[]>('sdlPackages', ['SDL2']),
+        runtimeMode: normalizeSdlRuntimeMode(get<string>('sdlRuntimeMode', 'copy-dlls')),
+        subsystem: normalizeSdlSubsystem(get<string>('sdlSubsystem', 'windows')),
+        copyAllRuntimeDlls: get<boolean>('sdlCopyAllRuntimeDlls', true)
       }
     };
   }
