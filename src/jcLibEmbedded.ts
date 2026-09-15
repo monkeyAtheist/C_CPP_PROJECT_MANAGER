@@ -60,6 +60,8 @@ interface StructuredPickerConfig {
   valueSeparator?: string;
   /** Value inserted when a multi-selection is empty, for example 0 or BLUETOOTH_GATT_FLAG_NONE. */
   emptyValue?: string;
+  /** Allow Apply with zero selected items. Defaults to false unless explicitly enabled by the pack. */
+  allowEmptySelection?: boolean;
 }
 
 interface CpmParameter {
@@ -75,6 +77,8 @@ interface CpmParameter {
   presetDetails?: Record<string, string>;
   optionDescriptions?: Record<string, string>;
   optionDetails?: Record<string, string>;
+  /** Optional value-to-template mapping used when one UI choice expands to syntax fragments. */
+  insertValueMap?: Record<string, string>;
   pickerConfig?: StructuredPickerConfig;
 }
 
@@ -12540,12 +12544,32 @@ function hasParameterizedInsertTemplate(fn: CpmFunction): boolean {
 function applyParameterizedInsertTemplate(fn: CpmFunction, values?: string[]): string {
   const resolved = (fn.parameters ?? []).map(resolveParameter);
   let output = String(fn.insertText || fn.signature || fn.name || '');
-  resolved.forEach((param, index) => {
-    const explicit = values?.[index]?.trim();
-    const replacement = explicit && explicit.length > 0 ? explicit : param.defaultValue;
-    output = output.replace(new RegExp('\\{\\{' + escapeRegexLiteral(param.name) + '\\}\\}', 'g'), replacement);
+
+  // Resolve raw UI values once, then allow insertValueMap entries to inject placeholders
+  // owned by other parameters. Bounded passes make nested expansions independent from
+  // the display order of the parameter editors.
+  const replacements = resolved.map((param, index) => {
+    const hasExplicitValue = Array.isArray(values) && index < values.length && values[index] !== undefined && values[index] !== null;
+    const rawReplacement = hasExplicitValue ? String(values![index] ?? '').trim() : param.defaultValue;
+    const valueMap = param && typeof param.insertValueMap === 'object' && param.insertValueMap !== null ? param.insertValueMap : undefined;
+    return valueMap && Object.prototype.hasOwnProperty.call(valueMap, rawReplacement)
+      ? String(valueMap[rawReplacement] ?? '')
+      : rawReplacement;
   });
-  return output;
+
+  const maxPasses = Math.max(2, Math.min(12, resolved.length + 2));
+  for (let pass = 0; pass < maxPasses; pass += 1) {
+    const before = output;
+    resolved.forEach((param, index) => {
+      output = output.replace(
+        new RegExp('\\{\\{' + escapeRegexLiteral(param.name) + '\\}\\}', 'g'),
+        replacements[index]
+      );
+    });
+    if (output === before) break;
+  }
+
+  return (usesCmdBatchStatementStyle(fn) || usesGitCommandStyle(fn)) ? normalizeCmdBatchTemplateWhitespace(output) : output;
 }
 
 function extractDefaultArguments(fn: CpmFunction): string[] {
@@ -12595,12 +12619,47 @@ function usesPythonStatementStyle(fn: CpmFunction): boolean {
   return haystack.includes('python');
 }
 
+function usesCmdBatchStatementStyle(fn: CpmFunction): boolean {
+  const library = String(fn.library ?? '').trim().toLowerCase();
+  return library === 'windows cmd & batch';
+}
+
+function usesGitCommandStyle(fn: CpmFunction): boolean {
+  const library = String(fn.library ?? '').trim().toLowerCase();
+  return library === 'git version control';
+}
+
+function normalizeCmdBatchTemplateWhitespace(text: string): string {
+  const input = String(text || '').trim();
+  let output = '';
+  let inQuotes = false;
+  let pendingSpace = false;
+  for (let index = 0; index < input.length; index += 1) {
+    const ch = input[index];
+    if (ch === '"') {
+      if (pendingSpace && output && !output.endsWith(' ')) output += ' ';
+      pendingSpace = false;
+      output += ch;
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (!inQuotes && /\s/.test(ch)) {
+      pendingSpace = output.length > 0;
+      continue;
+    }
+    if (pendingSpace && output && !output.endsWith(' ')) output += ' ';
+    pendingSpace = false;
+    output += ch;
+  }
+  return output.trim();
+}
+
 function ensureStatementTerminator(text: string, fn?: CpmFunction): string {
   const trimmed = String(text || '').trim();
   if (!trimmed) {
     return trimmed;
   }
-  if (fn && usesPythonStatementStyle(fn)) {
+  if (fn && (usesPythonStatementStyle(fn) || usesCmdBatchStatementStyle(fn))) {
     return trimmed.replace(/;+$/, '');
   }
   if (/[;}]$/.test(trimmed)) {
@@ -13068,7 +13127,8 @@ function normalizeStructuredPickerConfig(raw: any, fallbackTitle?: string): Stru
     applyDefaultIfEmpty: raw?.applyDefaultIfEmpty !== false,
     multiSelect: raw?.multiSelect === true,
     valueSeparator: typeof raw?.valueSeparator === 'string' && raw.valueSeparator.length > 0 ? raw.valueSeparator : ' | ',
-    emptyValue: typeof raw?.emptyValue === 'string' ? raw.emptyValue : ''
+    emptyValue: typeof raw?.emptyValue === 'string' ? raw.emptyValue : '',
+    allowEmptySelection: raw?.allowEmptySelection === true
   };
 }
 
@@ -13167,6 +13227,9 @@ function applyStructuredPickerOverrides(baseConfig: StructuredPickerConfig | und
   }
   if (typeof overrideRaw?.emptyValue === 'string') {
     result.emptyValue = overrideRaw.emptyValue;
+  }
+  if (typeof overrideRaw?.allowEmptySelection === 'boolean') {
+    result.allowEmptySelection = overrideRaw.allowEmptySelection;
   }
   if (overrideConfig && Array.isArray(overrideConfig.sections) && overrideConfig.sections.length) {
     result.sections = overrideConfig.sections;
@@ -13928,6 +13991,7 @@ function buildDetailsHtml(fn: CpmFunction, storedState?: StoredFunctionState): s
     const fnName = ${JSON.stringify(fn.name)};
     const parameterizedTemplate = ${JSON.stringify(hasParameterizedInsertTemplate(fn) ? fn.insertText : '')};
     const parameterizedTemplateCallable = ${JSON.stringify(callableTemplate)};
+    const normalizeCommandWhitespace = ${JSON.stringify(usesCmdBatchStatementStyle(fn) || usesGitCommandStyle(fn))};
     const defaults = ${JSON.stringify(initialValues)};
     const paramMeta = ${JSON.stringify(resolvedParams)};
     const cviAttributeHelper = ${JSON.stringify(cviAttributeHelper ?? null)};
@@ -13952,18 +14016,64 @@ function buildDetailsHtml(fn: CpmFunction, storedState?: StoredFunctionState): s
       });
     }
 
+    function resolveParameterizedInsertValue(meta, rawValue) {
+      const value = String(rawValue ?? '');
+      const map = meta && typeof meta.insertValueMap === 'object' && meta.insertValueMap !== null
+        ? meta.insertValueMap
+        : undefined;
+      if (map && Object.prototype.hasOwnProperty.call(map, value)) {
+        return String(map[value] ?? '');
+      }
+      return value;
+    }
+
+    function expandParameterizedTemplate(template, values) {
+      let output = String(template || '');
+      const replacements = paramMeta.map((meta, index) => resolveParameterizedInsertValue(meta, values[index] || ''));
+      const maxPasses = Math.max(2, Math.min(12, paramMeta.length + 2));
+      for (let pass = 0; pass < maxPasses; pass += 1) {
+        const before = output;
+        paramMeta.forEach((meta, index) => {
+          const pattern = new RegExp('\\{\\{' + String(meta.name || '') + '\\}\\}', 'g');
+          output = output.replace(pattern, replacements[index]);
+        });
+        if (output === before) break;
+      }
+      return output;
+    }
+
     function buildPreviewText() {
       const values = getValues().map((value, index) => {
         const trimmed = value.trim();
-        return trimmed.length > 0 ? trimmed : (defaults[index] || '');
+        return parameterizedTemplate ? trimmed : (trimmed.length > 0 ? trimmed : (defaults[index] || ''));
       });
       if (parameterizedTemplate) {
-        let output = parameterizedTemplate;
-        paramMeta.forEach((meta, index) => {
-          const pattern = new RegExp('\\{\\{' + String(meta.name || '') + '\\}\\}', 'g');
-          output = output.replace(pattern, values[index] || '');
-        });
+        let output = expandParameterizedTemplate(parameterizedTemplate, values);
         if (!parameterizedTemplateCallable) {
+          if (normalizeCommandWhitespace) {
+            let normalized = '';
+            let inQuotes = false;
+            let pendingSpace = false;
+            const input = String(output || '').trim();
+            for (let i = 0; i < input.length; i += 1) {
+              const ch = input[i];
+              if (ch === '"') {
+                if (pendingSpace && normalized && !normalized.endsWith(' ')) normalized += ' ';
+                pendingSpace = false;
+                normalized += ch;
+                inQuotes = !inQuotes;
+                continue;
+              }
+              if (!inQuotes && /\\s/.test(ch)) {
+                pendingSpace = normalized.length > 0;
+                continue;
+              }
+              if (pendingSpace && normalized && !normalized.endsWith(' ')) normalized += ' ';
+              pendingSpace = false;
+              normalized += ch;
+            }
+            output = normalized.trim();
+          }
           return output;
         }
         output = String(output || '').trim();
@@ -14140,6 +14250,7 @@ function buildCpmAttributeHelperHtml(fn: CpmFunction, config: any, currentValues
   const multiSelect = normalizedConfig?.multiSelect === true;
   const valueSeparator = typeof normalizedConfig?.valueSeparator === 'string' && normalizedConfig.valueSeparator.length > 0 ? normalizedConfig.valueSeparator : ' | ';
   const emptyValue = typeof normalizedConfig?.emptyValue === 'string' ? normalizedConfig.emptyValue : '';
+  const allowEmptySelection = normalizedConfig?.allowEmptySelection === true;
   const splitSelectedValues = (value: string): string[] => {
     const text = String(value || '').trim();
     if (!text || (emptyValue && text === emptyValue)) return [];
@@ -14405,6 +14516,7 @@ function buildCpmAttributeHelperHtml(fn: CpmFunction, config: any, currentValues
           <div class="summary" id="selectedMeta"></div>
         </div>
         <div class="footer">
+          <button class="secondary-btn" id="clearBtn" type="button"${multiSelect ? '' : ' style="display:none"'}>Clear selection</button>
           <button class="secondary-btn" id="cancelBtn" type="button">Cancel</button>
           <button class="primary-btn" id="applyBtn" type="button">Apply</button>
         </div>
@@ -14425,6 +14537,7 @@ function buildCpmAttributeHelperHtml(fn: CpmFunction, config: any, currentValues
       multiSelect: ${JSON.stringify(multiSelect)},
       valueSeparator: ${JSON.stringify(valueSeparator)},
       emptyValue: ${JSON.stringify(emptyValue)},
+      allowEmptySelection: ${JSON.stringify(allowEmptySelection)},
       sourceSidebarWidth: typeof persistedState.sourceSidebarWidth === 'number' ? persistedState.sourceSidebarWidth : 220
     };
     const shellRoot = document.getElementById('shellRoot');
@@ -14438,6 +14551,7 @@ function buildCpmAttributeHelperHtml(fn: CpmFunction, config: any, currentValues
     const selectedMeta = document.getElementById('selectedMeta');
     const matchCount = document.getElementById('matchCount');
     const applyBtn = document.getElementById('applyBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const cancelBtn = document.getElementById('cancelBtn');
 
 
@@ -14662,8 +14776,10 @@ function buildCpmAttributeHelperHtml(fn: CpmFunction, config: any, currentValues
       const combinedValue = selectedItems.length
         ? selectedItems.map((entry) => String(entry.value || entry.constant || entry.label || '')).filter(Boolean).join(state.valueSeparator)
         : state.emptyValue;
-      selectedConstant.textContent = combinedValue || 'No selection';
-      selectedDescription.textContent = String(item.description || item.detail || 'No description available.');
+      selectedConstant.textContent = combinedValue || (state.multiSelect ? '(none)' : 'No selection');
+      selectedDescription.textContent = state.multiSelect && selectedItems.length === 0
+        ? (state.allowEmptySelection ? 'No option selected. Apply will clear the optional multi-select field.' : 'Select at least one option before applying.')
+        : String(item.description || item.detail || 'No description available.');
       const sourceTypes = Array.isArray(item.sourceTypes) ? item.sourceTypes.filter(Boolean).join(', ') : '';
       const bits = [];
       if (state.multiSelect) bits.push(String(selectedItems.length) + ' selected flag' + (selectedItems.length === 1 ? '' : 's'));
@@ -14673,7 +14789,7 @@ function buildCpmAttributeHelperHtml(fn: CpmFunction, config: any, currentValues
       if (item.defaultValue) bits.push('Suggested value: ' + item.defaultValue);
       if (item.valueKind) bits.push('Value type: ' + item.valueKind);
       selectedMeta.textContent = bits.join(' · ');
-      applyBtn.disabled = state.multiSelect ? (!combinedValue && !state.emptyValue) : false;
+      applyBtn.disabled = state.multiSelect ? (!state.allowEmptySelection && !combinedValue && !state.emptyValue) : false;
     }
 
     function render() {
@@ -14710,6 +14826,13 @@ function buildCpmAttributeHelperHtml(fn: CpmFunction, config: any, currentValues
       state.filter = String(filterInput.value || '');
       render();
     });
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        state.selectedIds = [];
+        renderTree();
+        renderSelection();
+      });
+    }
     cancelBtn.addEventListener('click', () => vscode.postMessage({ type: 'cancel' }));
     applyBtn.addEventListener('click', () => applySelection());
     bindSourceResizer();

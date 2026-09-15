@@ -2,7 +2,7 @@
     "name": "c-cpp-project-manager-and-build",
     "displayName": "C/C++ Project Manager and Build",
     "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-    "version": "0.2.66",
+    "version": "0.2.67",
     "publisher": "JerryCrozet-ElectronicEngineer",
     "license": "MIT",
     "engines": {
@@ -86,7 +86,7 @@
         "clean:legacy-cvi": "node ./scripts/clean-legacy-cvi-sources.js",
         "package:marketplace": "vsce package --allow-missing-repository",
         "publish:marketplace": "vsce publish --allow-missing-repository",
-        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.66.vsix"
+        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.67.vsix"
     },
     "contributes": {
         "viewsContainers": {

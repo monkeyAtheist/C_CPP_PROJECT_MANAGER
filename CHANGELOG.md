@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.67 - Embedded JC Lib pack synchronization
+
+- Synchronized the embedded **C Language** pack from JC Lib 0.8.36 (`1.12.0` → `2.0.0`), including the modern C audit and dynamic allocation/pointer-tree generators.
+- Rebuilt the auto-seeded **CPM C/C++ core pack** (`0.1.5` → `0.1.6`) from the updated C/C++ libraries while preserving CPM DLL/preprocessor helpers and the compact Marketplace picker payload.
+- Synchronized the embedded **C++ Language** pack (`2.16.0` → `3.2.0`), including the modernized C++ catalog and typed `new[]` / `std::malloc` pointer-depth generators.
+- Synchronized the embedded **Scripting / System** pack (`1.9.1` → `1.12.0`), including the completed Git command options and optional multi-select flags.
+- Updated the embedded JC Lib parameter engine with `insertValueMap` and bounded nested placeholder expansion so generated allocation previews/insertion match JC Lib 0.8.36.
+- Added optional empty multi-select support and a **Clear selection** action to structured pickers, fixing optional Git flag fields such as `git clone` flags.
+- Normalized whitespace for generated Git/CMD parameterized commands when optional arguments are empty.
+- Kept CPM's Marketplace-safe curated payload unchanged: Qt and other packs deliberately removed in 0.2.62 were not re-added.
+
 ## 0.2.66 - Application icons for CPM targets
 
 - Added an **Application icons** section to the CPM project settings page.

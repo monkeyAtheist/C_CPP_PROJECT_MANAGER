@@ -209,6 +209,10 @@ The C++ module bundles now use `CPM_Utility` as the canonical utility layer. It 
 
 The embedded scripting pack now includes the JC Lib 0.8.28 Windows CMD & Batch structure. The `CPM_Utility` bundle also provides `CPM_String`, with repeat helpers such as `CPM_String("=") * 10`, `10 * CPM_String("-")`, `"*"_cpm * 8` and `cpm_utility::repeat("//", 4)`.
 
+### 0.2.67 — Embedded JC Lib synchronization
+
+The curated embedded library has been synchronized with JC Lib 0.8.36 for the C, C++ and Scripting/System packs. The main auto-seeded C/C++ core pack is rebuilt from the updated language libraries, and the embedded parameter engine now supports nested `insertValueMap` expansion plus optional empty multi-select pickers. This fixes the new dynamic-allocation generators and Git commands such as `git push -u origin <branch>` while allowing optional flag lists to remain empty. See `docs/CPM_0.2.67_JCLIB_SYNC.md`.
+
 ### 0.2.60 — CPM_String sequence removal
 
 `CPM_String` now supports sequence removal through `operator-` and `operator-=`. Example: `CPM_String text = "bonjour ça va ?"_cpm; text -= "bonjour";` produces `"ça va ?"` after removing the matching sequence and trimming leading/trailing whitespace.
