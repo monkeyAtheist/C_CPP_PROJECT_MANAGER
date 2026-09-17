@@ -269,3 +269,9 @@ From v0.2.65, the Build Settings webview uses a two-layer guard for thematic pag
 CPM stores icon settings per native project configuration in the `.prj` file. `Icon File` is used for the Windows executable icon, while `Window Icon File` and `Apply Window Icon Automatically` control SDL runtime icon support. During an executable build, the generic build service can generate `cpm_application_icon.rc`, compile it with `windres`/`llvm-windres`, and append the generated resource object to the link command.
 
 For SDL targets, CPM can also generate `cpm_application_icon_autoload.h/.c` in the build generated directory. The header is force-included for project sources so `SDL_CreateWindow(...)` is wrapped and `SDL_SetWindowIcon(...)` is called immediately after window creation. The source file is compiled as an additional generated translation unit and the selected image is copied beside the executable after a successful link.
+
+
+## Embedded library payload — 0.2.68
+
+CPM now ships the cleaned JC Lib 0.8.38 Lua catalog and the LabWindows/CVI structured API catalog in addition to the curated C/C++-oriented packs. CVI remains a dedicated `CVI` environment. Activation runs a one-way global-storage migration before loading packs so retired catalog files, environments and libraries from older installations do not survive an update.
+

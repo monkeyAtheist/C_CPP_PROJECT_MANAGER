@@ -13,11 +13,9 @@ test-mocks/**
 # Non-curated / legacy embedded library packs excluded from the Marketplace VSIX.
 data/assembly_language_pack.json
 data/csharp_language_pack.json
-data/cvi_pack.json
 data/default_pack.json
 data/java_language_pack.json
 data/kotlin_language_pack.json
-data/lua_pack.json
 data/qt_pack.json
 data/qt_python_pack.json
 data/vba_language_pack.json

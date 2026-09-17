@@ -252,3 +252,9 @@ The project settings editor contains an **Application icons** section for execut
 - **SDL window / application icon image** copies the selected image beside the executable. When **Apply SDL window icon automatically** is enabled and the project uses SDL2 or SDL3, CPM generates a small `SDL_CreateWindow(...)` wrapper so the icon is applied to the created window.
 
 For SDL window icons, BMP works with the core SDL runtime. PNG, JPG and WebP should be used together with the corresponding `SDL2_image` or `SDL3_image` package.
+
+
+### Embedded library payload (0.2.68)
+
+The current Marketplace payload includes the curated CPM packs plus the cleaned Lua catalog from JC Lib 0.8.38 and the LabWindows/CVI structured API catalog. CVI is exposed under its own `CVI` environment. On activation, CPM also performs a one-way cleanup of retired catalog content left in user global pack storage by older versions.
+

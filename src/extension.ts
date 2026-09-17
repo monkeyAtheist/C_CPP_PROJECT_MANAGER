@@ -24,6 +24,7 @@ import { CpmEditorUtilitiesService } from './services/cpmEditorUtilitiesService'
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
   const buildTraceOutput = vscode.window.createOutputChannel('C/C++ Project Manager - Build Trace');
+  const programOutput = vscode.window.createOutputChannel('C/C++ Project Manager - Program Output');
   const buildDiagnostics = vscode.languages.createDiagnosticCollection('CPM Build');
   await migrateLegacyConfiguration(output);
   const parser = new CpmParser();
@@ -33,7 +34,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const sdl = new CpmSdlService(output);
   const workspaces = new CpmWorkspaceService(context, parser, installations, templates, sdl, output);
   const projectSettings = new CpmProjectSettingsService(workspaces, parser, output);
-  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output, buildTraceOutput, buildDiagnostics);
+  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output, buildTraceOutput, programOutput, buildDiagnostics);
   const treeProvider = new CpmTreeProvider(workspaces);
   const treeView = vscode.window.createTreeView('cpm.workspaceExplorer', { treeDataProvider: treeProvider, dragAndDropController: treeProvider, showCollapseAll: true, canSelectMany: true });
   const symbols = new CpmSymbolService(context.extensionPath, workspaces);
@@ -110,6 +111,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     output,
     buildTraceOutput,
+    programOutput,
     buildDiagnostics,
     workspaces,
     home,
@@ -305,6 +307,7 @@ const CPM_CONFIGURATION_KEYS = [
   'activeInstallation',
   'buildMode',
   'runArguments',
+  'runOutputMode',
   'buildLogDetail',
   'projectFormatVersion',
   'autoLoadWorkspace',

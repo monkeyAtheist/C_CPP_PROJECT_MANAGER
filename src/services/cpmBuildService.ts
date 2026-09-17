@@ -14,6 +14,7 @@ import { CpmSdlConfiguration, createSdlBuildPlan } from './cpmSdlService';
 type CpmRuntimeDependencyMode = 'copy-dlls' | 'path-only' | 'static-link';
 
 type CpmBuildLogDetail = 'compact' | 'normal' | 'verbose';
+type CpmRunOutputMode = 'integrated-terminal' | 'output-channel' | 'detached';
 
 interface ParsedToolDiagnostic {
   severity: 'error' | 'warning' | 'note';
@@ -103,6 +104,7 @@ export class CpmBuildService {
     _breakpoints: unknown,
     private readonly output: vscode.OutputChannel,
     private readonly traceOutput: vscode.OutputChannel,
+    private readonly programOutput: vscode.OutputChannel,
     private readonly diagnostics: vscode.DiagnosticCollection
   ) {}
 
@@ -354,9 +356,42 @@ export class CpmBuildService {
     this.deploySdlRuntimeDlls(executablePath, sdlPlan);
     this.deployApplicationIconAssets(ref, executablePath, this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode));
     const env = this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(run.environmentOptions), config, executablePath);
-    const child = spawn(executablePath, args, { cwd, env, detached: true, shell: false, stdio: 'ignore' });
-    child.unref();
-    this.output.appendLine(`[C/C++] Started ${executablePath} ${args.map(renderArgument).join(' ')}`);
+    const outputMode = normalizeRunOutputMode(this.projectSettings.getCpmConfigurationValue<string>('runOutputMode', 'integrated-terminal'));
+    const renderedCommand = [executablePath, ...args].map(renderArgument).join(' ');
+
+    if (outputMode === 'integrated-terminal') {
+      const terminal = vscode.window.createTerminal({
+        name: `CPM: ${ref.name}`,
+        shellPath: executablePath,
+        shellArgs: args,
+        cwd,
+        env
+      });
+      terminal.show(false);
+      this.output.appendLine(`[C/C++] Started in integrated terminal: ${renderedCommand}`);
+    } else if (outputMode === 'output-channel') {
+      this.programOutput.clear();
+      this.programOutput.appendLine(`=== ${ref.name} ===`);
+      this.programOutput.appendLine(`> ${renderedCommand}`);
+      this.programOutput.appendLine(`Working directory: ${cwd}`);
+      this.programOutput.appendLine('');
+      this.programOutput.show(true);
+      const child = spawn(executablePath, args, { cwd, env, detached: false, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
+      child.stdout?.on('data', (data: Buffer) => this.programOutput.append(data.toString()));
+      child.stderr?.on('data', (data: Buffer) => this.programOutput.append(data.toString()));
+      child.on('error', (error) => {
+        this.programOutput.appendLine(`\n[CPM] Failed to start process: ${error.message}`);
+      });
+      child.on('close', (code, signal) => {
+        const suffix = signal ? `signal ${signal}` : `exit code ${code ?? 'unknown'}`;
+        this.programOutput.appendLine(`\n[CPM] Process finished (${suffix}).`);
+      });
+      this.output.appendLine(`[C/C++] Started with captured output: ${renderedCommand}`);
+    } else {
+      const child = spawn(executablePath, args, { cwd, env, detached: true, shell: false, stdio: 'ignore' });
+      child.unref();
+      this.output.appendLine(`[C/C++] Started detached: ${renderedCommand}`);
+    }
     this.output.appendLine(`[C/C++] Runtime PATH prepended with: ${this.runtimeSearchDirectories(config, executablePath).join(path.delimiter)}`);
   }
 
@@ -408,6 +443,9 @@ export class CpmBuildService {
       cwd,
       stopAtEntry: false,
       externalConsole: false,
+      avoidWindowsConsoleRedirection: false,
+      internalConsoleOptions: 'neverOpen',
+      logging: { programOutput: true },
       MIMode: 'gdb',
       miDebuggerPath: config.debuggerPath || 'gdb',
       environment: debugEnvironment
@@ -1446,6 +1484,13 @@ export class CpmBuildService {
   }
 }
 
+
+function normalizeRunOutputMode(value: string | undefined): CpmRunOutputMode {
+  if (value === 'output-channel' || value === 'detached') {
+    return value;
+  }
+  return 'integrated-terminal';
+}
 
 function normalizeRuntimeDependencyMode(value: string | undefined, legacyValue: string | undefined): CpmRuntimeDependencyMode {
   if (value === 'copy-dlls' || value === 'path-only' || value === 'static-link') {

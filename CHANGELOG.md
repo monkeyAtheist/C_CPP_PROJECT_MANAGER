@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.69
+
+- Fixed normal Run output: CPM no longer discards executable stdout/stderr with `stdio: ignore`.
+- Added `cpm.runOutputMode` with Integrated Terminal (default), CPM Program Output, and Detached legacy modes.
+- Integrated Terminal mode supports both output (`printf`, `std::cout`, `stderr`) and interactive input (`scanf`, `std::cin`).
+- Added a dedicated `C/C++ Project Manager - Program Output` channel for non-interactive stdout/stderr capture.
+- Made cppdbg/GDB console routing explicit on Windows (`externalConsole: false`, console redirection enabled, integrated terminal kept visible).
+
+## 0.2.68 - Library cleanup, storage migration and CVI/Lua restoration
+
+- Replaced the embedded Lua payload with the cleaned JC Lib 0.8.38 Lua catalog: Lua 5.4, industrial/test-bench helpers, LuaFileSystem and Stormworks content only.
+- Added a one-way activation migration that removes retired catalog files, environments and libraries from the user's CPM global pack storage, including installations created by older releases.
+- Added the JC Lib 0.8.38 LabWindows/CVI structured API pack as a dedicated `CVI` environment instead of merging its libraries into the generic `C` environment.
+- Restored the cleaned Lua family in the embedded pack picker and removed stale picker routes that referenced content no longer shipped.
+- Updated the Marketplace payload to include `data/cvi_pack.json` and the cleaned `data/lua_pack.json`.
+- Changed the TypeScript build to clean the emitted `out/` directory before compilation, preventing orphaned JavaScript from older source layouts from being packaged.
+- Audited current sources, generated runtime, manifests, README, architecture notes and changelog for retired catalog references.
+
 ## 0.2.67 - Embedded JC Lib pack synchronization
 
 - Synchronized the embedded **C Language** pack from JC Lib 0.8.36 (`1.12.0` → `2.0.0`), including the modern C audit and dynamic allocation/pointer-tree generators.

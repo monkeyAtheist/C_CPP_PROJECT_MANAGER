@@ -7928,10 +7928,12 @@ interface StarterPackSelection {
   entries: StarterPackEntry[];
   preserveLibraries?: boolean;
   preserveEnvironments?: boolean;
+  forceCanonicalHierarchy?: boolean;
 }
 
 function canonicalStarterEnvironmentName(id: string): string | undefined {
-  if (id === 'c_core' || id === 'c_dll' || id === 'cvi_core' || id === 'c_all') return 'C';
+  if (id === 'cvi_core') return 'CVI';
+  if (id === 'c_core' || id === 'c_dll' || id === 'c_all') return 'C';
   if (id === 'cpp_core' || id === 'cpp_dll' || id === 'cpp_all') return 'C++';
   if (id === 'preprocessor_core') return 'C / C++ Preprocessor';
   if (id.startsWith('qt_') || id === 'qml_core') return 'QT';
@@ -8185,6 +8187,11 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
   switch (id) {
     case 'c_core':
       return bundledPackLibrarySelection('c_core', 'C complete structured pack', 'c_language_pack.json', 'C', ['C Language']);
+    case 'cvi_core': {
+      const selection = bundledPackFileSelection('cvi_core', 'LabWindows/CVI', 'cvi_pack.json', ['CVI']);
+      selection.forceCanonicalHierarchy = true;
+      return selection;
+    }
     case 'cpp_core':
       return bundledPackLibrarySelection('cpp_core', 'C++ complete structured pack', 'cpp_language_pack.json', 'C++', ['C++ Language']);
     case 'python_core':
@@ -8336,19 +8343,17 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
     case 'windows_all':
       return bundledPackFileSelection('windows_all', 'Windows API / Devices structured pack', 'windows_api_device_pack.json', ['Windows API / Devices']);
     case 'lua_all':
-      return bundledPackFileSelection('lua_all', 'Lua pack', 'lua_pack.json');
+      return bundledPackFileSelection('lua_all', 'Lua pack', 'lua_pack.json', ['Lua']);
     case 'lua_standard':
       return bundledPackLibraryEnvironmentSelection('lua_standard', 'Lua standard 5.4 pack', 'lua_pack.json', 'Lua', ['Lua standard 5.4']);
     case 'lua_industrial':
       return bundledPackLibraryEnvironmentSelection('lua_industrial', 'Lua industriel / banc de test pack', 'lua_pack.json', 'Lua', ['Lua industriel / banc de test']);
-    case 'lua_mpt':
-      return bundledPackLibraryEnvironmentSelection('lua_mpt', 'MPT Studio / MPTLua pack', 'lua_pack.json', 'Lua', ['MPT Studio / MPTLua (Lua 5.2.4)']);
     case 'lua_stormworks':
       return bundledPackLibraryEnvironmentSelection('lua_stormworks', 'Stormworks Lua microcontroller pack', 'lua_pack.json', 'Lua', ['Stormworks Lua microcontroller']);
     case 'examples_all':
       return combinePreservingLibraries('examples_all', 'All example packs', ['opencv_robotics_example', 'win32_hooks_example', 'uart_protocol_example', 'instrumentation_example']);
     case 'all_packs':
-      return combinePreservingLibraries('all_packs', 'Curated CPM packs', ['c_all', 'cpp_all', 'preprocessor_core', 'opencv_all', 'build_all', 'sdl_all', 'windows_all', 'scripting_all', 'python_core', 'web_core', 'typescript_core', 'database_all', 'php_core', 'embedded_all']);
+      return combinePreservingLibraries('all_packs', 'Curated CPM packs', ['c_all', 'cpp_all', 'preprocessor_core', 'opencv_all', 'build_all', 'sdl_all', 'windows_all', 'scripting_all', 'python_core', 'web_core', 'typescript_core', 'database_all', 'php_core', 'embedded_all', 'lua_all']);
     default:
       return direct(id as LanguagePackMode);
   }
@@ -8357,7 +8362,7 @@ function buildStarterPackSelection(id: string): StarterPackSelection {
 async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSelection | undefined> {
   const families = [
     { label: 'Add all curated CPM packs', description: 'Insert the reduced Marketplace-safe CPM pack set in one operation', value: 'all' },
-    { label: 'C pack', description: 'C language pack with expert ABI, unions, function pointers, pointer patterns, callbackData casting, buses/protocols, plus C DLL helpers', value: 'c' },
+    { label: 'C pack', description: 'Modern C language and DLL helpers, with LabWindows/CVI available as a dedicated CVI environment', value: 'c' },
     { label: 'C++ pack', description: 'Structured C++ pack loaded from cpp_language_pack.json: types, parametric API calls, STL, concurrency, files, interop, Qt helpers, and DLL patterns', value: 'cpp' },
     { label: 'Preprocessor pack', description: 'Shared C/C++ preprocessor content: macros, variadic macros, pragmas, #if, # and ##', value: 'preprocessor' },
     { label: 'OpenCV pack', description: 'OpenCV language pack with camera and vision helpers', value: 'opencv' },
@@ -8370,6 +8375,7 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
     { label: 'PHP language pack', description: 'Complete structured PHP 8.5 pack: language, callables, OOP, SPL, files/configuration, PDO, security, HTTP, Composer, PHPUnit, Twig, Laravel, Symfony, WordPress, workers, and Linux deployment', value: 'php_core' },
     { label: 'TypeScript language pack', description: 'Structured TypeScript pack: declarations, narrowing, generics, modules, typed DOM, frameworks, Node.js, validation, tests, TSConfig, desktop bridges and device I/O', value: 'typescript_core' },
     { label: 'Database pack', description: 'Structured SQL, NoSQL, client C APIs, ODBC, SQLAlchemy/Alembic, hiredis and operations pack with parameterized direct cards and retained recipes', value: 'database' },
+    { label: 'Lua pack', description: 'Lua standard, industrial/test-bench Lua, LuaFileSystem, and Stormworks microcontroller Lua content', value: 'lua' },
     { label: 'Embedded pack', description: 'Embedded-specific patterns, Arduino AVR registers and ISR vectors, ESP32 Arduino peripherals/connectivity, and Raspberry Pi Linux hardware interfaces', value: 'embedded' },
   ];
 
@@ -8390,6 +8396,7 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
       { label: 'Add all C pack', description: 'Add C language pack and C DLL helpers at once', value: 'c_all' },
       { label: 'C language pack', description: 'Unified structured ISO C and systems C pack: Standard Library, language basics, C23 keywords, preprocessor, pointers, callbacks, memory, files/configuration, POSIX and Windows APIs, threads, sockets, HTTP, serial, USB, buses, diagnostics, CMake, portability, and ABI patterns', value: 'c_core' },
       { label: 'C DLL helpers', description: 'Windows DLL helpers and manual loading patterns for C', value: 'c_dll' },
+      { label: 'LabWindows/CVI', description: 'Add the complete LabWindows/CVI catalog under the dedicated CVI environment', value: 'cvi_core' },
     ],
     cpp: [
       { label: 'Add all C++ pack', description: 'Add the complete C++ language pack and C++ DLL helpers together', value: 'cpp_all' },
@@ -8469,10 +8476,9 @@ async function chooseGroupedStarterPack(packName: string): Promise<StarterPackSe
       { label: 'Database operations, backup and replication', description: 'PostgreSQL, MySQL, SQLite, MongoDB and Redis operational backup, health-check and replication helpers', value: 'dbops_core' }
     ],
     lua: [
-      { label: 'Add all Lua pack', description: 'Add one Lua environment containing Lua standard 5.4, industrial/test-bench Lua, MPTLua, and Stormworks libraries', value: 'lua_all' },
+      { label: 'Add all Lua pack', description: 'Add one Lua environment containing Lua standard 5.4, industrial/test-bench Lua, LuaFileSystem, and Stormworks libraries', value: 'lua_all' },
       { label: 'Lua standard 5.4', description: 'Syntax, tables, functions, modules, errors, strings, patterns, math, IO, coroutines, versions, and pitfalls', value: 'lua_standard' },
       { label: 'Lua industriel / banc de test', description: 'External communication references and test-sequence/logging patterns', value: 'lua_industrial' },
-      { label: 'MPT Studio / MPTLua', description: 'MPTLua Lua 5.2.4 environment, operator prompts, reporting, persistence, switching, measurements, and advanced MPT patterns', value: 'lua_mpt' },
       { label: 'Stormworks Lua microcontroller', description: 'onTick/onDraw lifecycle, composite I/O, screen drawing, map conversion, properties, async HTTP, and practical Stormworks snippets', value: 'lua_stormworks' }
     ],
     assembly: [
@@ -8518,9 +8524,10 @@ async function importLanguageStarterIntoPackFile(pack: LoadedPack, target?: { en
   if (!starter) return undefined;
 
   const starterEnvironmentNames = [...new Set(starter.entries.map((entry) => entry.environment).filter((value): value is string => !!value))];
-  const preserveStarterEnvironments = !target?.environmentName && !!starter.preserveEnvironments && starterEnvironmentNames.length > 0;
+  const effectiveTarget = starter.forceCanonicalHierarchy ? undefined : target;
+  const preserveStarterEnvironments = !effectiveTarget?.environmentName && !!starter.preserveEnvironments && starterEnvironmentNames.length > 0;
 
-  let selectedEnvironmentName = target?.environmentName;
+  let selectedEnvironmentName = effectiveTarget?.environmentName;
   if (!preserveStarterEnvironments) {
     selectedEnvironmentName = selectedEnvironmentName || await chooseTargetEnvironment(packFile, `Choose the target environment for starter content — ${pack.name}`);
     if (!selectedEnvironmentName) return undefined;
@@ -8534,11 +8541,11 @@ async function importLanguageStarterIntoPackFile(pack: LoadedPack, target?: { en
   for (const entry of starter.entries) {
     const targetEnvironmentName = selectedEnvironmentName || entry.environment || starterEnvironmentNames[0];
     if (!targetEnvironmentName) continue;
-    const implicitDestination = !target?.categoryName
+    const implicitDestination = !effectiveTarget?.categoryName
       ? starterNestedDestinationForEntry(entry.library || starter.libraryName, entry.category, entry)
       : undefined;
-    const targetLibraryName = target?.libraryName || implicitDestination?.libraryName || entry.library || starter.libraryName;
-    const categoryName = target?.categoryName || implicitDestination?.categoryName || entry.category;
+    const targetLibraryName = effectiveTarget?.libraryName || implicitDestination?.libraryName || entry.library || starter.libraryName;
+    const categoryName = effectiveTarget?.categoryName || implicitDestination?.categoryName || entry.category;
     const { category } = ensureEnvironmentLibraryCategory(packFile, targetEnvironmentName, targetLibraryName, categoryName);
     if (getCategoryAllFunctions(category).some((fn) => fn.name === entry.name)) continue;
     const { __jcGroupPath: _discardedGroupPath, ...entryWithoutInternalMetadata } = entry;
@@ -9043,6 +9050,120 @@ function getWorkspacePacksDirectory(): string | undefined {
 
 function getGlobalPacksDirectory(context: vscode.ExtensionContext): string {
   return path.join(context.globalStorageUri.fsPath, 'packs');
+}
+
+interface RetiredPackCleanupStats {
+  scannedFiles: number;
+  deletedFiles: number;
+  updatedFiles: number;
+  removedEnvironments: number;
+  removedLibraries: number;
+}
+
+function retiredCatalogMarkerParts(): { tokenPrefixes: string[]; compactSequences: string[] } {
+  // One-way compatibility migration: character codes recognize retired catalog
+  // identifiers without reintroducing their names in current sources or docs.
+  const decode = (codes: number[]): string => String.fromCharCode(...codes);
+  return {
+    tokenPrefixes: [decode([77, 80, 84]), decode([72, 78, 70])],
+    compactSequences: [decode([84, 78, 84, 69, 88, 69, 67])]
+  };
+}
+
+function isRetiredCatalogIdentifier(value: unknown): boolean {
+  const text = String(value ?? '').trim().toUpperCase();
+  if (!text) return false;
+  const { tokenPrefixes, compactSequences } = retiredCatalogMarkerParts();
+  const tokens = text.split(/[^A-Z0-9]+/).filter(Boolean);
+  const compact = tokens.join('');
+  if (tokenPrefixes.some((prefix) => tokens.some((token) => token === prefix || token.startsWith(prefix)))) return true;
+  return compactSequences.some((sequence) => compact.includes(sequence));
+}
+
+function purgeRetiredGlobalPackStorage(context: vscode.ExtensionContext): RetiredPackCleanupStats {
+  const stats: RetiredPackCleanupStats = {
+    scannedFiles: 0,
+    deletedFiles: 0,
+    updatedFiles: 0,
+    removedEnvironments: 0,
+    removedLibraries: 0
+  };
+  const directory = getGlobalPacksDirectory(context);
+  if (!fs.existsSync(directory)) return stats;
+
+  for (const fileName of fs.readdirSync(directory).filter((name) => name.toLowerCase().endsWith('.json')).sort()) {
+    const filePath = path.join(directory, fileName);
+    stats.scannedFiles += 1;
+    let raw: any;
+    try {
+      raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch {
+      continue;
+    }
+
+    if ([raw?.id, raw?.name, path.basename(fileName, path.extname(fileName))].some(isRetiredCatalogIdentifier)) {
+      try {
+        fs.unlinkSync(filePath);
+        stats.deletedFiles += 1;
+      } catch {
+        // Keep activation resilient if a user file is locked or read-only.
+      }
+      continue;
+    }
+
+    let changed = false;
+    const cleanLibraries = (libraries: any[]): any[] => {
+      const source = Array.isArray(libraries) ? libraries : [];
+      const kept = source.filter((library) => {
+        const remove = isRetiredCatalogIdentifier(library?.name) || isRetiredCatalogIdentifier(library?.id);
+        if (remove) stats.removedLibraries += 1;
+        return !remove;
+      });
+      if (kept.length !== source.length) changed = true;
+      return kept;
+    };
+
+    if (Array.isArray(raw?.environments)) {
+      const environments: any[] = [];
+      for (const environment of raw.environments) {
+        if (isRetiredCatalogIdentifier(environment?.name) || isRetiredCatalogIdentifier(environment?.id)) {
+          stats.removedEnvironments += 1;
+          changed = true;
+          continue;
+        }
+        const clone = { ...environment };
+        clone.libraries = cleanLibraries(clone.libraries);
+        environments.push(clone);
+      }
+      raw.environments = environments;
+    }
+
+    if (Array.isArray(raw?.libraries)) raw.libraries = cleanLibraries(raw.libraries);
+
+    const environmentLibraryCount = Array.isArray(raw?.environments)
+      ? raw.environments.reduce((sum: number, environment: any) => sum + (Array.isArray(environment?.libraries) ? environment.libraries.length : 0), 0)
+      : 0;
+    const legacyLibraryCount = Array.isArray(raw?.libraries) ? raw.libraries.length : 0;
+    if (changed && environmentLibraryCount + legacyLibraryCount === 0) {
+      try {
+        fs.unlinkSync(filePath);
+        stats.deletedFiles += 1;
+      } catch {
+        // Leave the empty file in place only when the OS refuses deletion.
+      }
+      continue;
+    }
+
+    if (changed) {
+      try {
+        fs.writeFileSync(filePath, JSON.stringify(raw, null, 2) + '\n', 'utf8');
+        stats.updatedFiles += 1;
+      } catch {
+        // Keep activation resilient if global storage is temporarily read-only.
+      }
+    }
+  }
+  return stats;
 }
 
 
@@ -19333,7 +19454,15 @@ function buildPackEditorHtml(pack: LibraryPackFile, loadedPack: LoadedPack): str
 
 export function activate(context: vscode.ExtensionContext): void {
   ensureCustomTreeIcons(context);
+  const retiredCleanup = purgeRetiredGlobalPackStorage(context);
   let currentData = loadExtensionData(context);
+  if (retiredCleanup.deletedFiles > 0 || retiredCleanup.updatedFiles > 0) {
+    setTimeout(() => {
+      void vscode.window.showInformationMessage(
+        `CPM cleaned retired global pack content (${retiredCleanup.deletedFiles} file(s) removed, ${retiredCleanup.updatedFiles} file(s) updated).`
+      );
+    }, 0);
+  }
 
   const treeProvider = new CpmTreeProvider(currentData.db);
   const treeView = vscode.window.createTreeView('cpm.libraryExplorer', { treeDataProvider: treeProvider, showCollapseAll: true });

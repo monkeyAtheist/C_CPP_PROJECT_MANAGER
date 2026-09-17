@@ -2,7 +2,7 @@
     "name": "c-cpp-project-manager-and-build",
     "displayName": "C/C++ Project Manager and Build",
     "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-    "version": "0.2.67",
+    "version": "0.2.69",
     "publisher": "JerryCrozet-ElectronicEngineer",
     "license": "MIT",
     "engines": {
@@ -80,13 +80,13 @@
     "main": "./out/extension.js",
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "npm run clean:legacy-cvi && tsc -p ./",
-        "watch": "npm run clean:legacy-cvi && tsc -watch -p ./",
+        "compile": "npm run clean:out && tsc -p ./",
+        "watch": "tsc -watch -p ./",
         "package": "vsce package",
-        "clean:legacy-cvi": "node ./scripts/clean-legacy-cvi-sources.js",
         "package:marketplace": "vsce package --allow-missing-repository",
         "publish:marketplace": "vsce publish --allow-missing-repository",
-        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.67.vsix"
+        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.69.vsix",
+        "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
     },
     "contributes": {
         "viewsContainers": {
@@ -1454,6 +1454,21 @@
                         "type": "string"
                     },
                     "description": "Arguments passed to the active executable when running it."
+                },
+                "cpm.runOutputMode": {
+                    "type": "string",
+                    "enum": [
+                        "integrated-terminal",
+                        "output-channel",
+                        "detached"
+                    ],
+                    "enumDescriptions": [
+                        "Run the executable in a VS Code integrated terminal. Recommended for printf/std::cout and interactive stdin (scanf/std::cin).",
+                        "Capture stdout and stderr in the C/C++ Project Manager - Program Output channel. Standard input is not interactive in this mode.",
+                        "Launch in the background without capturing stdout/stderr, matching the legacy CPM behavior."
+                    ],
+                    "default": "integrated-terminal",
+                    "description": "Where CPM displays stdout/stderr when running an executable outside the debugger."
                 },
                 "cpm.projectFormatVersion": {
                     "type": "number",
