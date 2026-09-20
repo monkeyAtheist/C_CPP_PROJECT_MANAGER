@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.70
+
+- Improved File Symbols filtering to reject calls, macro-like expressions and local class instances inside function bodies.
+- Added copy/export actions and `.h/.hpp` plus `.c/.cpp` generation from File Symbols.
+- Exposed separate Create Library Pack and Import Library Pack actions in the Libraries title bar and CPM editor menu.
+
 ## 0.2.69
 
 - Fixed normal Run output: CPM no longer discards executable stdout/stderr with `stdio: ignore`.

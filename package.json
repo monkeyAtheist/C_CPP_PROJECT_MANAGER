@@ -2,7 +2,7 @@
     "name": "c-cpp-project-manager-and-build",
     "displayName": "C/C++ Project Manager and Build",
     "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-    "version": "0.2.69",
+    "version": "0.2.70",
     "publisher": "JerryCrozet-ElectronicEngineer",
     "license": "MIT",
     "engines": {
@@ -75,7 +75,16 @@
         "onCommand:cpm.configureSdl",
         "onCommand:cpm.createSdlWorkspaceProject",
         "onCommand:cpm.createSdlProjectInWorkspace",
-        "onCommand:cpm.moveFileToFolder"
+        "onCommand:cpm.moveFileToFolder",
+        "onCommand:cpm.library.createPack",
+        "onCommand:cpm.library.importPack",
+        "onCommand:cpm.copyFileSymbol",
+        "onCommand:cpm.copyFileSymbolDeclaration",
+        "onCommand:cpm.copyFileSymbols",
+        "onCommand:cpm.copyFileSymbolDeclarations",
+        "onCommand:cpm.exportFileSymbols",
+        "onCommand:cpm.generateFileSymbolsHeader",
+        "onCommand:cpm.generateFileSymbolsSource"
     ],
     "main": "./out/extension.js",
     "scripts": {
@@ -85,7 +94,7 @@
         "package": "vsce package",
         "package:marketplace": "vsce package --allow-missing-repository",
         "publish:marketplace": "vsce publish --allow-missing-repository",
-        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.69.vsix",
+        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.70.vsix",
         "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
     },
     "contributes": {
@@ -416,14 +425,15 @@
             },
             {
                 "command": "cpm.library.importPack",
-                "title": "Import Library Pack",
-                "category": "C/C++ Project Manager"
+                "title": "Import Library Pack...",
+                "category": "C/C++ Project Manager",
+                "icon": "$(folder-opened)"
             },
             {
                 "command": "cpm.library.createPack",
-                "title": "Add Library Pack",
+                "title": "Create Library Pack...",
                 "category": "C/C++ Project Manager",
-                "icon": "$(add)"
+                "icon": "$(new-file)"
             },
             {
                 "command": "cpm.library.openVisualEditor",
@@ -701,40 +711,50 @@
                 "title": "C/C++ Project Manager: Show Full Build Trace",
                 "category": "C/C++ Project Manager",
                 "icon": "$(output)"
+            },
+            {
+                "command": "cpm.copyFileSymbol",
+                "title": "Copy File Symbol Signature",
+                "category": "C/C++ Project Manager",
+                "icon": "$(copy)"
+            },
+            {
+                "command": "cpm.copyFileSymbolDeclaration",
+                "title": "Copy File Symbol Declaration",
+                "category": "C/C++ Project Manager"
+            },
+            {
+                "command": "cpm.copyFileSymbols",
+                "title": "Copy File Symbols",
+                "category": "C/C++ Project Manager",
+                "icon": "$(copy)"
+            },
+            {
+                "command": "cpm.copyFileSymbolDeclarations",
+                "title": "Copy File Symbol Declarations",
+                "category": "C/C++ Project Manager"
+            },
+            {
+                "command": "cpm.exportFileSymbols",
+                "title": "Export File Symbols...",
+                "category": "C/C++ Project Manager",
+                "icon": "$(export)"
+            },
+            {
+                "command": "cpm.generateFileSymbolsHeader",
+                "title": "Generate Header From File Symbols...",
+                "category": "C/C++ Project Manager",
+                "icon": "$(file-code)"
+            },
+            {
+                "command": "cpm.generateFileSymbolsSource",
+                "title": "Generate Source From File Symbols...",
+                "category": "C/C++ Project Manager",
+                "icon": "$(new-file)"
             }
         ],
         "menus": {
             "view/title": [
-                {
-                    "command": "cpm.library.findFunction",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.library.clearFind",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.library.managePacks",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.library.openVisualEditor",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "cpm.library.reloadPacks",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@5"
-                },
-                {
-                    "command": "cpm.refreshFileSymbols",
-                    "when": "view == cpm.fileSymbols",
-                    "group": "navigation@1"
-                },
                 {
                     "command": "cpm.openHome",
                     "when": "view == cpm.workspaceExplorer",
@@ -809,6 +829,66 @@
                     "command": "cpm.configureSdl",
                     "when": "view == cpm.workspaceExplorer",
                     "group": "navigation@8.5"
+                },
+                {
+                    "command": "cpm.library.findFunction",
+                    "when": "view == cpm.libraryExplorer",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "cpm.library.clearFind",
+                    "when": "view == cpm.libraryExplorer",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "cpm.library.createPack",
+                    "when": "view == cpm.libraryExplorer",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "cpm.library.importPack",
+                    "when": "view == cpm.libraryExplorer",
+                    "group": "navigation@4"
+                },
+                {
+                    "command": "cpm.library.managePacks",
+                    "when": "view == cpm.libraryExplorer",
+                    "group": "navigation@5"
+                },
+                {
+                    "command": "cpm.library.openVisualEditor",
+                    "when": "view == cpm.libraryExplorer",
+                    "group": "navigation@6"
+                },
+                {
+                    "command": "cpm.library.reloadPacks",
+                    "when": "view == cpm.libraryExplorer",
+                    "group": "navigation@7"
+                },
+                {
+                    "command": "cpm.refreshFileSymbols",
+                    "when": "view == cpm.fileSymbols",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "cpm.copyFileSymbols",
+                    "when": "view == cpm.fileSymbols",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "cpm.exportFileSymbols",
+                    "when": "view == cpm.fileSymbols",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "cpm.generateFileSymbolsHeader",
+                    "when": "view == cpm.fileSymbols",
+                    "group": "navigation@4"
+                },
+                {
+                    "command": "cpm.generateFileSymbolsSource",
+                    "when": "view == cpm.fileSymbols",
+                    "group": "navigation@5"
                 }
             ],
             "view/item/context": [
@@ -1106,6 +1186,16 @@
                     "command": "cpm.createSdlProjectInWorkspace",
                     "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
                     "group": "modification@1.5"
+                },
+                {
+                    "command": "cpm.copyFileSymbol",
+                    "when": "view == cpm.fileSymbols && viewItem == cpmFileSymbol",
+                    "group": "clipboard@1"
+                },
+                {
+                    "command": "cpm.copyFileSymbolDeclaration",
+                    "when": "view == cpm.fileSymbols && viewItem == cpmFileSymbol",
+                    "group": "clipboard@2"
                 }
             ],
             "commandPalette": [
@@ -1322,6 +1412,10 @@
                 {
                     "submenu": "cpm.editorUtilities",
                     "group": "3_tools@1"
+                },
+                {
+                    "submenu": "cpm.editorLibraries",
+                    "group": "4_libraries@1"
                 }
             ],
             "cpm.editorDocumentation": [
@@ -1416,6 +1510,28 @@
                 {
                     "command": "cpm.openDigitalFilterDesigner",
                     "group": "1_filter@1"
+                }
+            ],
+            "cpm.editorLibraries": [
+                {
+                    "command": "cpm.library.createPack",
+                    "group": "packs@1"
+                },
+                {
+                    "command": "cpm.library.importPack",
+                    "group": "packs@2"
+                },
+                {
+                    "command": "cpm.library.managePacks",
+                    "group": "packs@3"
+                },
+                {
+                    "command": "cpm.library.openVisualEditor",
+                    "group": "editor@1"
+                },
+                {
+                    "command": "cpm.library.reloadPacks",
+                    "group": "editor@2"
                 }
             ]
         },
@@ -1884,6 +2000,10 @@
             {
                 "id": "cpm.signalFilterTools",
                 "label": "Signal / filter tools"
+            },
+            {
+                "id": "cpm.editorLibraries",
+                "label": "Libraries / packs"
             }
         ],
         "breakpoints": [

@@ -20151,8 +20151,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const languageChoice = await vscode.window.showQuickPick([
       { label: 'C', value: 'c' },
-      { label: 'CPM', value: 'cvi' },
       { label: 'C++', value: 'cpp' },
+      { label: 'LabWindows/CVI', value: 'cvi' },
+      { label: 'Lua', value: 'lua' },
       { label: 'Other', value: 'other' }
     ], {
       title: 'Choose the default language for the pack'
@@ -20224,26 +20225,10 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(vscode.commands.registerCommand('cpm.library.createPack', async () => {
-    const modeChoice = await vscode.window.showQuickPick([
-      { label: 'Create new pack', value: 'create', description: 'Start from an empty C/C++ Libraries pack template' },
-      { label: 'Import existing pack', value: 'import', description: 'Copy an existing JSON library pack into C/C++ Libraries storage' }
-    ], {
-      title: 'Add library pack'
-    });
-    if (!modeChoice) {
-      return;
-    }
-
     const scope = await choosePackScope(!!getWorkspaceRoot());
     if (!scope) {
       return;
     }
-
-    if (modeChoice.value === 'import') {
-      await runImportPackFlow(scope);
-      return;
-    }
-
     await runCreatePackFlow(scope);
   }));
 
