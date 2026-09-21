@@ -327,7 +327,7 @@ export function scanCFunctions(source: string, filePath: string): CpmSourceSymbo
     const prefix = match[2].trim();
     const qualifiedName = match[3].trim();
     const name = qualifiedName.split('::').pop() || qualifiedName;
-    if (controlOrStatementPrefixes.test(prefix) || ['if', 'for', 'while', 'switch', 'return', 'sizeof', 'catch'].includes(name)) {
+    if (controlOrStatementPrefixes.test(prefix) || ['if', 'for', 'while', 'switch', 'return', 'sizeof', 'catch', 'operator'].includes(name)) {
       continue;
     }
     const nameOffset = match.index + match[0].lastIndexOf(qualifiedName);
@@ -421,9 +421,9 @@ function collectFunctionBodyRanges(masked: string): SourceOffsetRange[] {
     const openParen = findMatchingOpenParen(masked, closeParen);
     if (openParen < 0) continue;
     const beforeParen = masked.slice(contextStart, openParen).trimEnd();
-    const nameMatch = /((?:[A-Za-z_]\w*::)*~?[A-Za-z_]\w*)\s*$/.exec(beforeParen);
-    if (!nameMatch) continue;
-    const leaf = (nameMatch[1].split('::').pop() || nameMatch[1]).replace(/^~/, '');
+    const callableName = extractCallableNameBeforeParen(beforeParen);
+    if (!callableName) continue;
+    const leaf = callableLeafName(callableName);
     if (controlNames.has(leaf)) continue;
     const closingBrace = findMatchingBrace(masked, brace);
     if (closingBrace > brace) {
@@ -431,6 +431,39 @@ function collectFunctionBodyRanges(masked: string): SourceOffsetRange[] {
     }
   }
   return ranges.sort((a, b) => a.start - b.start || a.end - b.end);
+}
+
+/**
+ * Returns the callable token immediately preceding a parameter list.
+ *
+ * C++ operator overloads need special handling here. If an operator body is
+ * not recognised as a function/method body, local direct-initialisation such
+ * as `vectorCoord result(res);` can later be mistaken for a function symbol.
+ */
+function extractCallableNameBeforeParen(beforeParen: string): string | undefined {
+  const text = beforeParen.trimEnd();
+
+  const regular = /((?:[A-Za-z_]\w*::)*~?[A-Za-z_]\w*)\s*$/.exec(text);
+  if (regular) return regular[1];
+
+  // Symbolic, allocation and call/subscript operators. Longest tokens are
+  // listed first so operators such as <<= are not truncated.
+  const symbolicOperator = /((?:[A-Za-z_]\w*::)*operator\s*(?:new\s*\[\s*\]|delete\s*\[\s*\]|new|delete|\(\)|\[\]|->\*|->|<=>|<<=|>>=|==|!=|<=|>=|\+\+|--|\+=|-=|\*=|\/=|%=|\^=|&=|\|=|&&|\|\||<<|>>|[+\-*\/%^&|~!=<>]))\s*$/.exec(text);
+  if (symbolicOperator) return symbolicOperator[1].replace(/\s+/g, '');
+
+  // Conversion operators such as `Widget::operator bool()` and
+  // `Widget::operator const char*()`.
+  const conversionOperator = /((?:[A-Za-z_]\w*::)*operator\s+(?:const\s+|volatile\s+)*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*(?:\s*<[^{};()]*>)?)(?:\s*[*&]{1,2})?)\s*$/.exec(text);
+  if (conversionOperator) return conversionOperator[1].replace(/\s+/g, ' ');
+
+  return undefined;
+}
+
+function callableLeafName(callableName: string): string {
+  const compact = callableName.trim();
+  const scopeIndex = compact.lastIndexOf('::');
+  const leaf = scopeIndex >= 0 ? compact.slice(scopeIndex + 2) : compact;
+  return leaf.replace(/^~/, '').trim();
 }
 
 function collectScopedConstructorBodyRanges(masked: string): SourceOffsetRange[] {

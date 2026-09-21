@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.71
+
+- Fixed File Symbols false positives inside C++ overloaded-operator bodies.
+- The fallback scanner now recognises symbolic operators (`operator+`, `operator+=`, `operator<<`, etc.), call/subscript operators, allocation operators and conversion operators when determining function-body ranges.
+- Local direct-initialisation such as `Widget result(other);` is no longer reported as a file symbol when used inside an overloaded operator.
+- Added regression coverage based on the JC Lib 0.8.48 File Symbols fix.
+
 ## 0.2.70
 
 - Improved File Symbols filtering to reject calls, macro-like expressions and local class instances inside function bodies.

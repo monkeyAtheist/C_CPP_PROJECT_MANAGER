@@ -52,4 +52,4 @@ assert(generated.includes('std::abort();'));
 const ctorBlock = generated.slice(generated.indexOf('Widget::Widget'), generated.indexOf('QString Widget::text'));
 assert(!ctorBlock.includes('std::abort();'));
 fs.rmSync(samplePath, { force: true });
-console.log('CPM 0.2.70 source-from-file-symbol generation checks: OK');
+console.log('CPM 0.2.71 source-from-file-symbol generation checks: OK');
