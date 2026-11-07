@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "SCRIPT=%~dp0CPM-Toolchain-Installer.ps1"
-set "VSIX=%~dp0c-cpp-project-manager-and-build-0.2.81.vsix"
+set "VSIX=%~dp0c-cpp-project-manager-and-build-0.2.82.vsix"
 if not exist "%SCRIPT%" (
   echo CPM installer script not found: %SCRIPT%
   pause

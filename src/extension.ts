@@ -88,7 +88,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     createStatusBarAction('$(tools)', 'Build / rebuild / clean the active C/C++ project', 'cpm.chooseBuildAction', 97),
     createStatusBarAction('$(play)', 'Build and run the active C/C++ target', 'cpm.run', 96),
     createStatusBarAction('$(list-selection)', 'Advanced C/C++ run options', 'cpm.chooseRunAction', 95),
-    createStatusBarAction('$(debug-start)', 'Run Debug without rebuilding', 'cpm.runDebug', 94.5),
+    createStatusBarAction('$(debug-alt)', 'Run Debug without rebuilding', 'cpm.runDebug', 94.5),
     createStatusBarAction('D32', 'Select the C/C++ build mode', 'cpm.selectBuildMode', 94),
     createStatusBarAction('EXE', 'Select the C/C++ target type', 'cpm.selectTargetType', 93),
     createStatusBarAction('DYN', 'Select C/C++ linkage mode', 'cpm.selectLinkageMode', 92)
@@ -108,7 +108,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const targetType = workspaces.activeProject?.targetType;
     const modeText = builds.buildMode === 'debug64' ? 'D64' : builds.buildMode === 'release64' ? 'R64' : builds.buildMode === 'release' ? 'REL' : 'DBG';
     const targetText = targetType === 'Dynamic Link Library' ? 'DLL' : targetType === 'Static Library' ? 'LIB' : targetType === 'Executable' ? 'EXE' : '---';
-    statusBarItems[5].text = '$(debug-start) Debug';
+    statusBarItems[5].text = '$(debug-alt) Debug';
     statusBarItems[5].tooltip = 'Run the existing active executable, or DLL host, under VS Code cppdbg/GDB without rebuilding.';
     statusBarItems[6].text = modeText;
     statusBarItems[6].tooltip = `C/C++ build mode: ${modeText}. Click to change.`;

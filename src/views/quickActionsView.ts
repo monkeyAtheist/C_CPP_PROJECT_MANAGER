@@ -110,7 +110,7 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
       action('Create SDL project…', 'cpm.createSdlProjectInWorkspace', 'new-folder'),
       action('Open build settings in safe mode…', 'cpm.editBuildSettingsSafeMode', 'shield'),
       action('Enable automatic suggestions', 'cpm.enableAutomaticSuggestions', 'sparkle'),
-      action('Run Debug', 'cpm.runDebug', 'debug-start'),
+      action('Run Debug', 'cpm.runDebug', 'debug-alt'),
       action('Build & Debug', 'cpm.debugWithGdb', 'debug-alt-small'),
       action('Build & Run', 'cpm.run', 'play'),
       action('Run without build', 'cpm.runWithoutBuild', 'run')

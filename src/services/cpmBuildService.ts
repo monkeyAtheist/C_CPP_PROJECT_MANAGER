@@ -171,7 +171,7 @@ export class CpmBuildService {
     const selected = await vscode.window.showQuickPick([
       { label: '$(play) Build and run', value: 'buildRun', description: 'Build the active target and launch the executable or configured DLL host' },
       { label: '$(run) Run without build', value: 'runOnly', description: 'Launch the existing executable target or configured DLL host' },
-      { label: '$(debug-start) Run Debug', value: 'debugOnly', description: 'Start a VS Code C/C++ debugger session with the existing binary, without rebuilding' },
+      { label: '$(debug-alt) Run Debug', value: 'debugOnly', description: 'Start a VS Code C/C++ debugger session with the existing binary, without rebuilding' },
       { label: '$(debug-alt) Build and debug', value: 'debug', description: 'Build, then start a VS Code C/C++ debugger session' }
     ], { title: 'C/C++ run action' });
     if (!selected) {

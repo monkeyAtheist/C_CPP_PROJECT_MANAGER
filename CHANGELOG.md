@@ -1,3 +1,8 @@
+## 0.2.82
+
+- Unified the local **Run Debug** visual language with **Build & Debug**: the workspace toolbar, Run Options picker, Quick Actions and status-bar debug shortcut now use the same `debug-alt` codicon (run/debug bug icon) instead of `debug-start`.
+- No build/debug behavior changed; this release is a focused UI consistency update.
+
 ## 0.2.81
 
 - Removed **Select Build Backend** from the crowded C/C++ Workspace toolbar and removed the DIR/CMAKE status-bar shortcut. The backend is now intentionally configured from **Project Build Settings → Build → Build backend**.

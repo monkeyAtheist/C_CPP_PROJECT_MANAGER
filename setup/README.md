@@ -14,7 +14,7 @@ Default components:
 
 The two GCC environments are **not both added to PATH**. CPM detects them independently. The setup writes `MSYS2_ROOT` and `CPM_TOOLCHAINS_ROOT` as user environment variables. Adding `ucrt64\\bin` to user PATH is an explicit optional checkbox.
 
-Preferred installation: run the single-file `CPM-Setup-0.2.81.exe`.
+Preferred installation: run the single-file `CPM-Setup-0.2.82.exe`.
 
 Fallback/developer mode: run `CPM-Setup.cmd`, or from PowerShell:
 
@@ -33,6 +33,6 @@ Logs and the detected toolchain report are written under `%LOCALAPPDATA%\CPM\set
 
 ## Single-file EXE bootstrapper
 
-`CPM-Setup-0.2.81.exe` is built from `CPM-Setup-Launcher.go`. It embeds the VSIX and PowerShell installer, extracts them to a temporary directory, opens the graphical toolchain setup, then removes the temporary payload.
+`CPM-Setup-0.2.82.exe` is built from `CPM-Setup-Launcher.go`. It embeds the VSIX and PowerShell installer, extracts them to a temporary directory, opens the graphical toolchain setup, then removes the temporary payload.
 
-To rebuild the single-file EXE from source, package the 0.2.81 VSIX first and run `BUILD_INSTALLER_EXE.cmd` with Go available on PATH. The older NSIS source is retained only as an alternate packaging path.
+To rebuild the single-file EXE from source, package the 0.2.82 VSIX first and run `BUILD_INSTALLER_EXE.cmd` with Go available on PATH. The older NSIS source is retained only as an alternate packaging path.
