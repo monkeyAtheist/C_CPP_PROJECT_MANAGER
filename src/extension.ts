@@ -85,13 +85,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const statusBarItems = [
     createStatusBarAction('$(home)', 'C/C++ Project Manager home', 'cpm.openHome', 99),
     createStatusBarAction('$(folder-opened)', 'Open a C/C++ workspace or project', 'cpm.openWorkspace', 98),
-    createStatusBarAction('$(tools)', 'Build / rebuild / clean the active C/C++ project', 'cpm.chooseBuildAction', 97),
-    createStatusBarAction('$(play)', 'Build and run the active C/C++ target', 'cpm.run', 96),
-    createStatusBarAction('$(list-selection)', 'Advanced C/C++ run options', 'cpm.chooseRunAction', 95),
-    createStatusBarAction('$(debug-alt)', 'Run Debug without rebuilding', 'cpm.runDebug', 94.5),
-    createStatusBarAction('D32', 'Select the C/C++ build mode', 'cpm.selectBuildMode', 94),
-    createStatusBarAction('EXE', 'Select the C/C++ target type', 'cpm.selectTargetType', 93),
-    createStatusBarAction('DYN', 'Select C/C++ linkage mode', 'cpm.selectLinkageMode', 92)
+    createStatusBarAction('$(tools)', 'Build / rebuild / clean', 'cpm.chooseBuildAction', 97),
+    createStatusBarAction('$(play)', 'Run active target', 'cpm.run', 96),
+    createStatusBarAction('$(list-selection)', 'Advanced run options', 'cpm.chooseRunAction', 95),
+    createStatusBarAction('$(debug-alt)', 'Run Debug', 'cpm.runDebug', 94.5),
+    createStatusBarAction('D32', 'Select build mode', 'cpm.selectBuildMode', 94),
+    createStatusBarAction('EXE', 'Select target type', 'cpm.selectTargetType', 93),
+    createStatusBarAction('DYN', 'Select linkage mode', 'cpm.selectLinkageMode', 92)
   ];
 
   const updateToolbarContexts = (): void => {
@@ -295,7 +295,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.build', () => builds.build(false)),
     register('cpm.rebuild', () => builds.build(true)),
     register('cpm.clean', () => builds.clean()),
-    register('cpm.run', () => builds.buildAndRun()),
+    register('cpm.run', () => builds.runWithoutBuild()),
+    register('cpm.buildAndRun', () => builds.buildAndRun()),
     register('cpm.chooseRunAction', () => builds.chooseRunAction()),
     register('cpm.runWithoutBuild', () => builds.runWithoutBuild()),
     register('cpm.runDebug', () => runDebugWithoutBuild()),

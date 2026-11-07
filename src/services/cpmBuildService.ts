@@ -481,7 +481,7 @@ export class CpmBuildService {
   }
 
   async run(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
-    await this.buildAndRun(projectRef);
+    await this.runWithoutBuild(projectRef);
   }
 
   async buildAndRun(projectRef?: CpmWorkspaceProjectRef): Promise<void> {

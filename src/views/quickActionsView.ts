@@ -112,8 +112,8 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
       action('Enable automatic suggestions', 'cpm.enableAutomaticSuggestions', 'sparkle'),
       action('Run Debug', 'cpm.runDebug', 'debug-alt'),
       action('Build & Debug', 'cpm.debugWithGdb', 'debug-alt-small'),
-      action('Build & Run', 'cpm.run', 'play'),
-      action('Run without build', 'cpm.runWithoutBuild', 'run')
+      action('Build & Run', 'cpm.buildAndRun', 'play'),
+      action('Run', 'cpm.run', 'run')
     ];
   }
 
