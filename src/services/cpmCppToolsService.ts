@@ -77,12 +77,25 @@ interface ProviderPaths {
   compilerPath?: string;
 }
 
+
+export interface CpmCppToolsHealthSnapshot {
+  configurationRoot: string;
+  configurationPath: string;
+  configurationExists: boolean;
+  managedConfigurationPresent: boolean;
+  configurationRootInWorkspace: boolean;
+  cppToolsExtensionInstalled: boolean;
+  staleProviderReference: boolean;
+  compilerPath?: string;
+}
+
 export class CpmCppToolsService implements vscode.Disposable {
   private syncTimer: NodeJS.Timeout | undefined;
   private currentWorkspace: CpmWorkspace | undefined;
   private cppToolsApi: CppToolsApiLike | undefined;
   private providerRegistered = false;
   private cachedProviderPaths: { key: string; value: ProviderPaths } | undefined;
+  private externalIncludePathsProvider?: () => string[];
 
   private readonly provider: CustomConfigurationProviderLike = {
     name: 'C/C++ Project Manager',
@@ -99,6 +112,11 @@ export class CpmCppToolsService implements vscode.Disposable {
     private readonly parser: CpmParser,
     private readonly output: vscode.OutputChannel
   ) {}
+
+  setExternalIncludePathsProvider(provider: (() => string[]) | undefined): void {
+    this.externalIncludePathsProvider = provider;
+    this.cachedProviderPaths = undefined;
+  }
 
   dispose(): void {
     if (this.syncTimer) {
@@ -442,6 +460,27 @@ export class CpmCppToolsService implements vscode.Disposable {
     return modified;
   }
 
+  getHealthSnapshot(workspace: CpmWorkspace | undefined = this.currentWorkspace): CpmCppToolsHealthSnapshot | undefined {
+    if (!workspace) {
+      return undefined;
+    }
+    const configurationRoot = this.findConfigurationRoot(workspace.path);
+    const configurationPath = path.join(configurationRoot, '.vscode', 'c_cpp_properties.json');
+    const document = this.readExistingDocument(configurationPath);
+    const managedConfigurationPresent = Boolean(document?.configurations?.some((configuration) => configuration?.name === MANAGED_CONFIGURATION_NAME));
+    const installation = this.installations.getActiveInstallation(workspace.cpmDir, false);
+    return {
+      configurationRoot,
+      configurationPath,
+      configurationExists: fs.existsSync(configurationPath),
+      managedConfigurationPresent,
+      configurationRootInWorkspace: Boolean(vscode.workspace.getWorkspaceFolder(vscode.Uri.file(configurationRoot))),
+      cppToolsExtensionInstalled: Boolean(vscode.extensions.getExtension(CPPTOOLS_EXTENSION_ID)),
+      staleProviderReference: this.hasConfiguredCpmProviderReference(),
+      compilerPath: installation ? this.resolveCompilerPath(installation, workspace) : undefined
+    };
+  }
+
   async diagnose(workspace: CpmWorkspace | undefined = this.currentWorkspace): Promise<void> {
     this.setCurrentWorkspace(workspace);
     this.output.appendLine('');
@@ -705,6 +744,9 @@ export class CpmCppToolsService implements vscode.Disposable {
       if (installation) {
         base.push(...installation.includeDirectories);
       }
+    }
+    if (this.externalIncludePathsProvider) {
+      try { base.push(...this.externalIncludePathsProvider()); } catch { /* dependency integration is optional */ }
     }
     return unique(base);
   }

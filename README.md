@@ -15,6 +15,18 @@ Parsed diagnostics are also sent to VS Code Problems with source `CPM Build`. Th
 
 The embedded C/C++ library manager now includes the JC Lib 0.8.9 SDL2 / SDL3 pack update. SDL can be added as a combined SDL2 / SDL3 pack or as SDL2-only / SDL3-only packs. Enum-backed multi-select pickers also support combined flag expressions and refresh the generated-call preview correctly.
 
+## 0.2.73 — Dynamic, static-runtime and fully-static linkage
+
+CPM now separates the **link model** from runtime-DLL deployment. Open **Project Build Settings > Build > Linkage** or run **C/C++ Project Manager: Select Linkage Mode**:
+
+- **Dynamic**: normal compiler/third-party DLL linkage. Runtime DLLs may be copied beside the target or resolved through `PATH`.
+- **Static compiler runtime**: adds GCC/MinGW static runtime flags such as `-static-libgcc` and `-static-libstdc++`, while third-party libraries remain independently linkable.
+- **Fully static when available**: requests static archive resolution with `-static`, keeps the compiler runtime static and forces SDL packages to static archives when the selected SDK provides them.
+
+The status bar shows `DYN`, `RTS` or `STA` for the active project. After linking an EXE or DLL, CPM reads its PE import table and reports remaining non-system DLL dependencies. The command **Inspect Built Runtime DLL Dependencies** can repeat this check at any time. Normal Windows operating-system imports such as `kernel32.dll`, `user32.dll` or API-set DLLs remain expected even for a standalone executable. A third-party library can only disappear as a runtime dependency when a compatible static `.a`/archive is available and its own static dependencies are linkable.
+
+When switching from a dynamic build to a static build, CPM removes runtime DLLs that it previously deployed and also cleans previously copied SDL runtime DLLs, avoiding misleading stale files beside the executable.
+
 # C/C++ Project Manager and Build
 
 Visual Studio Code extension for creating and managing lightweight C/C++ workspaces and projects without writing `tasks.json` or `launch.json` manually.
@@ -34,12 +46,28 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Detect C/C++ toolchains from `PATH`, common MinGW/MSYS2/Clang locations and manually configured folders.
 - Store explicit compiler paths for `gcc`, `g++`, `ar` and `gdb` or compatible alternatives.
 - Synchronize a managed `.vscode/c_cpp_properties.json` entry for Microsoft C/C++ IntelliSense.
+- Manage project-scoped third-party dependencies with vcpkg manifest mode, Conan 2 and pkg-config/pkgconf, with normalized flags fed directly into GCC/Clang builds and IntelliSense.
 - Browse embedded C/C++ library packs and insert snippets.
 - Create or import editable library packs in Workspace or Global storage directly from the C/C++ Libraries view.
 - Inspect C/C++ File Symbols without local-call/constructor false positives, copy or export the list, and generate `.h/.hpp` or `.c/.cpp` skeletons.
 - Insert color values from the editor context menu in C/C++ friendly formats, including SDL and Qt initializers.
 - Use editor context-menu utilities for character/encoding conversion, number/bit conversion, truth table / FSM generation and digital-filter coefficient design.
 - Generate C and C++ utility module bundles, including pure C Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges, plus separate companion script/frontend bundles.
+
+
+## External dependencies — vcpkg, Conan 2 and pkg-config
+
+CPM 0.2.76 adds a **Packages** page to Project Build Settings and a dedicated **C/C++ Dependencies** view. Dependency configuration is stored per project in `.vscode/cpm-build.json`; generated package-manager output defaults to `.cpm/dependencies`.
+
+Supported flows:
+
+- **vcpkg manifest mode**: CPM generates `vcpkg.json`, supports feature syntax such as `fmt[core]`, optional builtin baselines, overlay ports/triplets and custom target/host triplets. If the target triplet is empty, CPM derives x86/x64 from the active build mode and selects the Windows `-static` triplet automatically for fully-static builds.
+- **Conan 2**: CPM generates `conanfile.txt` with requires/tool-requires/options plus `PkgConfigDeps`, `CMakeDeps`, `CMakeToolchain` and `cmake_layout`, then supports host/build profiles, lockfiles and `--build=missing`.
+- **pkg-config / pkgconf**: CPM resolves `--cflags --libs` output, optional `--static`, custom `PKG_CONFIG_PATH` entries and additional arguments. Parsed include paths, library paths, libraries, compiler flags and linker flags are merged into the direct build. Conan generator directories are automatically included in the pkg-config search path.
+
+All managers feed a normalized `.cpm/dependencies/integration.json` file. The GCC/Clang pipeline consumes that file during compile and link, and the managed C/C++ IntelliSense configuration also receives dependency include directories. Manual include/library paths, libraries and flags can be added on the Packages page for SDKs whose metadata is incomplete.
+
+The **Synchronize dependencies automatically before each build** option is intentionally disabled by default. When disabled, package installation remains explicit and reproducible; CPM still reuses existing integration metadata during builds.
 
 
 ## Workspace file organization
@@ -67,6 +95,29 @@ The selected paths are stored in these settings:
 
 The setting prefix is kept for compatibility with the original project-manager codebase and may be migrated in a later version.
 
+
+## Build backends: Direct GCC/Clang or CMake/Ninja
+
+CPM 0.2.79 keeps the native **Direct GCC/Clang** engine as the default for every existing project and adds an optional **CMake / Ninja** backend. Select it from **Project Build Settings → Build → Build backend**, the command palette, or the DIR/CMAKE status-bar indicator.
+
+The CMake backend is designed for projects that already contain a `CMakeLists.txt`. CPM can configure the source/build directories, generator, CMake/Ninja executable, selected target, generator platform/toolset, cache variables, toolchain file and extra configure/build arguments. `Ninja` is the default generator, but CMake default, Ninja Multi-Config, MinGW Makefiles and Unix Makefiles are also available.
+
+Before configure, CPM writes a **CMake File API** query under the build tree. The codemodel reply is then used to discover the real CMake targets and artifacts. This means **Build & Run**, **Run Debug** and **Build & Debug** use the artifact produced by CMake instead of assuming CPM's direct-build output path. If several targets of the expected type exist, configure the CMake target name explicitly.
+
+Build/Rebuild/Clean map to standard CMake commands (`cmake -S/-B`, `cmake --build`, `--clean-first`, and the `clean` target). The existing CPM parallel-jobs setting is reused for `cmake --build --parallel`. Multi-config generators receive `--config Debug/Release`.
+
+When **Inherit CPM C/C++ compilers** is enabled, the selected CPM compiler paths are passed as `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER`. When **Use dependency-manager toolchain automatically** is enabled and no explicit toolchain is set, CPM can reuse Conan's generated `conan_toolchain.cmake` or vcpkg's standard `vcpkg.cmake`.
+
+PCH, Unity Build, direct linker flags and `.d` tracking remain features of the Direct backend. For CMake projects, configure their equivalents in `CMakeLists.txt` (`target_precompile_headers`, `UNITY_BUILD`, target link properties, etc.). Project Health makes this distinction explicit.
+
+## Run Debug, Precompiled Headers and Unity Build
+
+CPM 0.2.78 separates **Run Debug** from **Build & Debug**. The new debug-start button in the C/C++ Workspace title bar launches the already-built executable (or a DLL through its configured host `Program name`) directly under Microsoft C/C++ `cppdbg`/GDB. It does not rebuild first. **Build & Debug** remains available from Run Options, Home, Quick Actions and the command palette. If the selected build mode has no existing target, Run Debug offers to build it.
+
+The Build page also provides two opt-in acceleration mechanisms for large projects. **Precompiled Headers (PCH)** can be configured independently for C and C++. CPM writes generated wrapper headers and GCC-compatible `.gch` files inside the active object directory and uses the existing `.d` dependency engine to rebuild a PCH when its configured header or a nested include changes.
+
+**Unity Build** groups several original translation units into generated `cpm_unity_*.c/.cpp` files before compilation. The batch size is configurable from 2 to 128. Unity Build can substantially reduce front-end/compiler startup time, but can expose collisions between file-local macros, anonymous declarations or same-named `static` symbols that are harmless when files are separate translation units; it is therefore disabled by default. PCH and Unity Build can be enabled independently or together.
+
 ## Build and debug
 
 The generic build pipeline compiles each included C/C++ source into an object file, then links the configured target.
@@ -78,6 +129,24 @@ Supported target types:
 - `Static Library` -> `.a`.
 
 Debug uses VS Code `cppdbg` with the configured debugger path, usually `gdb` for MinGW/GCC projects.
+
+
+## Remote Linux / Raspberry Pi
+
+CPM 0.2.77 adds a project-scoped **Remote Linux** workflow for Linux machines and Raspberry Pi targets. Configure the SSH host or OpenSSH alias from **Project Build Settings → Remote Linux** or the **C/C++ Remote Linux** view. The same area exposes the OpenSSH Device Manager for `~/.ssh/config`, keys and host aliases. CPM never stores private-key material itself.
+
+The default workflow synchronizes the active project with `rsync` when available and falls back to `scp`, generates `.cpm/remote/cpm_remote_build.sh`, and builds directly with the configured remote `gcc`, `g++` and `ar`. The generated build maps project-relative paths and deliberately skips absolute host-only Windows include/library paths. Remote-only include/library locations, libraries, flags and pkg-config packages can be added on the Remote Linux page. Projects that require a different build system can replace the generated script with a custom remote build command.
+
+**Build & Run on Remote Linux** uses the existing CPM Run output policy: Integrated Terminal supports stdin plus stdout/stderr, Program Output captures non-interactive output, and Detached uses `nohup`. **Debug on Remote Linux** can start `gdbserver` automatically and then uses Microsoft C/C++ `cppdbg` through SSH `pipeTransport`; GDB runs on the Linux target, while `sourceFileMap` maps remote paths back to the local project for breakpoints and source navigation.
+
+The generated direct build intentionally focuses on files contained in the active project directory. Source files outside that tree, Windows-only SDK paths, complex workspace-level multi-project layouts, or platform-specific build systems should use a custom remote build command (for example Make/Ninja/CMake) and explicit remote search paths.
+
+## Project Health and repair
+
+CPM 0.2.75 adds a native **C/C++ Project Health** view. It summarizes the active project without changing it automatically and highlights issues in the workspace/project files, build dependencies, toolchain, architecture, include/library search paths, linkage/runtime DLLs, DLL host executable, debugger and IntelliSense configuration.
+
+Use the view-title actions to **Refresh**, **Open Project Health Report**, or **Repair Project Health...**. The repair command presents only findings that have an existing corrective action, such as selecting a toolchain, synchronizing IntelliSense, repairing a stale C/C++ provider, editing project build settings, repairing `.cws` compatibility, or inspecting remaining runtime DLL dependencies.
+
 
 ## Notes
 
@@ -142,6 +211,17 @@ The default backend targets Linux SocketCAN. It supports classical CAN, CAN FD, 
 
 Generated and copied bundle headers now include Doxygen-style usage examples directly in the inserted `.h` / `.hpp` files. The generated C implementation files also include `@file`, `@brief`, `@param` and `@return` documentation blocks on helpers and API functions where applicable. This covers the CPM-native C bundles and the copied CPM_Utility C/C++ communication, Python, Web UI, utility and error-management modules.
 
+
+
+### 0.2.72 DLL host execution and advanced autocompletion
+
+### Incremental and parallel build engine
+
+CPM 0.2.74 uses GCC/Clang dependency files for exact incremental rebuilds. Each object has an adjacent `.d` file produced with `-MMD -MP`; changing an included project header recompiles only the translation units that really depend on it. The Build page exposes **Parallel jobs** (`0` = automatic CPU count) and **GNU response files** for long linker command lines. On Windows, Clean/Rebuild uses an atomic rename-and-retry strategy before falling back to in-place deletion, which is more resilient to antivirus, IntelliSense, OneDrive and temporary file locks.
+
+DLL targets can now be launched in the same way as LabWindows/CVI projects. Open **Project Build Settings → Run & Debug** and set **Program name** to the `.exe` that loads or exercises the DLL. The same run configuration supplies command-line arguments, working directory and environment variables. Relative Program name and working-directory paths are resolved from the `.prj` directory. **Run** builds the DLL and starts the host; **Run without build** starts the host directly; **Debug with GDB/cppdbg** builds the DLL and starts that same host under the debugger. Static libraries remain intentionally non-runnable.
+
+The Build Settings editor now also contains an **Autocompletion** page. CPM can participate in C/C++ completion with one of five profiles: **Hybrid** (project symbols + standard-library assist + Signature Help), **Native** (CPM withdraws and leaves the installed native provider alone), **Native + CPM Signature Help**, **Standard Library Assist**, or **Custom**. Custom mode exposes independent switches for CPM completion, active-project symbols, standard-library fallback entries and immediate Signature Help. The standard-library helper can continue to insert a missing `#include` when accepting a fallback item. These controls are also available through VS Code settings and the `C/C++ Project Manager: Select Autocompletion Profile` command.
 
 ### 0.2.43 Generic toolchain runtime handling
 
@@ -237,7 +317,7 @@ When a `.cws` or `.prj` is opened directly from CPM without opening the containi
 
 ### Project settings thematic editor
 
-CPM 0.2.64 reorganizes the project settings webview into thematic pages: Overview, Project, Toolchain, Build, Run & Debug, SDL, Dependencies and Diagnostics. Each page has its own section jump selector and local filter, which makes the settings editor easier to extend without returning to a single long scroll page.
+CPM 0.2.64 reorganizes the project settings webview into thematic pages: Overview, Project, Toolchain, Build, Run & Debug, SDL, Packages, Remote Linux, Dependencies and Diagnostics. Each page has its own section jump selector and local filter, which makes the settings editor easier to extend without returning to a single long scroll page.
 
 The Diagnostics page also exposes `cpm.buildLogDetail`, while full compiler commands remain available through the dedicated Build Trace output channel.
 

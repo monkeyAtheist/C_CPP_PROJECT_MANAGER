@@ -7,9 +7,14 @@ import * as vscode from 'vscode';
 import { CpmBuildMode, CpmProjectFile, CpmWorkspaceProjectRef } from '../model/types';
 import { CpmNativeTargetSettings, CpmParser } from '../model/cpmParser';
 import { CpmWorkspaceService } from './cpmWorkspaceService';
-import { CpmProjectSettingsService } from './cpmProjectSettingsService';
+import { CpmLinkageMode, CpmProjectSettingsService } from './cpmProjectSettingsService';
 import { normalizeRuntimePath } from '../utils/pathUtils';
 import { CpmSdlConfiguration, createSdlBuildPlan } from './cpmSdlService';
+import { createGnuResponseFileArguments, estimateGnuArgumentLength, shouldUseGnuResponseFile } from './cpmGnuResponseFile';
+import { cleanCpmBuildDirectory, removePathWithRetries } from './cpmBuildCleanup';
+import { CpmDependencyService } from './cpmDependencyService';
+import { CpmCMakeService } from './cpmCMakeService';
+import { emptyDependencyIntegration } from './cpmDependencyModel';
 
 type CpmRuntimeDependencyMode = 'copy-dlls' | 'path-only' | 'static-link';
 
@@ -95,6 +100,36 @@ interface ApplicationIconGeneration {
   generatedSource?: string;
 }
 
+export interface CpmBuildHealthSnapshot {
+  buildMode: CpmBuildMode;
+  linkageMode: CpmLinkageMode;
+  targetPath: string;
+  targetExists: boolean;
+  objectDirectory: string;
+  cCompilerPath: string;
+  cppCompilerPath: string;
+  archiverPath: string;
+  debuggerPath: string;
+  outputDirectory: string;
+  architectureMode: string;
+  includePaths: string[];
+  libraryPaths: string[];
+  libraries: string[];
+  parallelJobs: number;
+  useResponseFiles: boolean;
+  precompiledHeadersEnabled: boolean;
+  cPrecompiledHeader: string;
+  cppPrecompiledHeader: string;
+  unityBuildEnabled: boolean;
+  unityBatchSize: number;
+  externalRuntimeDlls: string[];
+  systemRuntimeDlls: string[];
+  buildBackend: 'direct' | 'cmake';
+  cmakeGenerator?: string;
+  cmakeTarget?: string;
+  cmakeBuildDirectory?: string;
+}
+
 export class CpmBuildService {
   constructor(
     private readonly parser: CpmParser,
@@ -105,7 +140,9 @@ export class CpmBuildService {
     private readonly output: vscode.OutputChannel,
     private readonly traceOutput: vscode.OutputChannel,
     private readonly programOutput: vscode.OutputChannel,
-    private readonly diagnostics: vscode.DiagnosticCollection
+    private readonly diagnostics: vscode.DiagnosticCollection,
+    private readonly dependencies?: CpmDependencyService,
+    private readonly cmake?: CpmCMakeService
   ) {}
 
   private currentReport: CpmBuildReport | undefined;
@@ -132,8 +169,9 @@ export class CpmBuildService {
 
   async chooseRunAction(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
     const selected = await vscode.window.showQuickPick([
-      { label: '$(play) Build and run', value: 'buildRun', description: 'Build the active executable and launch it' },
-      { label: '$(run) Run without build', value: 'runOnly', description: 'Launch the existing executable target' },
+      { label: '$(play) Build and run', value: 'buildRun', description: 'Build the active target and launch the executable or configured DLL host' },
+      { label: '$(run) Run without build', value: 'runOnly', description: 'Launch the existing executable target or configured DLL host' },
+      { label: '$(debug-start) Run Debug', value: 'debugOnly', description: 'Start a VS Code C/C++ debugger session with the existing binary, without rebuilding' },
       { label: '$(debug-alt) Build and debug', value: 'debug', description: 'Build, then start a VS Code C/C++ debugger session' }
     ], { title: 'C/C++ run action' });
     if (!selected) {
@@ -141,6 +179,8 @@ export class CpmBuildService {
     }
     if (selected.value === 'runOnly') {
       await this.runWithoutBuild(projectRef);
+    } else if (selected.value === 'debugOnly') {
+      await this.debugWithoutBuild(projectRef);
     } else if (selected.value === 'debug') {
       await this.debugWithGdb(projectRef);
     } else {
@@ -160,6 +200,124 @@ export class CpmBuildService {
     }
     await this.projectSettings.updateCpmConfigurationValue('buildMode', selected.value);
     vscode.window.showInformationMessage(`C/C++ build mode: ${selected.label}.`);
+  }
+
+
+  getHealthSnapshot(projectRef?: CpmWorkspaceProjectRef): CpmBuildHealthSnapshot | undefined {
+    const ref = projectRef ?? this.workspaces.activeProjectRef;
+    if (!ref?.exists) return undefined;
+    const project = this.workspaces.getProject(ref);
+    if (!project) return undefined;
+    const config = this.getCompilerConfiguration();
+    const artifacts = this.resolveArtifacts(ref, project.targetType);
+    const settings = this.projectSettings.getSettings(ref);
+    let imported: string[] = [];
+    const settingsForHealth = this.projectSettings.getSettings(ref);
+    const healthTargetPath = settingsForHealth.buildBackend === 'cmake' ? (this.cmake?.resolveArtifact(ref, project.targetType) ?? artifacts.targetPath) : artifacts.targetPath;
+    if (project.targetType !== 'Static Library' && fs.existsSync(healthTargetPath) && process.platform === 'win32') {
+      imported = unique(readImportedDllNames(healthTargetPath)).sort((a, b) => a.localeCompare(b));
+    }
+    const projectSettings = this.projectSettings.getSettings(ref);
+    const cmakeHealth = projectSettings.buildBackend === 'cmake' ? this.cmake?.getHealthSnapshot(ref) : undefined;
+    const effectiveTarget = projectSettings.buildBackend === 'cmake' ? (cmakeHealth?.resolvedArtifact ?? artifacts.targetPath) : artifacts.targetPath;
+    return {
+      buildMode: this.buildMode,
+      linkageMode: this.getLinkageMode(ref),
+      targetPath: effectiveTarget,
+      targetExists: fs.existsSync(effectiveTarget),
+      objectDirectory: artifacts.objectDirectory,
+      cCompilerPath: config.cCompilerPath,
+      cppCompilerPath: config.cppCompilerPath,
+      archiverPath: config.archiverPath,
+      debuggerPath: config.debuggerPath,
+      outputDirectory: config.outputDirectory,
+      architectureMode: config.architectureMode,
+      includePaths: [...config.includePaths],
+      libraryPaths: [...config.libraryPaths],
+      libraries: [...config.libraries],
+      parallelJobs: settings.parallelJobs,
+      useResponseFiles: settings.useResponseFiles,
+      precompiledHeadersEnabled: settings.precompiledHeadersEnabled,
+      cPrecompiledHeader: settings.cPrecompiledHeader,
+      cppPrecompiledHeader: settings.cppPrecompiledHeader,
+      unityBuildEnabled: settings.unityBuildEnabled,
+      unityBatchSize: settings.unityBatchSize,
+      externalRuntimeDlls: imported.filter((name) => !isWindowsSystemImport(name)),
+      systemRuntimeDlls: imported.filter((name) => isWindowsSystemImport(name)),
+      buildBackend: projectSettings.buildBackend,
+      cmakeGenerator: cmakeHealth?.activeGenerator ?? cmakeHealth?.configuredGenerator,
+      cmakeTarget: cmakeHealth?.selectedTarget,
+      cmakeBuildDirectory: cmakeHealth?.buildDirectory
+    };
+  }
+
+  getLinkageMode(projectRef?: CpmWorkspaceProjectRef): CpmLinkageMode {
+    const ref = projectRef ?? this.workspaces.activeProjectRef;
+    if (!ref?.exists) return 'dynamic';
+    return this.projectSettings.getSettings(ref).linkageMode;
+  }
+
+  async selectLinkageMode(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
+    const ref = projectRef ?? this.workspaces.activeProjectRef;
+    if (!ref?.exists) {
+      vscode.window.showErrorMessage('No existing active C/C++ project is available to configure linkage.');
+      return;
+    }
+    const project = this.workspaces.getProject(ref);
+    if (project?.targetType === 'Static Library') {
+      vscode.window.showInformationMessage('Linkage mode applies to executable and DLL targets. A static-library target is already archived as .a.');
+      return;
+    }
+    const current = this.getLinkageMode(ref);
+    const selected = await vscode.window.showQuickPick([
+      {
+        label: '$(debug-disconnect) Dynamic',
+        value: 'dynamic' as CpmLinkageMode,
+        description: 'Normal dynamic runtime/dependency linkage',
+        detail: 'Compiler and third-party DLLs may be copied beside the target or resolved through PATH.'
+      },
+      {
+        label: '$(package) Static compiler runtime',
+        value: 'static-runtime' as CpmLinkageMode,
+        description: 'Embed GCC/MinGW runtime where possible',
+        detail: 'Adds -static-libgcc/-static-libstdc++ while leaving third-party libraries such as SDL dynamic unless configured otherwise.'
+      },
+      {
+        label: '$(archive) Fully static when available',
+        value: 'static' as CpmLinkageMode,
+        description: 'Prefer .a libraries and remove non-system DLL dependencies',
+        detail: 'Adds -static and static compiler-runtime flags. SDL is forced to static linkage. Libraries without static archives will make the link fail or remain reported as external dependencies.'
+      }
+    ], {
+      title: `Linkage mode — ${ref.name}`,
+      placeHolder: `Current: ${linkageModeLabel(current)}`
+    });
+    if (!selected) return;
+    const settings = this.projectSettings.getSettings(ref);
+    settings.linkageMode = selected.value;
+    this.projectSettings.setSettings(ref, settings);
+    this.output.appendLine(`[C/C++] Linkage mode for ${ref.name}: ${selected.value}`);
+    vscode.window.showInformationMessage(`${ref.name}: linkage mode set to ${linkageModeLabel(selected.value)}.`);
+    this.workspaces.refresh();
+  }
+
+  async inspectRuntimeDependencies(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
+    const ref = projectRef ?? this.workspaces.activeProjectRef;
+    if (!ref?.exists) {
+      vscode.window.showErrorMessage('No existing active C/C++ project is available for dependency inspection.');
+      return;
+    }
+    const project = this.workspaces.getProject(ref);
+    if (!project || project.targetType === 'Static Library') {
+      vscode.window.showInformationMessage('Runtime DLL inspection applies to executable and DLL targets.');
+      return;
+    }
+    const targetPath = this.resolveTargetPath(ref, project.targetType);
+    if (!fs.existsSync(targetPath)) {
+      vscode.window.showErrorMessage(`Built target not found: ${targetPath}`);
+      return;
+    }
+    this.reportRuntimeDependencies(targetPath, this.getLinkageMode(ref), true);
   }
 
   async build(rebuild = false, projectRef?: CpmWorkspaceProjectRef): Promise<boolean> {
@@ -185,6 +343,10 @@ export class CpmBuildService {
       for (const item of order) {
         const cwd = path.dirname(item.absolutePath);
         const settings = this.projectSettings.getSettings(item);
+        if (this.dependencies && !await this.dependencies.prepareForBuild(item)) {
+          failedAt = `Dependency synchronization — ${item.name}`;
+          return false;
+        }
         if (!await this.projectSettings.runActions(settings.preBuildActions, `Pre-build actions — ${item.name}`, cwd)) {
           failedAt = `Pre-build actions — ${item.name}`;
           return false;
@@ -193,7 +355,9 @@ export class CpmBuildService {
           failedAt = `Custom build actions — ${item.name}`;
           return false;
         }
-        const itemSuccess = await this.buildOneProject(item, rebuild);
+        const itemSuccess = settings.buildBackend === 'cmake'
+          ? await (this.cmake?.build(item, rebuild) ?? Promise.resolve(false))
+          : await this.buildOneProject(item, rebuild);
         if (!itemSuccess) {
           failedAt = this.currentReport?.failedAt ?? `Build ${item.name}`;
           return false;
@@ -219,6 +383,12 @@ export class CpmBuildService {
       return;
     }
     const report = this.beginOutput(`Clean ${ref.name}`);
+    if (this.projectSettings.getSettings(ref).buildBackend === 'cmake') {
+      const ok = await (this.cmake?.clean(ref) ?? Promise.resolve(false));
+      this.finishOutput(report, ok, ok ? '' : 'CMake clean');
+      if (ok) vscode.window.showInformationMessage(`CMake clean completed for ${ref.name}.`);
+      return;
+    }
     const artifacts = this.resolveArtifacts(ref);
     const candidates = new Set<string>([artifacts.targetPath]);
     if (path.extname(artifacts.targetPath).toLowerCase() === '.exe') {
@@ -229,31 +399,36 @@ export class CpmBuildService {
       if (!fs.existsSync(candidate)) {
         continue;
       }
-      try {
-        fs.rmSync(candidate, { force: true });
+      if (await removePathWithRetries(candidate)) {
         this.output.appendLine(`[C/C++] Deleted: ${candidate}`);
         removed += 1;
-      } catch (error) {
-        this.output.appendLine(`[C/C++] Unable to delete ${candidate}: ${error instanceof Error ? error.message : String(error)}`);
+      } else {
+        this.output.appendLine(`[C/C++] Unable to delete locked generated file: ${candidate}`);
       }
     }
-    if (fs.existsSync(artifacts.objectDirectory)) {
-      try {
-        fs.rmSync(artifacts.objectDirectory, { recursive: true, force: true });
-        this.output.appendLine(`[C/C++] Deleted object directory: ${artifacts.objectDirectory}`);
+    const modeDirectory = path.dirname(artifacts.objectDirectory);
+    if (fs.existsSync(modeDirectory)) {
+      const cleanResult = await cleanCpmBuildDirectory(modeDirectory);
+      cleanResult.warnings.forEach((warning) => this.output.appendLine(`[C/C++] Warning: ${warning}`));
+      if (cleanResult.success) {
+        this.output.appendLine(`[C/C++] Deleted build-mode directory (${cleanResult.strategy}): ${modeDirectory}`);
         removed += 1;
-      } catch (error) {
-        this.output.appendLine(`[C/C++] Unable to delete ${artifacts.objectDirectory}: ${error instanceof Error ? error.message : String(error)}`);
+      } else {
+        this.output.appendLine(`[C/C++] Unable to completely clean build-mode directory: ${modeDirectory}`);
       }
     }
     const fallbackObjectDirectory = this.resolveLocalObjectDirectory(ref, this.getCompilerConfiguration());
-    if (fallbackObjectDirectory && fs.existsSync(fallbackObjectDirectory)) {
-      try {
-        fs.rmSync(fallbackObjectDirectory, { recursive: true, force: true });
-        this.output.appendLine(`[C/C++] Deleted local object directory: ${fallbackObjectDirectory}`);
-        removed += 1;
-      } catch (error) {
-        this.output.appendLine(`[C/C++] Unable to delete ${fallbackObjectDirectory}: ${error instanceof Error ? error.message : String(error)}`);
+    if (fallbackObjectDirectory) {
+      const fallbackModeDirectory = path.dirname(fallbackObjectDirectory);
+      if (fs.existsSync(fallbackModeDirectory)) {
+        const cleanResult = await cleanCpmBuildDirectory(fallbackModeDirectory);
+        cleanResult.warnings.forEach((warning) => this.output.appendLine(`[C/C++] Warning: ${warning}`));
+        if (cleanResult.success) {
+          this.output.appendLine(`[C/C++] Deleted local build-mode directory (${cleanResult.strategy}): ${fallbackModeDirectory}`);
+          removed += 1;
+        } else {
+          this.output.appendLine(`[C/C++] Unable to completely clean local build-mode directory: ${fallbackModeDirectory}`);
+        }
       }
     }
     if (removed === 0) {
@@ -273,11 +448,19 @@ export class CpmBuildService {
       vscode.window.showErrorMessage('Compile File is available only for C/C++ source files.');
       return false;
     }
+    if (this.projectSettings.getSettings(ref).buildBackend === 'cmake') {
+      vscode.window.showInformationMessage('Compile File is managed by the CMake backend. Use Build to let CMake/Ninja rebuild the affected translation unit.');
+      return false;
+    }
     if (!fs.existsSync(filePath)) {
       vscode.window.showErrorMessage(`Source file not found: ${filePath}`);
       return false;
     }
     const report = this.beginOutput(`Compile ${path.basename(filePath)}`);
+    if (this.dependencies && !await this.dependencies.prepareForBuild(ref)) {
+      this.finishOutput(report, false, `Dependency synchronization — ${ref.name}`);
+      return false;
+    }
     const config = this.getCompilerConfiguration();
     const project = this.workspaces.getProject(ref);
     const artifacts = this.resolveArtifacts(ref);
@@ -321,52 +504,96 @@ export class CpmBuildService {
       return;
     }
     const project = this.workspaces.getProject(ref);
-    if (project?.targetType !== 'Executable' && project?.targetType !== 'Dynamic Link Library') {
-      vscode.window.showErrorMessage('Run is available only for executable targets, or for DLL targets with an external host configured.');
+    const targetType = project?.targetType ?? 'Unknown';
+    if (targetType === 'Static Library') {
+      vscode.window.showErrorMessage('A static library cannot be run. Select an executable project, or use a DLL project with a Program name host executable.');
+      return;
+    }
+    if (targetType !== 'Executable' && targetType !== 'Dynamic Link Library') {
+      vscode.window.showErrorMessage(`Unsupported run target type: ${targetType}.`);
       return;
     }
 
     const run = this.projectSettings.getSettings(ref).run;
-    const targetPath = this.resolveTargetPath(ref, project?.targetType);
-    const useExternalHost = project?.targetType === 'Dynamic Link Library' && run.externalProcessPath.trim().length > 0;
-    const rawExecutablePath = useExternalHost ? run.externalProcessPath.trim() : targetPath;
-    if (!rawExecutablePath) {
-      vscode.window.showErrorMessage(`The output target for ${ref.name} could not be resolved.`);
-      return;
+    const targetPath = this.resolveTargetPath(ref, targetType);
+    const useExternalHost = targetType === 'Dynamic Link Library';
+    let rawExecutablePath: string | undefined;
+    if (useExternalHost) {
+      rawExecutablePath = run.externalProcessPath.trim();
+      if (!rawExecutablePath) {
+        const action = await vscode.window.showErrorMessage(
+          'This project builds a DLL, so the DLL cannot be launched directly. Configure Program name with the executable that loads the DLL.',
+          'Open Run Settings'
+        );
+        if (action === 'Open Run Settings') {
+          await vscode.commands.executeCommand('cpm.editBuildSettings', { kind: 'project', ref });
+        }
+        return;
+      }
+    } else {
+      rawExecutablePath = targetPath;
+      if (!rawExecutablePath) {
+        vscode.window.showErrorMessage(`The executable target for ${ref.name} could not be resolved.`);
+        return;
+      }
     }
-    const executablePath = normalizeRuntimePath(rawExecutablePath);
+
+    const projectDirectory = path.dirname(ref.absolutePath);
+    const executablePath = this.resolveRuntimeReference(rawExecutablePath, projectDirectory);
     if (path.extname(executablePath).toLowerCase() !== '.exe') {
-      vscode.window.showErrorMessage(`The selected target is ${path.basename(executablePath)}, not an executable. Configure an external executable for DLL debugging in Project Build Settings.`);
+      vscode.window.showErrorMessage(useExternalHost
+        ? `Program name must point to an executable (.exe). Current value: ${executablePath}`
+        : `The built target is ${path.basename(executablePath)}, not an executable.`);
       return;
     }
     if (!fs.existsSync(executablePath)) {
-      vscode.window.showErrorMessage(`The executable does not exist: ${executablePath}. Build the target before launching it.`);
+      vscode.window.showErrorMessage(useExternalHost
+        ? `The Program name executable configured for this DLL project does not exist: ${executablePath}`
+        : `The executable does not exist: ${executablePath}. Use Build and Run to create the target before launching it.`);
       return;
     }
+    try {
+      if (!fs.statSync(executablePath).isFile()) {
+        vscode.window.showErrorMessage(`The configured executable path is not a regular file: ${executablePath}`);
+        return;
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`The executable cannot be accessed: ${executablePath}. ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
+
     const fallbackArgs = this.projectSettings.getCpmConfigurationValue<string[]>('runArguments', []);
     const args = run.arguments.trim() ? this.projectSettings.parseArguments(run.arguments) : fallbackArgs;
-    const cwd = run.workingDirectory.trim() ? normalizeRuntimePath(run.workingDirectory.trim()) : path.dirname(executablePath);
+    const configuredCwd = run.workingDirectory.trim();
+    const cwd = configuredCwd ? this.resolveRuntimeReference(configuredCwd, projectDirectory) : path.dirname(executablePath);
     if (!fs.existsSync(cwd)) {
       vscode.window.showErrorMessage(`The configured working directory does not exist: ${cwd}`);
       return;
     }
+    try {
+      if (!fs.statSync(cwd).isDirectory()) {
+        vscode.window.showErrorMessage(`The configured working directory is not a directory: ${cwd}`);
+        return;
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`The configured working directory cannot be accessed: ${cwd}. ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
+
     const config = this.getCompilerConfiguration();
-    this.deployToolchainRuntimeDlls(executablePath, config);
-    const sdlPlan = project ? this.resolveSdlPlan(ref, project.files, project.targetType) : undefined;
-    this.deploySdlRuntimeDlls(executablePath, sdlPlan);
-    this.deployApplicationIconAssets(ref, executablePath, this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode));
-    const env = this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(run.environmentOptions), config, executablePath);
+    if (targetPath && fs.existsSync(targetPath)) {
+      const linkageMode = this.getLinkageMode(ref);
+      this.deployToolchainRuntimeDlls(targetPath, config, linkageMode);
+      const sdlPlan = project ? this.resolveSdlPlan(ref, project.files, project.targetType, linkageMode) : undefined;
+      this.deploySdlRuntimeDlls(targetPath, sdlPlan, linkageMode);
+      this.deployApplicationIconAssets(ref, targetPath, this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode));
+    }
+    const env = this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(run.environmentOptions), config, executablePath, targetPath);
     const outputMode = normalizeRunOutputMode(this.projectSettings.getCpmConfigurationValue<string>('runOutputMode', 'integrated-terminal'));
     const renderedCommand = [executablePath, ...args].map(renderArgument).join(' ');
 
     if (outputMode === 'integrated-terminal') {
-      const terminal = vscode.window.createTerminal({
-        name: `CPM: ${ref.name}`,
-        shellPath: executablePath,
-        shellArgs: args,
-        cwd,
-        env
-      });
+      const terminal = vscode.window.createTerminal({ name: `CPM: ${ref.name}`, shellPath: executablePath, shellArgs: args, cwd, env });
       terminal.show(false);
       this.output.appendLine(`[C/C++] Started in integrated terminal: ${renderedCommand}`);
     } else if (outputMode === 'output-channel') {
@@ -379,81 +606,124 @@ export class CpmBuildService {
       const child = spawn(executablePath, args, { cwd, env, detached: false, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
       child.stdout?.on('data', (data: Buffer) => this.programOutput.append(data.toString()));
       child.stderr?.on('data', (data: Buffer) => this.programOutput.append(data.toString()));
-      child.on('error', (error) => {
-        this.programOutput.appendLine(`\n[CPM] Failed to start process: ${error.message}`);
-      });
-      child.on('close', (code, signal) => {
-        const suffix = signal ? `signal ${signal}` : `exit code ${code ?? 'unknown'}`;
-        this.programOutput.appendLine(`\n[CPM] Process finished (${suffix}).`);
-      });
+      child.on('error', (error) => this.programOutput.appendLine(`\n[CPM] Failed to start process: ${error.message}`));
+      child.on('close', (code, signal) => this.programOutput.appendLine(`\n[CPM] Process finished (${signal ? `signal ${signal}` : `exit code ${code ?? 'unknown'}`}).`));
       this.output.appendLine(`[C/C++] Started with captured output: ${renderedCommand}`);
     } else {
       const child = spawn(executablePath, args, { cwd, env, detached: true, shell: false, stdio: 'ignore' });
+      child.once('error', (error) => void vscode.window.showErrorMessage(`Unable to start ${executablePath}: ${error.message}`));
       child.unref();
       this.output.appendLine(`[C/C++] Started detached: ${renderedCommand}`);
     }
-    this.output.appendLine(`[C/C++] Runtime PATH prepended with: ${this.runtimeSearchDirectories(config, executablePath).join(path.delimiter)}`);
+    this.output.appendLine(`[C/C++] Runtime PATH prepended with: ${this.runtimeSearchDirectories(config, executablePath, targetPath).join(path.delimiter)}`);
   }
 
   async debugWithGdb(projectRef?: CpmWorkspaceProjectRef): Promise<boolean> {
+    return this.startGdbDebug(projectRef, true);
+  }
+
+  async debugWithoutBuild(projectRef?: CpmWorkspaceProjectRef): Promise<boolean> {
+    return this.startGdbDebug(projectRef, false);
+  }
+
+  private async startGdbDebug(projectRef: CpmWorkspaceProjectRef | undefined, buildFirst: boolean): Promise<boolean> {
     const ref = projectRef ?? this.workspaces.activeProjectRef;
     if (!ref?.exists) {
       vscode.window.showErrorMessage('No existing C/C++ project is available for debugging.');
       return false;
     }
     const project = this.workspaces.getProject(ref);
-    if (project?.targetType !== 'Executable') {
-      vscode.window.showErrorMessage('VS Code debugger launch is available only for executable targets.');
+    const targetType = project?.targetType ?? 'Unknown';
+    if (targetType === 'Static Library') {
+      vscode.window.showErrorMessage('A static library cannot be debug-launched. Select an executable project, or configure a DLL host Program name.');
       return false;
     }
-    if (this.buildMode === 'release' || this.buildMode === 'release64') {
+    if (targetType !== 'Executable' && targetType !== 'Dynamic Link Library') {
+      vscode.window.showErrorMessage(`Unsupported debug target type: ${targetType}.`);
+      return false;
+    }
+    if (buildFirst && (this.buildMode === 'release' || this.buildMode === 'release64')) {
       const debugMode: CpmBuildMode = this.buildMode === 'release64' ? 'debug64' : 'debug';
       const answer = await vscode.window.showWarningMessage(`The active build mode is ${this.buildMode}. Switch to ${debugMode}, build and debug?`, 'Switch, build and debug', 'Continue current mode', 'Cancel');
-      if (answer === 'Cancel' || !answer) {
-        return false;
-      }
-      if (answer === 'Switch, build and debug') {
-        await this.projectSettings.updateCpmConfigurationValue('buildMode', debugMode);
-      }
+      if (answer === 'Cancel' || !answer) return false;
+      if (answer === 'Switch, build and debug') await this.projectSettings.updateCpmConfigurationValue('buildMode', debugMode);
     }
-    const success = await this.build(false, ref);
-    if (!success) {
-      return false;
+    if (buildFirst) {
+      const success = await this.build(false, ref);
+      if (!success) return false;
     }
-    const targetPath = this.resolveTargetPath(ref, project?.targetType);
-    if (!targetPath || !fs.existsSync(targetPath)) {
-      vscode.window.showErrorMessage(`Debug target not found: ${targetPath || ref.name}`);
+
+    const builtTargetPath = this.resolveTargetPath(ref, targetType);
+    if (!buildFirst && (!builtTargetPath || !fs.existsSync(builtTargetPath))) {
+      const action = await vscode.window.showErrorMessage(`No existing ${targetType === 'Dynamic Link Library' ? 'DLL' : 'executable'} was found for ${this.buildMode}. Build the project first, or use Build & Debug.`, 'Build & Debug');
+      if (action === 'Build & Debug') return this.startGdbDebug(ref, true);
       return false;
     }
     const runSettings = this.projectSettings.getSettings(ref).run;
+    const projectDirectory = path.dirname(ref.absolutePath);
+    let program = builtTargetPath;
+    if (targetType === 'Dynamic Link Library') {
+      if (!runSettings.externalProcessPath.trim()) {
+        const action = await vscode.window.showErrorMessage(
+          'This project builds a DLL. Configure Program name with the executable that loads the DLL before starting a debug session.',
+          'Open Run Settings'
+        );
+        if (action === 'Open Run Settings') await vscode.commands.executeCommand('cpm.editBuildSettings', { kind: 'project', ref });
+        return false;
+      }
+      program = this.resolveRuntimeReference(runSettings.externalProcessPath, projectDirectory);
+    }
+    if (!program || !fs.existsSync(program)) {
+      vscode.window.showErrorMessage(`Debug host not found: ${program || ref.name}`);
+      return false;
+    }
+    if (path.extname(program).toLowerCase() !== '.exe') {
+      vscode.window.showErrorMessage(`Debug Program name must point to an executable (.exe): ${program}`);
+      return false;
+    }
+    try {
+      if (!fs.statSync(program).isFile()) {
+        vscode.window.showErrorMessage(`The debug Program name is not a regular file: ${program}`);
+        return false;
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`The debug Program name cannot be accessed: ${program}. ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
+
     const config = this.getCompilerConfiguration();
-    this.deployToolchainRuntimeDlls(targetPath, config);
-    const sdlPlan = project ? this.resolveSdlPlan(ref, project.files, project.targetType) : undefined;
-    this.deploySdlRuntimeDlls(targetPath, sdlPlan);
-    this.deployApplicationIconAssets(ref, targetPath, this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode));
-    const args = runSettings.arguments.trim() ? this.projectSettings.parseArguments(runSettings.arguments) : [];
-    const cwd = runSettings.workingDirectory.trim() ? normalizeRuntimePath(runSettings.workingDirectory.trim()) : path.dirname(targetPath);
-    const debugEnvironment = this.debugEnvironmentFromProcessEnv(this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(runSettings.environmentOptions), config, targetPath));
+    if (builtTargetPath && fs.existsSync(builtTargetPath)) {
+      const linkageMode = this.getLinkageMode(ref);
+      this.deployToolchainRuntimeDlls(builtTargetPath, config, linkageMode);
+      const sdlPlan = project ? this.resolveSdlPlan(ref, project.files, project.targetType, linkageMode) : undefined;
+      this.deploySdlRuntimeDlls(builtTargetPath, sdlPlan, linkageMode);
+      this.deployApplicationIconAssets(ref, builtTargetPath, this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode));
+    }
+    const fallbackArgs = this.projectSettings.getCpmConfigurationValue<string[]>('runArguments', []);
+    const args = runSettings.arguments.trim() ? this.projectSettings.parseArguments(runSettings.arguments) : fallbackArgs;
+    const cwd = runSettings.workingDirectory.trim() ? this.resolveRuntimeReference(runSettings.workingDirectory, projectDirectory) : path.dirname(program);
+    if (!fs.existsSync(cwd)) {
+      vscode.window.showErrorMessage(`The configured debug working directory does not exist: ${cwd}`);
+      return false;
+    }
+    try {
+      if (!fs.statSync(cwd).isDirectory()) {
+        vscode.window.showErrorMessage(`The configured debug working directory is not a directory: ${cwd}`);
+        return false;
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`The configured debug working directory cannot be accessed: ${cwd}. ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
+    const debugEnvironment = this.debugEnvironmentFromProcessEnv(this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(runSettings.environmentOptions), config, program, builtTargetPath));
     const debugConfig: vscode.DebugConfiguration = {
-      name: `Debug ${ref.name}`,
-      type: 'cppdbg',
-      request: 'launch',
-      program: targetPath,
-      args,
-      cwd,
-      stopAtEntry: false,
-      externalConsole: false,
-      avoidWindowsConsoleRedirection: false,
-      internalConsoleOptions: 'neverOpen',
-      logging: { programOutput: true },
-      MIMode: 'gdb',
-      miDebuggerPath: config.debuggerPath || 'gdb',
-      environment: debugEnvironment
+      name: `${buildFirst ? 'Build & Debug' : 'Run Debug'} ${targetType === 'Dynamic Link Library' ? `${ref.name} via ${path.basename(program)}` : ref.name}`,
+      type: 'cppdbg', request: 'launch', program, args, cwd, stopAtEntry: false,
+      externalConsole: false, avoidWindowsConsoleRedirection: false, internalConsoleOptions: 'neverOpen',
+      logging: { programOutput: true }, MIMode: 'gdb', miDebuggerPath: config.debuggerPath || 'gdb', environment: debugEnvironment
     };
     const started = await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(vscode.Uri.file(ref.absolutePath)), debugConfig);
-    if (!started) {
-      vscode.window.showErrorMessage('Unable to start the VS Code C/C++ debug session. Check that the Microsoft C/C++ extension and gdb are installed.');
-    }
+    if (!started) vscode.window.showErrorMessage('Unable to start the VS Code C/C++ debug session. Check that the Microsoft C/C++ extension and gdb are installed.');
     return started;
   }
 
@@ -492,11 +762,13 @@ export class CpmBuildService {
       vscode.window.showErrorMessage(`${ref.name} has no C/C++ source file included in the build.`);
       return false;
     }
-    if (rebuild && fs.existsSync(artifacts.objectDirectory)) {
-      try {
-        fs.rmSync(artifacts.objectDirectory, { recursive: true, force: true });
-      } catch (error) {
-        this.output.appendLine(`[C/C++] Warning: unable to remove previous object directory before rebuild: ${error instanceof Error ? error.message : String(error)}`);
+    const buildModeDirectory = path.dirname(artifacts.objectDirectory);
+    if (rebuild && fs.existsSync(buildModeDirectory)) {
+      const cleanResult = await cleanCpmBuildDirectory(buildModeDirectory);
+      cleanResult.warnings.forEach((warning) => this.output.appendLine(`[C/C++] Warning: ${warning}`));
+      if (!cleanResult.success) {
+        this.output.appendLine(`[C/C++] ERROR: unable to remove previous build-mode directory before rebuild: ${buildModeDirectory}`);
+        return false;
       }
     }
     if (!await this.ensureDirectory(artifacts.objectDirectory, 'object directory', false)) {
@@ -516,10 +788,15 @@ export class CpmBuildService {
       return false;
     }
     const forceIncludeHeaders = iconGeneration.forceIncludeHeader ? [iconGeneration.forceIncludeHeader] : [];
+    const buildSettings = this.projectSettings.getSettings(ref);
+    const projectDirectory = path.dirname(ref.absolutePath);
+    const effectiveSourceFiles = buildSettings.unityBuildEnabled
+      ? this.createUnitySourceFiles(sourceFiles, artifacts.objectDirectory, buildSettings.unityBatchSize)
+      : sourceFiles;
 
-    const compilePlan = sourceFiles.map((source) => {
+    const compilePlan = effectiveSourceFiles.map((source) => {
       const objectPath = this.objectPathForSource(source.absolutePath, ref.absolutePath, artifacts.objectDirectory);
-      const shouldCompile = rebuild || !fs.existsSync(objectPath) || fs.statSync(source.absolutePath).mtimeMs > fs.statSync(objectPath).mtimeMs;
+      const shouldCompile = sourceNeedsCompilation(source.absolutePath, objectPath, projectDirectory, rebuild);
       return { source, objectPath, shouldCompile };
     });
     const compileCount = compilePlan.filter((item) => item.shouldCompile).length;
@@ -536,48 +813,185 @@ export class CpmBuildService {
     this.output.appendLine(`  C compiler: ${config.cCompilerPath || 'gcc'}`);
     this.output.appendLine(`  C++ linker: ${config.cppCompilerPath || 'g++'}`);
     this.output.appendLine(`  Sources   : ${sourceFiles.length}`);
+    this.output.appendLine(`  Build units: ${effectiveSourceFiles.length}${buildSettings.unityBuildEnabled ? ` (Unity Build batch ${buildSettings.unityBatchSize})` : ''}`);
+    this.output.appendLine(`  PCH       : ${buildSettings.precompiledHeadersEnabled ? 'enabled' : 'disabled'}`);
+    this.output.appendLine(`  Linkage   : ${linkageModeLabel(this.getLinkageMode(ref))}`);
     this.output.appendLine('');
 
     this.appendSection('C/C++ COMPILATION');
-    this.output.appendLine(`  Sources: ${compilePlan.length} | Compile: ${compileCount} | Cached: ${cachedCount}`);
+    const parallelJobs = buildSettings.parallelJobs > 0 ? buildSettings.parallelJobs : Math.max(1, os.cpus().length);
+    this.output.appendLine(`  Sources: ${compilePlan.length} | Compile: ${compileCount} | Cached: ${cachedCount} | Parallel jobs: ${parallelJobs}`);
+    this.output.appendLine('  Dependency tracking: GCC/Clang .d files (-MMD/-MP)');
     this.output.appendLine('');
     if (compileCount === 0) {
       this.output.appendLine('  [OK] All object files are up to date.');
       this.output.appendLine('');
     }
 
-    const objectFiles: string[] = [];
-    for (const item of compilePlan) {
-      if (item.shouldCompile) {
-        const args = this.compileArguments(item.source.absolutePath, item.objectPath, ref, project.files, config, forceIncludeHeaders);
-        const success = await this.spawnTool(this.compilerForSource(item.source.absolutePath, config), args, path.dirname(ref.absolutePath), `Compile ${path.basename(item.source.absolutePath)}`);
-        if (!success) {
-          this.output.appendLine('  [SKIP] Link step skipped because compilation failed.');
-          return false;
-        }
-      } else if (this.logDetail() === 'verbose') {
+    const pchHeaders = await this.preparePrecompiledHeaders(ref, project.files, config, buildSettings, artifacts.objectDirectory, projectDirectory, rebuild);
+    if (!pchHeaders) {
+      this.output.appendLine('  [SKIP] Compilation skipped because precompiled-header generation failed.');
+      return false;
+    }
+
+    const objectFiles = compilePlan.map((item) => item.objectPath);
+    if (this.logDetail() === 'verbose') {
+      for (const item of compilePlan.filter((entry) => !entry.shouldCompile)) {
         this.output.appendLine(`  [CACHE] ${path.basename(item.source.absolutePath)}`);
       }
-      objectFiles.push(item.objectPath);
+    }
+    const compileItems = compilePlan.filter((item) => item.shouldCompile);
+    const compiled = await runWithConcurrency(compileItems, parallelJobs, async (item) => {
+      const pchHeader = isCSource(item.source.absolutePath) ? pchHeaders.c : pchHeaders.cpp;
+      const includeHeaders = [...(pchHeader ? [pchHeader] : []), ...forceIncludeHeaders];
+      const args = this.compileArguments(item.source.absolutePath, item.objectPath, ref, project.files, config, includeHeaders);
+      const success = await this.spawnTool(this.compilerForSource(item.source.absolutePath, config), args, projectDirectory, `Compile ${path.basename(item.source.absolutePath)}`);
+      return success && fs.existsSync(item.objectPath);
+    });
+    if (!compiled) {
+      this.output.appendLine('  [SKIP] Link step skipped because compilation failed.');
+      return false;
     }
 
     if (iconGeneration.generatedSource) {
       const iconObjectPath = this.objectPathForSource(iconGeneration.generatedSource, ref.absolutePath, artifacts.objectDirectory);
-      const args = this.compileArguments(iconGeneration.generatedSource, iconObjectPath, ref, project.files, config);
-      const success = await this.spawnTool(this.compilerForSource(iconGeneration.generatedSource, config), args, path.dirname(ref.absolutePath), `Compile ${path.basename(iconGeneration.generatedSource)}`);
-      if (!success) {
-        this.output.appendLine('  [SKIP] Link step skipped because application-icon helper compilation failed.');
-        return false;
+      if (sourceNeedsCompilation(iconGeneration.generatedSource, iconObjectPath, projectDirectory, rebuild)) {
+        const args = this.compileArguments(iconGeneration.generatedSource, iconObjectPath, ref, project.files, config);
+        const success = await this.spawnTool(this.compilerForSource(iconGeneration.generatedSource, config), args, projectDirectory, `Compile ${path.basename(iconGeneration.generatedSource)}`);
+        if (!success) {
+          this.output.appendLine('  [SKIP] Link step skipped because application-icon helper compilation failed.');
+          return false;
+        }
+      } else if (this.logDetail() === 'verbose') {
+        this.output.appendLine(`  [CACHE] ${path.basename(iconGeneration.generatedSource)}`);
       }
       objectFiles.push(iconObjectPath);
     }
 
     artifacts.objectFiles = objectFiles;
-    const linkSuccess = await this.linkArtifacts(ref, project.targetType, artifacts, project.files, config);
+    const linkSuccess = await this.linkArtifacts(ref, project.targetType, artifacts, project.files, config, buildSettings);
     return linkSuccess;
   }
 
-  private async linkArtifacts(ref: CpmWorkspaceProjectRef, targetType: string, artifacts: BuildArtifacts, files: CpmProjectFile[], config: GenericCompilerConfiguration): Promise<boolean> {
+  private createUnitySourceFiles(sourceFiles: CpmProjectFile[], objectDirectory: string, batchSize: number): CpmProjectFile[] {
+    const clampedBatch = Math.max(2, Math.min(128, Math.trunc(batchSize || 8)));
+    const result: CpmProjectFile[] = [];
+    let generatedId = -100000;
+    for (const language of ['c', 'cpp'] as const) {
+      const matching = sourceFiles.filter((source) => language === 'c' ? isCSource(source.absolutePath) : !isCSource(source.absolutePath));
+      let unityIndex = 0;
+      for (let offset = 0; offset < matching.length; offset += clampedBatch) {
+        const chunk = matching.slice(offset, offset + clampedBatch);
+        if (chunk.length < 2) {
+          result.push(...chunk);
+          continue;
+        }
+        unityIndex += 1;
+        const extension = language === 'c' ? '.c' : '.cpp';
+        const unityPath = path.join(objectDirectory, `cpm_unity_${language}_${String(unityIndex).padStart(3, '0')}${extension}`);
+        const body = [
+          '/* Generated by C/C++ Project Manager Unity Build. Do not edit. */',
+          `/* Batch contains ${chunk.length} original translation units. */`,
+          '',
+          ...chunk.map((source) => `#include "${escapeIncludePath(source.absolutePath)}"`),
+          ''
+        ].join('\n');
+        writeTextFileIfChanged(unityPath, body);
+        result.push({
+          sectionName: 'CPM Unity Build', id: generatedId--, type: language === 'c' ? 'CSource' : 'CPPSource', folder: '',
+          relativePath: path.basename(unityPath), absolutePath: unityPath, excluded: false, compileIntoObjectFile: true, exists: true
+        });
+        if (this.logDetail() === 'verbose') {
+          this.output.appendLine(`  [UNITY] ${path.basename(unityPath)} <= ${chunk.map((source) => path.basename(source.absolutePath)).join(', ')}`);
+        }
+      }
+    }
+    return result.length ? result : sourceFiles;
+  }
+
+  private async preparePrecompiledHeaders(
+    ref: CpmWorkspaceProjectRef,
+    projectFiles: CpmProjectFile[],
+    config: GenericCompilerConfiguration,
+    buildSettings: { precompiledHeadersEnabled: boolean; cPrecompiledHeader: string; cppPrecompiledHeader: string },
+    objectDirectory: string,
+    projectDirectory: string,
+    rebuild: boolean
+  ): Promise<{ c?: string; cpp?: string } | undefined> {
+    if (!buildSettings.precompiledHeadersEnabled) return {};
+    const result: { c?: string; cpp?: string } = {};
+    const entries = [
+      { language: 'c' as const, configured: buildSettings.cPrecompiledHeader.trim(), compiler: config.cCompilerPath || 'gcc', extension: '.h', xlang: 'c-header' as const },
+      { language: 'cpp' as const, configured: buildSettings.cppPrecompiledHeader.trim(), compiler: config.cppCompilerPath || 'g++', extension: '.hpp', xlang: 'c++-header' as const }
+    ];
+    for (const entry of entries) {
+      if (!entry.configured) continue;
+      const sourceHeader = resolveAgainstProject(entry.configured, ref.absolutePath);
+      if (!fs.existsSync(sourceHeader)) {
+        this.output.appendLine(`  [PCH] ERROR: configured ${entry.language.toUpperCase()} header does not exist: ${sourceHeader}`);
+        vscode.window.showErrorMessage(`Configured ${entry.language.toUpperCase()} precompiled header does not exist: ${sourceHeader}`);
+        return undefined;
+      }
+      const wrapperPath = path.join(objectDirectory, `cpm_pch_${entry.language}${entry.extension}`);
+      const pchPath = `${wrapperPath}.gch`;
+      const args = this.precompiledHeaderArguments(wrapperPath, pchPath, entry.xlang, ref, projectFiles, config, entry.language);
+      const signature = crypto.createHash('sha1').update(JSON.stringify([entry.compiler, args])).digest('hex').slice(0, 16);
+      const content = [
+        '/* Generated by C/C++ Project Manager. Do not edit. */',
+        `/* Build signature: ${signature} */`,
+        '#pragma once',
+        `#include "${escapeIncludePath(sourceHeader)}"`,
+        ''
+      ].join('\n');
+      writeTextFileIfChanged(wrapperPath, content);
+      if (sourceNeedsCompilation(wrapperPath, pchPath, projectDirectory, rebuild)) {
+        const success = await this.spawnTool(entry.compiler, args, projectDirectory, `Precompile ${path.basename(sourceHeader)}`);
+        if (!success || !fs.existsSync(pchPath)) return undefined;
+        this.output.appendLine(`  [PCH] Generated ${path.basename(pchPath)} from ${path.basename(sourceHeader)}`);
+      } else if (this.logDetail() === 'verbose') {
+        this.output.appendLine(`  [PCH CACHE] ${path.basename(sourceHeader)}`);
+      }
+      result[entry.language] = wrapperPath;
+    }
+    return result;
+  }
+
+  private precompiledHeaderArguments(
+    wrapperPath: string,
+    pchPath: string,
+    xlang: 'c-header' | 'c++-header',
+    ref: CpmWorkspaceProjectRef,
+    projectFiles: CpmProjectFile[],
+    config: GenericCompilerConfiguration,
+    language: 'c' | 'cpp'
+  ): string[] {
+    const sdlPlan = this.resolveSdlPlan(ref, projectFiles, 'Executable');
+    const dependencyIntegration = this.dependencies?.getIntegration(ref, this.buildMode) ?? emptyDependencyIntegration();
+    const includePaths = unique([
+      path.dirname(ref.absolutePath),
+      ...projectFiles.filter((file) => isHeader(file.absolutePath)).map((file) => path.dirname(file.absolutePath)),
+      ...config.includePaths.map((value) => resolveAgainstProject(value, ref.absolutePath)),
+      ...dependencyIntegration.includeDirectories,
+      ...(sdlPlan?.includeDirectories ?? [])
+    ]);
+    const standard = language === 'c' ? config.cStandard : config.cppStandard;
+    return [
+      '-x', xlang, wrapperPath,
+      '-MMD', '-MP', '-MF', dependencyPathForObject(pchPath), '-MT', pchPath,
+      ...this.modeFlags(config),
+      ...this.warningFlags(config),
+      ...(standard && standard !== 'auto' ? [`-std=${standard}`] : []),
+      ...config.defineSymbols.map((name) => `-D${name}`),
+      ...includePaths.flatMap((value) => ['-I', value]),
+      ...(sdlPlan?.compileFlags ?? []),
+      ...config.compilerFlags,
+      ...dependencyIntegration.compilerFlags,
+      ...(language === 'c' ? config.cCompilerFlags : config.cppCompilerFlags),
+      '-o', pchPath
+    ];
+  }
+
+  private async linkArtifacts(ref: CpmWorkspaceProjectRef, targetType: string, artifacts: BuildArtifacts, files: CpmProjectFile[], config: GenericCompilerConfiguration, buildSettings: { useResponseFiles: boolean }): Promise<boolean> {
     this.appendSection(targetType === 'Static Library' ? 'ARCHIVE' : 'LINK');
     if (this.currentReport) {
       this.currentReport.linkRun += 1;
@@ -606,7 +1020,9 @@ export class CpmBuildService {
       return false;
     }
 
-    const sdlPlan = this.resolveSdlPlan(ref, files, targetType);
+    const linkageMode = this.getLinkageMode(ref);
+    const dependencyIntegration = this.dependencies?.getIntegration(ref, this.buildMode) ?? emptyDependencyIntegration();
+    const sdlPlan = this.resolveSdlPlan(ref, files, targetType, linkageMode);
     if (sdlPlan) {
       this.output.appendLine(`[C/C++ SDL] SDK: ${sdlPlan.rootPath}`);
       this.output.appendLine(`[C/C++ SDL] Version: ${sdlPlan.version} · Packages: ${sdlPlan.packages.join(', ')} · runtime: ${sdlPlan.runtimeMode}`);
@@ -618,22 +1034,37 @@ export class CpmBuildService {
 
     const args = [
       ...this.modeFlags(config),
-      ...this.runtimeLinkFlags(config, targetType, sdlPlan),
+      ...this.runtimeLinkFlags(config, targetType, sdlPlan, linkageMode),
       ...(targetType === 'Dynamic Link Library' ? ['-shared'] : []),
       ...artifacts.objectFiles,
       ...windowsResourceObjects,
       ...fileLibraries,
       ...config.libraryPaths.flatMap((value) => ['-L', resolveAgainstProject(value, ref.absolutePath)]),
+      ...dependencyIntegration.libraryDirectories.flatMap((value) => ['-L', value]),
       ...(sdlPlan?.linkArgs ?? []),
       ...config.libraries.map((name) => name.startsWith('-l') ? name : `-l${name}`),
+      ...dependencyIntegration.libraries.map((name) => name.startsWith('-l') || path.isAbsolute(name) ? name : `-l${name}`),
       ...config.linkerFlags,
+      ...dependencyIntegration.linkerFlags,
       '-o', artifacts.targetPath
     ];
-    const success = await this.spawnTool(config.cppCompilerPath || 'g++', args, path.dirname(ref.absolutePath), `Link ${path.basename(artifacts.targetPath)}`);
+    const responseFilePath = path.join(artifacts.objectDirectory, 'cpm_link.rsp');
+    const useResponseFile = buildSettings.useResponseFiles && shouldUseGnuResponseFile(args);
+    let linkArgs = args;
+    if (useResponseFile) {
+      linkArgs = createGnuResponseFileArguments(args, responseFilePath);
+      if (this.logDetail() !== 'compact') {
+        this.output.appendLine(`  Link response file: ${responseFilePath} (${estimateGnuArgumentLength(args)} characters)`);
+      }
+    } else if (fs.existsSync(responseFilePath)) {
+      await removePathWithRetries(responseFilePath, 3, 40);
+    }
+    const success = await this.spawnTool(config.cppCompilerPath || 'g++', linkArgs, path.dirname(ref.absolutePath), `Link ${path.basename(artifacts.targetPath)}`);
     if (success) {
-      this.deployToolchainRuntimeDlls(artifacts.targetPath, config);
-      this.deploySdlRuntimeDlls(artifacts.targetPath, sdlPlan);
+      this.deployToolchainRuntimeDlls(artifacts.targetPath, config, linkageMode);
+      this.deploySdlRuntimeDlls(artifacts.targetPath, sdlPlan, linkageMode);
       this.deployApplicationIconAssets(ref, artifacts.targetPath, targetSettings);
+      this.reportRuntimeDependencies(artifacts.targetPath, linkageMode, false);
     }
     return success;
   }
@@ -644,7 +1075,7 @@ export class CpmBuildService {
     if (targetType === 'Static Library' || !targetSettings.windowIconFile || !targetSettings.applyWindowIconAutomatically) {
       return { success: true };
     }
-    const sdlPlan = this.resolveSdlPlan(ref, files, targetType);
+    const sdlPlan = this.resolveSdlPlan(ref, files, targetType, this.getLinkageMode(ref));
     if (!sdlPlan) {
       return { success: true };
     }
@@ -674,8 +1105,8 @@ export class CpmBuildService {
     const deployedIconPath = path.join(path.dirname(artifacts.targetPath), deployedIconName);
     const fallbackPath = fs.existsSync(deployedIconPath) ? deployedIconPath : iconPath;
 
-    fs.writeFileSync(headerPath, renderSdlIconAutoloadHeader(sdlPlan.version), 'utf8');
-    fs.writeFileSync(sourcePath, renderSdlIconAutoloadSource(sdlPlan.version, deployedIconName, fallbackPath, hasSdlImage), 'utf8');
+    writeTextFileIfChanged(headerPath, renderSdlIconAutoloadHeader(sdlPlan.version));
+    writeTextFileIfChanged(sourcePath, renderSdlIconAutoloadSource(sdlPlan.version, deployedIconName, fallbackPath, hasSdlImage));
     this.output.appendLine(`[C/C++] SDL window icon autoload: ${path.basename(targetSettings.windowIconFile)}.`);
     return { success: true, forceIncludeHeader: headerPath, generatedSource: sourcePath };
   }
@@ -777,15 +1208,19 @@ export class CpmBuildService {
 
   private compileArguments(sourcePath: string, objectPath: string, ref: CpmWorkspaceProjectRef, projectFiles: CpmProjectFile[], config: GenericCompilerConfiguration, forceIncludeHeaders: string[] = []): string[] {
     const sdlPlan = this.resolveSdlPlan(ref, projectFiles, 'Executable');
+    const dependencyIntegration = this.dependencies?.getIntegration(ref, this.buildMode) ?? emptyDependencyIntegration();
     const includePaths = unique([
       path.dirname(ref.absolutePath),
       ...projectFiles.filter((file) => isHeader(file.absolutePath)).map((file) => path.dirname(file.absolutePath)),
       ...config.includePaths.map((value) => resolveAgainstProject(value, ref.absolutePath)),
+      ...dependencyIntegration.includeDirectories,
       ...(sdlPlan?.includeDirectories ?? [])
     ]);
     const standard = isCSource(sourcePath) ? config.cStandard : config.cppStandard;
+    const dependencyPath = dependencyPathForObject(objectPath);
     return [
       '-c', sourcePath,
+      '-MMD', '-MP', '-MF', dependencyPath, '-MT', objectPath,
       ...this.modeFlags(config),
       ...this.warningFlags(config),
       ...(standard && standard !== 'auto' ? [`-std=${standard}`] : []),
@@ -794,6 +1229,7 @@ export class CpmBuildService {
       ...(sdlPlan?.compileFlags ?? []),
       ...forceIncludeHeaders.flatMap((headerPath) => ['-include', headerPath]),
       ...config.compilerFlags,
+      ...dependencyIntegration.compilerFlags,
       ...(isCSource(sourcePath) ? config.cCompilerFlags : config.cppCompilerFlags),
       '-o', objectPath
     ];
@@ -859,6 +1295,10 @@ export class CpmBuildService {
   }
 
   private resolveTargetPath(ref: CpmWorkspaceProjectRef, targetType?: string): string {
+    if (this.projectSettings.getSettings(ref).buildBackend === 'cmake') {
+      const cmakeArtifact = this.cmake?.resolveArtifact(ref, targetType);
+      if (cmakeArtifact) return cmakeArtifact;
+    }
     const configured = this.parser.getTargetPath(ref.absolutePath, this.buildMode);
     if (configured) {
       return normalizeRuntimePath(configured);
@@ -1205,11 +1645,17 @@ export class CpmBuildService {
     return path.join(base, projectHash, ref.name.replace(/[^A-Za-z0-9_.-]+/g, '_'), this.buildMode, 'obj');
   }
 
-  private createRuntimeEnvironment(base: NodeJS.ProcessEnv, config: GenericCompilerConfiguration, executablePath: string): NodeJS.ProcessEnv {
+  private resolveRuntimeReference(value: string, baseDirectory: string): string {
+    const normalized = normalizeRuntimePath(value);
+    if (!normalized) return '';
+    return path.isAbsolute(normalized) || path.win32.isAbsolute(normalized) ? normalized : path.resolve(baseDirectory, normalized);
+  }
+
+  private createRuntimeEnvironment(base: NodeJS.ProcessEnv, config: GenericCompilerConfiguration, executablePath: string, builtTargetPath?: string): NodeJS.ProcessEnv {
     const env: NodeJS.ProcessEnv = { ...base };
     const pathKey = Object.keys(env).find((key) => key.toLowerCase() === 'path') ?? 'PATH';
     const existing = env[pathKey] ?? '';
-    const directories = this.runtimeSearchDirectories(config, executablePath);
+    const directories = this.runtimeSearchDirectories(config, executablePath, builtTargetPath);
     if (directories.length > 0) {
       env[pathKey] = `${directories.join(path.delimiter)}${path.delimiter}${existing}`;
     }
@@ -1217,16 +1663,29 @@ export class CpmBuildService {
   }
 
   private debugEnvironmentFromProcessEnv(env: NodeJS.ProcessEnv): Array<{ name: string; value: string }> {
-    const pathKey = Object.keys(env).find((key) => key.toLowerCase() === 'path') ?? 'PATH';
-    return [{ name: pathKey, value: env[pathKey] ?? '' }];
+    // cppdbg normally inherits the extension-host environment. Emit only the
+    // entries CPM actually changed, plus PATH which contains the host/DLL and
+    // toolchain runtime directories. This preserves project Run environment
+    // options without serializing the entire process environment.
+    const result: Array<{ name: string; value: string }> = [];
+    const processEntries = new Map(Object.entries(process.env).map(([key, value]) => [key.toLowerCase(), value]));
+    for (const [name, value] of Object.entries(env)) {
+      if (value === undefined) continue;
+      const inherited = processEntries.get(name.toLowerCase());
+      if (name.toLowerCase() === 'path' || inherited !== value) {
+        result.push({ name, value });
+      }
+    }
+    return result;
   }
 
-  private runtimeSearchDirectories(config: GenericCompilerConfiguration, executablePath: string): string[] {
+  private runtimeSearchDirectories(config: GenericCompilerConfiguration, executablePath: string, builtTargetPath?: string): string[] {
     const ref = this.workspaces.activeProjectRef;
     const project = ref?.exists ? this.workspaces.getProject(ref) : undefined;
-    const sdlPlan = ref?.exists && project ? this.resolveSdlPlan(ref, project.files, project.targetType) : undefined;
+    const sdlPlan = ref?.exists && project ? this.resolveSdlPlan(ref, project.files, project.targetType, this.getLinkageMode(ref)) : undefined;
     return unique([
       path.dirname(executablePath),
+      ...(builtTargetPath ? [path.dirname(builtTargetPath)] : []),
       ...this.toolchainBinDirectories(config),
       ...(sdlPlan?.binaryDirectory ? [sdlPlan.binaryDirectory] : []),
       ...this.linkedDllDirectories(path.dirname(executablePath))
@@ -1243,21 +1702,26 @@ export class CpmBuildService {
     }
   }
 
-  private runtimeLinkFlags(config: GenericCompilerConfiguration, targetType: string, sdlPlan?: ReturnType<typeof createSdlBuildPlan>): string[] {
-    if (config.runtimeDependencyMode !== 'static-link' || targetType === 'Static Library') {
+  private runtimeLinkFlags(config: GenericCompilerConfiguration, targetType: string, sdlPlan: ReturnType<typeof createSdlBuildPlan> | undefined, linkageMode: CpmLinkageMode): string[] {
+    if (linkageMode === 'dynamic' || targetType === 'Static Library') {
       return [];
     }
 
     const flags = ['-static-libgcc', '-static-libstdc++'];
-    if (!sdlPlan || sdlPlan.runtimeMode === 'static-link') {
-      flags.push('-static');
+    if (linkageMode === 'static') {
+      // Full static mode deliberately asks the linker to resolve -l entries as
+      // static archives. Windows system DLLs remain normal OS dependencies.
+      flags.unshift('-static');
     } else {
       const winpthreadStatic = this.findToolchainStaticLibrary(config, 'libwinpthread.a');
       if (winpthreadStatic) {
         flags.push('-Wl,-Bstatic', '-lwinpthread', '-Wl,-Bdynamic');
       }
     }
-    this.output.appendLine(`[C/C++] Toolchain runtime handling: static-link flags ${flags.join(' ')}.`);
+    this.output.appendLine(`[C/C++] Linkage flags (${linkageMode}): ${flags.join(' ')}.`);
+    if (linkageMode === 'static' && sdlPlan && sdlPlan.runtimeMode !== 'static-link') {
+      this.output.appendLine('[C/C++] Warning: fully-static linkage requested but SDL did not resolve to static mode.');
+    }
     return flags;
   }
 
@@ -1286,7 +1750,7 @@ export class CpmBuildService {
     return unique(candidates);
   }
 
-  private deployToolchainRuntimeDlls(targetPath: string, config: GenericCompilerConfiguration): void {
+  private deployToolchainRuntimeDlls(targetPath: string, config: GenericCompilerConfiguration, linkageMode: CpmLinkageMode = 'dynamic'): void {
     if (process.platform !== 'win32') {
       return;
     }
@@ -1296,6 +1760,14 @@ export class CpmBuildService {
     }
 
     const runtimeSources = this.collectToolchainRuntimeDlls(targetPath, config);
+
+    if (linkageMode !== 'dynamic') {
+      if (config.cleanRuntimeDllsOnDeploy) {
+        this.cleanStaleRuntimeDlls(targetDirectory, new Map());
+      }
+      this.output.appendLine(`[C/C++] Toolchain runtime DLL deployment: disabled by ${linkageMode} linkage.`);
+      return;
+    }
 
     if (config.runtimeDependencyMode !== 'copy-dlls') {
       if (config.cleanRuntimeDllsOnDeploy) {
@@ -1381,13 +1853,21 @@ export class CpmBuildService {
     return runtimeSources;
   }
 
-  private deploySdlRuntimeDlls(targetPath: string, sdlPlan: ReturnType<typeof createSdlBuildPlan> | undefined): void {
-    if (!sdlPlan || sdlPlan.runtimeMode !== 'copy-dlls' || sdlPlan.runtimeDlls.length === 0) {
+  private deploySdlRuntimeDlls(targetPath: string, sdlPlan: ReturnType<typeof createSdlBuildPlan> | undefined, linkageMode: CpmLinkageMode = 'dynamic'): void {
+    const targetDirectory = path.dirname(targetPath);
+    if (linkageMode === 'static') {
+      this.cleanLegacySdlRuntimeDlls(targetDirectory);
       return;
     }
-    const targetDirectory = path.dirname(targetPath);
+    if (!sdlPlan || sdlPlan.runtimeMode !== 'copy-dlls' || sdlPlan.runtimeDlls.length === 0) {
+      if (sdlPlan && sdlPlan.runtimeMode !== 'copy-dlls') {
+        this.cleanLegacySdlRuntimeDlls(targetDirectory);
+      }
+      return;
+    }
     let copied = 0;
     let unchanged = 0;
+    const deployedNames: string[] = [];
     for (const sourcePath of sdlPlan.runtimeDlls) {
       const destinationPath = path.join(targetDirectory, path.basename(sourcePath));
       try {
@@ -1397,17 +1877,77 @@ export class CpmBuildService {
         } else {
           unchanged++;
         }
+        deployedNames.push(path.basename(sourcePath));
       } catch (error) {
         this.output.appendLine(`[C/C++ SDL] Warning: unable to deploy SDL runtime DLL ${path.basename(sourcePath)}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
+    mergeRuntimeDeployManifest(targetDirectory, deployedNames);
     this.output.appendLine(`[C/C++ SDL] Runtime DLL deployment: ${copied} copied, ${unchanged} already up to date.`);
   }
 
-  private resolveSdlPlan(ref: CpmWorkspaceProjectRef, files: CpmProjectFile[], targetType: string): ReturnType<typeof createSdlBuildPlan> | undefined {
+  private resolveSdlPlan(ref: CpmWorkspaceProjectRef, files: CpmProjectFile[], targetType: string, linkageMode: CpmLinkageMode = this.getLinkageMode(ref)): ReturnType<typeof createSdlBuildPlan> | undefined {
     const config = this.getCompilerConfiguration();
     const preferredArchitecture = inferRequestedArchitecture(config.cppCompilerPath || config.cCompilerPath || 'g++', this.modeFlags(config))?.id;
-    return createSdlBuildPlan(config.sdl, path.dirname(ref.absolutePath), files.map((file) => file.absolutePath), targetType, preferredArchitecture);
+    const sdlConfig = linkageMode === 'static'
+      ? { ...config.sdl, runtimeMode: 'static-link' as const }
+      : config.sdl;
+    return createSdlBuildPlan(sdlConfig, path.dirname(ref.absolutePath), files.map((file) => file.absolutePath), targetType, preferredArchitecture);
+  }
+
+  private cleanLegacySdlRuntimeDlls(targetDirectory: string): void {
+    if (!fs.existsSync(targetDirectory)) return;
+    let removed = 0;
+    try {
+      for (const name of fs.readdirSync(targetDirectory)) {
+        if (!/^SDL(?:2|3)(?:_[A-Za-z0-9]+)?\.dll$/i.test(name)) continue;
+        fs.rmSync(path.join(targetDirectory, name), { force: true });
+        removed++;
+      }
+    } catch (error) {
+      this.output.appendLine(`[C/C++ SDL] Warning: unable to clean previous SDL runtime DLLs: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    if (removed > 0) {
+      this.output.appendLine(`[C/C++ SDL] Fully-static linkage cleanup: removed ${removed} previously deployed SDL DLL(s).`);
+    }
+  }
+
+  private reportRuntimeDependencies(targetPath: string, linkageMode: CpmLinkageMode, interactive: boolean): void {
+    const imported = unique(readImportedDllNames(targetPath)).sort((a, b) => a.localeCompare(b));
+    const system = imported.filter((name) => isWindowsSystemImport(name));
+    const external = imported.filter((name) => !isWindowsSystemImport(name));
+    this.output.appendLine('');
+    this.output.appendLine('[C/C++] Runtime dependency inspection');
+    this.output.appendLine(`  Target    : ${targetPath}`);
+    this.output.appendLine(`  Linkage   : ${linkageModeLabel(linkageMode)}`);
+    this.output.appendLine(`  System DLLs: ${system.length ? system.join(', ') : '<none detected>'}`);
+    this.output.appendLine(`  External DLLs: ${external.length ? external.join(', ') : '<none detected>'}`);
+    if (linkageMode === 'static') {
+      if (external.length === 0) {
+        this.output.appendLine('  [OK] Fully-static goal reached for non-system DLL dependencies.');
+      } else {
+        this.output.appendLine(`  [WARN] ${external.length} non-system DLL dependency/dependencies remain. Provide static .a versions or adjust linker flags/libraries.`);
+      }
+    } else if (linkageMode === 'static-runtime') {
+      const runtimeImports = external.filter((name) => isKnownToolchainRuntimeDllName(name));
+      if (runtimeImports.length === 0) {
+        this.output.appendLine('  [OK] GCC/MinGW toolchain runtime DLLs are not imported.');
+      } else {
+        this.output.appendLine(`  [WARN] Toolchain runtime DLL imports remain: ${runtimeImports.join(', ')}`);
+      }
+    }
+    this.output.appendLine('');
+    this.output.show(true);
+    if (interactive) {
+      const summary = external.length
+        ? `${external.length} non-system DLL dependency/dependencies: ${external.join(', ')}`
+        : 'No non-system DLL dependency detected.';
+      if (linkageMode === 'static' && external.length > 0) {
+        void vscode.window.showWarningMessage(`Static dependency check: ${summary}`);
+      } else {
+        void vscode.window.showInformationMessage(`Runtime dependency check: ${summary}`);
+      }
+    }
   }
 
   private cleanStaleRuntimeDlls(targetDirectory: string, runtimeSources: Map<string, string>): void {
@@ -2138,6 +2678,24 @@ function writeRuntimeDeployManifest(targetDirectory: string, dllNames: string[])
   }
 }
 
+function mergeRuntimeDeployManifest(targetDirectory: string, dllNames: string[]): void {
+  const existing = [...readRuntimeDeployManifest(targetDirectory)];
+  writeRuntimeDeployManifest(targetDirectory, [...existing, ...dllNames]);
+}
+
+function isWindowsSystemImport(name: string): boolean {
+  const lower = path.basename(name).toLowerCase();
+  return /^(?:api-ms-win-|ext-ms-)/.test(lower) || WINDOWS_SYSTEM_DLLS.has(lower);
+}
+
+function linkageModeLabel(value: CpmLinkageMode): string {
+  return value === 'static'
+    ? 'Fully static when available'
+    : value === 'static-runtime'
+      ? 'Static compiler runtime'
+      : 'Dynamic';
+}
+
 function readImportedDllNames(filePath: string): string[] {
   const fromPe = readPeImportedDllNames(filePath);
   if (fromPe.length > 0) {
@@ -2266,10 +2824,88 @@ function shouldCopyRuntimeDll(sourcePath: string, destinationPath: string): bool
   }
 }
 
+function escapeIncludePath(filePath: string): string { return path.resolve(filePath).replace(/\\/g, '/').replace(/"/g, '\"'); }
 function isCSource(filePath: string): boolean { return path.extname(filePath).toLowerCase() === '.c'; }
 function isSource(filePath: string): boolean { return /\.(?:c|cc|cpp|cxx)$/i.test(filePath); }
 function isHeader(filePath: string): boolean { return /\.(?:h|hh|hpp|hxx)$/i.test(filePath); }
 function isLibrary(filePath: string): boolean { return /\.(?:a|lib)$/i.test(filePath); }
+function writeTextFileIfChanged(filePath: string, content: string): void {
+  try {
+    if (fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf8') === content) return;
+  } catch { /* rewrite below */ }
+  fs.writeFileSync(filePath, content, 'utf8');
+}
+
+export function dependencyPathForObject(objectPath: string): string {
+  return `${objectPath}.d`;
+}
+
+/** Parse a GCC/Clang Makefile dependency file generated by -MMD/-MF. */
+export function readGnuDependencyFile(dependencyPath: string, workingDirectory = path.dirname(dependencyPath)): string[] {
+  try {
+    const content = fs.readFileSync(dependencyPath, 'utf8').replace(/\\\r?\n/g, ' ');
+    // -MP appends phony header targets on following lines. Only the first
+    // dependency rule belongs to the object being inspected.
+    const firstRule = content.split(/\r?\n/, 1)[0] ?? '';
+    const separator = firstRule.search(/:\s/);
+    if (separator < 0) return [];
+    const body = firstRule.slice(separator + 1).trim();
+    const tokens: string[] = [];
+    let current = '';
+    let escaping = false;
+    for (const char of body) {
+      if (escaping) {
+        if (/\s/.test(char) || char === '\\' || char === '#' || char === ':') current += char;
+        else current += `\\${char}`;
+        escaping = false;
+      } else if (char === '\\') {
+        escaping = true;
+      } else if (/\s/.test(char)) {
+        if (current) { tokens.push(current); current = ''; }
+      } else {
+        current += char;
+      }
+    }
+    if (escaping) current += '\\';
+    if (current) tokens.push(current);
+    return unique(tokens.filter(Boolean).map((entry) => path.isAbsolute(entry) || /^[A-Za-z]:[\\/]/.test(entry) ? path.normalize(entry) : path.resolve(workingDirectory, entry)));
+  } catch {
+    return [];
+  }
+}
+
+export function sourceNeedsCompilation(sourcePath: string, objectPath: string, workingDirectory: string, rebuild = false): boolean {
+  if (rebuild || !fs.existsSync(objectPath)) return true;
+  const objectTime = fs.statSync(objectPath).mtimeMs;
+  if (!fs.existsSync(sourcePath) || fs.statSync(sourcePath).mtimeMs > objectTime) return true;
+  const dependencyPath = dependencyPathForObject(objectPath);
+  if (!fs.existsSync(dependencyPath)) return true;
+  const dependencies = readGnuDependencyFile(dependencyPath, workingDirectory);
+  if (dependencies.length === 0) return true;
+  return dependencies.some((dependency) => !fs.existsSync(dependency) || fs.statSync(dependency).mtimeMs > objectTime);
+}
+
+export async function runWithConcurrency<T>(items: readonly T[], concurrency: number, worker: (item: T, index: number) => Promise<boolean>): Promise<boolean> {
+  if (items.length === 0) return true;
+  const limit = Math.max(1, Math.min(Math.trunc(concurrency) || 1, items.length));
+  let nextIndex = 0;
+  let failed = false;
+  const runners = Array.from({ length: limit }, async () => {
+    while (!failed) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      try {
+        if (!await worker(items[index], index)) { failed = true; return; }
+      } catch {
+        failed = true;
+        return;
+      }
+    }
+  });
+  await Promise.all(runners);
+  return !failed;
+}
+
 function renderArgument(value: string): string { return /\s/.test(value) ? `"${value}"` : value; }
 function replaceExtension(filePath: string, extension: string): string { return path.join(path.dirname(filePath), `${path.basename(filePath, path.extname(filePath))}${extension}`); }
 function unique(values: string[]): string[] { return [...new Set(values.map((value) => value.trim()).filter(Boolean))]; }

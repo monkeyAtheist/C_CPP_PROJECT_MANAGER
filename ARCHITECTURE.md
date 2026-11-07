@@ -18,9 +18,11 @@ For multi-architecture SDL SDKs, include directory resolution now returns the pr
 - `src/model/cpmParser.ts`: compatibility parser for the existing `.cws/.prj` format. The class name is inherited, but it is used as the generic CPM project-file backend.
 - `src/services/cpmWorkspaceService.ts`: workspace lifecycle, active-project selection and project-tree file operations.
 - `src/services/cpmInstallationService.ts`: generic C/C++ toolchain discovery for GCC, MinGW, MSYS2, LLVM/Clang and manually added compiler roots.
-- `src/services/cpmBuildService.ts`: generic build pipeline based on `gcc`, `g++`, `ar` and `gdb`; handles build, rebuild, clean, run and VS Code `cppdbg` launch.
+- `src/services/cpmBuildService.ts`: orchestration layer for the direct GCC/Clang backend and the optional CMake backend; handles build, rebuild, clean, executable/DLL Run and Run Debug, optional direct PCH/Unity acceleration, and DLL debugging through a configured host executable (`Program name`).
+- `src/services/cpmCMakeService.ts`: CMake/Ninja backend, CMake File API query/reply parsing, target/artifact resolution, configure/build/clean commands, compiler/toolchain inheritance and CMake health reporting.
 - `src/services/cpmProjectSettingsService.ts`: project build actions, run options and build-order dependencies. Current files are stored in `.vscode/cpm-build.json`; legacy `.vscode/labwindows-cvi-build.json` is still readable for migration.
 - `src/services/cpmCppToolsService.ts`: optional Microsoft C/C++ IntelliSense synchronization and lightweight toolchain include-path discovery.
+- `src/services/cpmSymbolService.ts`: local C/C++ File Symbols scanner plus CPM supplemental completion and Signature Help providers controlled by autocompletion profiles.
 - `src/services/cpmTemplateService.ts`: C/C++ starter files, snippets, DLL helpers, error/logging modules and CPM_Utility bundle integration.
 - `src/services/cpmColorValueService.ts`: editor context-menu color picker webview and color value insertion/copy helpers.
 - `src/services/cpmLibraryPackService.ts`: embedded JC Lib / CPM library-pack seeding and migration.
@@ -53,10 +55,20 @@ Adding a file appends a new project file section and records its path. Removing,
 Build / Rebuild / Clean
   -> resolve active project and dependency order
   -> run pre-build actions
-  -> compile C sources with gcc or configured C compiler
-  -> compile C++ sources with g++ or configured C++ compiler
-  -> link executable / shared library with g++
-  -> archive static library with ar
+  -> select project backend
+
+Direct GCC/Clang
+  -> optionally generate/rebuild C/C++ precompiled headers (.gch)
+  -> optionally group source files into generated Unity Build translation units
+  -> compile C/C++ units with gcc/g++ or configured compilers
+  -> link executable/shared library or archive static library
+
+CMake / Ninja
+  -> write CMake File API codemodel query
+  -> cmake -S <source> -B <build> [generator/toolchain/cache]
+  -> cmake --build <build> [--config Debug/Release] [--parallel N] [--target ...]
+  -> read File API codemodel target artifacts
+
   -> run post-build actions
 ```
 
@@ -75,6 +87,11 @@ These settings can be edited from the CPM build-settings page. Per-project run a
 ## Debug pipeline
 
 ```text
+Run Debug (without build)
+  -> resolve the existing target for the active build mode
+  -> validate executable / DLL host and runtime environment
+  -> launch cppdbg/GDB immediately
+
 Build & Debug
   -> force or keep a debug build mode
   -> build the active executable
@@ -132,6 +149,11 @@ docs/history/
 
 The template service now treats documentation as part of the bundle payload. Internal generators for CPM C/C++ core utilities, error handling, Python execution and Web UI backend prepend Doxygen-style header examples and source-level implementation comments. Static MY_Util bundle assets under `data/templates/my_util/MY_Util` are also enriched before packaging, so copied C and C++ modules retain usage examples and source documentation when inserted into a project.
 
+
+## DLL host run/debug
+
+Executable targets run their generated `.exe` directly. Dynamic-link-library targets cannot execute by themselves, so their Run & Debug configuration stores `run.externalProcessPath` as **Program name**: the host `.exe` that loads the DLL. Relative Program name and working-directory values are resolved from the project directory. The same arguments and environment settings are reused by normal Run and GDB/cppdbg Debug. Runtime PATH construction includes both the host directory and the built DLL directory so compiler/SDL runtime dependencies remain discoverable. Static libraries are deliberately rejected by Run/Debug.
+
 ## Runtime deployment and OneDrive fallback
 
 CPM prepends the selected toolchain bin directory to the Run/Debug process PATH and can deploy common toolchain runtime DLLs beside generated targets. When a OneDrive-hosted project refuses object-directory creation with EPERM/EACCES/EBUSY, CPM can fall back to a local object cache under the user profile while keeping the final target path unchanged.
@@ -188,10 +210,24 @@ The SDL integration is split into three areas:
 
 The integration remains optional. `cpm.sdlEnabled = auto` only activates SDL flags for projects whose sources visibly use SDL, while `on` forces SDL flags for the active build.
 
-## Generic toolchain runtime dependency handling
+## Linkage and runtime dependency handling
 
-The build service resolves `cpm.runtimeDependencyMode` after compiler settings are loaded. `copy-dlls` indexes the selected toolchain `bin` directories, reads the generated PE import table and deploys CPM-managed runtime DLLs beside executable/DLL targets. This covers common GCC/MinGW/MSYS2 runtimes and LLVM/Clang runtimes. Copied DLLs are recorded in `.cpm-runtime-dlls.json` so stale or architecture-mismatched copies can be cleaned safely. `path-only` leaves the output directory untouched and relies on the run/debug environment builder to prepend the toolchain `bin` directory to `PATH`. `static-link` adds GCC/Clang static runtime link flags before the target is linked; it is intentionally best-effort because third-party import libraries may still require dynamic DLLs.
+From v0.2.73, **linkage** is a per-project build decision and is distinct from dynamic-runtime deployment. `CpmProjectBuildSettings.linkageMode` accepts `dynamic`, `static-runtime` and `static`. Dynamic mode keeps the normal import-library model. Static-runtime mode uses GCC/MinGW runtime-static flags (`-static-libgcc`, `-static-libstdc++` and static winpthread when resolvable) without forcing third-party libraries static. Fully-static mode adds the global `-static` request and forces the SDL planner to use static archives. Static-library targets remain archive-only and do not use these executable/DLL linkage modes.
 
+After a successful EXE/DLL link, the build service reads the generated PE import table. Windows/API-set imports are classified as operating-system dependencies; remaining imports are reported as external runtime dependencies. Full-static mode therefore verifies the result instead of assuming that `-static` made every dependency standalone. A third-party import remains when no compatible static archive exists or its dependency chain cannot be linked statically.
+
+`cpm.runtimeDependencyMode` remains the dynamic deployment strategy. `copy-dlls` indexes the selected toolchain `bin` directories and deploys CPM-managed runtime DLLs beside dynamically linked targets; copied names are tracked in `.cpm-runtime-dlls.json`. `path-only` leaves the output directory untouched and relies on the Run/Debug environment `PATH`. The historical `static-link` configuration value is retained only for migration into the project linkage model. Static linkage modes disable compiler-runtime DLL deployment, and fully-static mode also cleans previously copied SDL runtime DLLs.
+
+
+### Incremental build engine (0.2.74)
+
+The direct GCC/MinGW/Clang pipeline now generates one Make-style dependency file beside each object (`<object>.d`) using `-MMD -MP -MF -MT`. `sourceNeedsCompilation()` compares the object timestamp against the source and the exact non-system dependency graph parsed from that file. Missing or unreadable dependency metadata deliberately causes a safe recompile. Relative dependency entries are resolved from the project working directory; Make escaping, continued lines and `-MP` phony targets are handled by the parser.
+
+Compilation is scheduled through a bounded worker pool. `CpmProjectBuildSettings.parallelJobs` is stored per project/configuration; zero maps to the host logical CPU count and one restores sequential behavior. Object-file ordering remains derived from the source plan rather than completion order, so link determinism is preserved.
+
+`CpmProjectBuildSettings.useResponseFiles` enables automatic GNU response-file fallback. The normal command line is retained until it approaches the platform safety threshold, then `cpm_link.rsp` is written in the object directory and the linker is invoked with `@response-file`. Windows paths are normalized to GNU-friendly forward slashes before serialization.
+
+Clean/Rebuild uses `cpmBuildCleanup.ts`. The build-mode directory is atomically renamed to a hidden pending-clean directory and removed with retry/backoff. If rename is unavailable, CPM cleans in place. This isolates newly created build outputs from stale handles held by file watchers, antivirus software or synchronization clients.
 
 ### Build parameter import/export
 
@@ -275,3 +311,52 @@ For SDL targets, CPM can also generate `cpm_application_icon_autoload.h/.c` in t
 
 CPM now ships the cleaned JC Lib 0.8.38 Lua catalog and the LabWindows/CVI structured API catalog in addition to the curated C/C++-oriented packs. CVI remains a dedicated `CVI` environment. Activation runs a one-way global-storage migration before loading packs so retired catalog files, environments and libraries from older installations do not survive an update.
 
+
+## IntelliSense and autocompletion
+
+Microsoft C/C++ (or another installed C/C++ language provider) can remain the primary semantic IntelliSense engine. CPM adds an independent supplemental provider whose participation is selected through `cpm.autocompleteProfile`: `hybrid`, `native`, `nativeSignature`, `standardAssist`, or `custom`. Hybrid contributes active-project function symbols, lightweight standard-library fallbacks and immediate Signature Help; Native withdraws all CPM completion/signature contributions without changing the external provider; Native + Signature keeps only CPM parameter hints; Standard Library Assist leaves project completion native while providing missing-header fallback entries; Custom exposes the individual switches.
+
+The lightweight standard-library fallback is suppressed once the matching header is already included, avoiding duplicate entries from cpptools. When enabled, `cpm.standardLibraryCompletionAutoInclude` can add the required standard header when a fallback completion is accepted. Signature Help is derived from project declarations/definitions (preferring headers when available) and from the same standard-library signature catalog.
+
+## Project Health / Repair — 0.2.75
+
+`CpmProjectHealthProvider` is a read-only diagnostic layer over the existing CPM workspace, parser, build, toolchain, project-settings and IntelliSense services. It intentionally does not duplicate build or mutation logic. Each finding points to the existing command that owns the corresponding repair or configuration operation.
+
+The health view checks the active project/workspace, native `.cws` compatibility, registered files, build dependency order/cycles, required compiler/archiver/debugger executables, obvious 32/64-bit toolchain mismatches, include/library search paths, parallel/response-file build-engine configuration, linkage/runtime DLL state, DLL host program configuration, built-target availability, IntelliSense synchronization/provider state and configured application-icon files.
+
+`Repair Project Health...` lists only non-OK findings that expose a repair command. Repairs remain explicit: toolchain selection, IntelliSense synchronization/provider cleanup, workspace compatibility repair, build-setting edits and runtime-dependency inspection are invoked through their normal CPM commands rather than being applied silently by the provider.
+
+## External dependency management — 0.2.76
+
+`CpmDependencyService` owns project-scoped vcpkg, Conan 2 and pkg-config/pkgconf discovery, manifest generation, synchronization and normalized direct-build integration. Configuration is persisted through `CpmProjectSettingsService` in the `externalDependencies` block of `.vscode/cpm-build.json`.
+
+The normalized model lives in `CpmDependencyIntegration` and is written to `.cpm/dependencies/integration.json` by default. It contains only backend-neutral data required by CPM's direct compiler pipeline: include directories, library directories, libraries, compiler flags, linker flags and environment additions.
+
+Build flow:
+
+```text
+CpmBuildService.build()
+  -> dependency build order
+  -> CpmDependencyService.prepareForBuild(project)
+       -> optional manager install/sync
+       -> generate/read integration.json
+  -> compileArguments() merges dependency include dirs + compiler flags
+  -> linkArtifacts() merges dependency library dirs + libraries + linker flags
+```
+
+`CpmDependencyProvider` exposes the state in the **C/C++ Dependencies** tree. `CpmProjectHealthProvider` consumes the current dependency status for missing-tool / needs-sync diagnostics. `CpmCppToolsService` receives dependency include paths through an external include-path provider so headers installed by package managers are visible to Microsoft C/C++ IntelliSense.
+
+The service deliberately does not make CMake a prerequisite. Conan still generates CMake metadata for interoperability, but CPM's own direct build consumes pkg-config/manual integration data instead.
+
+
+## Remote Linux / Raspberry Pi — 0.2.77
+
+`CpmRemoteLinuxService` owns the project-scoped remote workflow. `CpmProjectSettingsService.remoteLinux` persists the SSH endpoint, transfer tools, remote paths/toolchain, remote-only build flags/libraries/pkg-config packages, run overrides and gdbserver configuration in `.vscode/cpm-build.json`.
+
+Synchronization prefers `rsync` and falls back to `scp`. Before transfer, CPM generates `.cpm/remote/cpm_remote_build.sh` for the active project when no custom remote build command is configured. The direct script compiles project-contained C/C++ sources with remote GCC/G++, emits Linux-native executable/`.so`/`.a` targets, and maps project-relative include/library paths through `$PROJECT_DIR`. Absolute host-specific paths outside the project are skipped and logged rather than copied into a Linux command line.
+
+`CpmRemoteLinuxProvider` exposes the workflow in the **C/C++ Remote Linux** tree. `cpmSshDeviceManager.ts` provides the generic OpenSSH alias/key manager reused from the QPM/JC Lib design while keeping private keys under OpenSSH ownership.
+
+Remote Run reuses CPM's existing output-mode semantics. Remote Debug builds the target, optionally starts `gdbserver`, resolves absolute remote project/target paths, and starts `cppdbg` with SSH `pipeTransport`, remote GDB, `miDebuggerServerAddress=127.0.0.1:<port>` and `sourceFileMap` back to the local project. This architecture lets a Windows CPM host debug ARM/AArch64 Raspberry Pi programs without requiring a matching local cross-GDB.
+
+`CpmProjectHealthProvider` consumes the remote service status for endpoint/tool diagnostics and repair navigation. The generated direct remote build is intentionally project-local; complex multi-project/workspace builds or platform-specific systems can use the custom remote build/run command hooks.

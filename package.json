@@ -2,7 +2,7 @@
     "name": "c-cpp-project-manager-and-build",
     "displayName": "C/C++ Project Manager and Build",
     "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-    "version": "0.2.71",
+    "version": "0.2.79",
     "publisher": "JerryCrozet-ElectronicEngineer",
     "license": "MIT",
     "engines": {
@@ -22,6 +22,7 @@
         "Workspace"
     ],
     "activationEvents": [
+        "onCommand:cpm.selectAutocompleteProfile",
         "onView:cpm.quickActions",
         "onView:cpm.workspaceExplorer",
         "onCommand:cpm.openHome",
@@ -84,7 +85,35 @@
         "onCommand:cpm.copyFileSymbolDeclarations",
         "onCommand:cpm.exportFileSymbols",
         "onCommand:cpm.generateFileSymbolsHeader",
-        "onCommand:cpm.generateFileSymbolsSource"
+        "onCommand:cpm.generateFileSymbolsSource",
+        "onCommand:cpm.selectLinkageMode",
+        "onCommand:cpm.inspectRuntimeDependencies",
+        "onView:cpm.projectHealth",
+        "onCommand:cpm.refreshProjectHealth",
+        "onCommand:cpm.openProjectHealthReport",
+        "onCommand:cpm.repairProjectHealth",
+        "onView:cpm.dependencies",
+        "onCommand:cpm.dependencies.configure",
+        "onCommand:cpm.dependencies.detectTools",
+        "onCommand:cpm.dependencies.generateManifests",
+        "onCommand:cpm.dependencies.install",
+        "onCommand:cpm.dependencies.openReport",
+        "onCommand:cpm.dependencies.revealOutput",
+        "onCommand:cpm.dependencies.clean",
+        "onView:cpm.remoteLinux",
+        "onCommand:cpm.openSshDeviceManager",
+        "onCommand:cpm.remote.configure",
+        "onCommand:cpm.remote.testConnection",
+        "onCommand:cpm.remote.sync",
+        "onCommand:cpm.remote.build",
+        "onCommand:cpm.remote.run",
+        "onCommand:cpm.remote.buildRun",
+        "onCommand:cpm.remote.debug",
+        "onCommand:cpm.remote.openTerminal",
+        "onCommand:cpm.remote.openReport",
+        "onCommand:cpm.selectBuildBackend",
+        "onCommand:cpm.cmake.configure",
+        "onCommand:cpm.cmake.openReport"
     ],
     "main": "./out/extension.js",
     "scripts": {
@@ -94,7 +123,7 @@
         "package": "vsce package",
         "package:marketplace": "vsce package --allow-missing-repository",
         "publish:marketplace": "vsce publish --allow-missing-repository",
-        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.71.vsix",
+        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.79.vsix",
         "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
     },
     "contributes": {
@@ -120,6 +149,24 @@
                     "name": "C/C++ Actions",
                     "contextualTitle": "C/C++ Actions",
                     "visibility": "visible",
+                    "showCollapseAll": false
+                },
+                {
+                    "id": "cpm.dependencies",
+                    "name": "C/C++ Dependencies",
+                    "contextualTitle": "C/C++ Dependencies",
+                    "showCollapseAll": false
+                },
+                {
+                    "id": "cpm.remoteLinux",
+                    "name": "C/C++ Remote Linux",
+                    "contextualTitle": "C/C++ Remote Linux",
+                    "showCollapseAll": false
+                },
+                {
+                    "id": "cpm.projectHealth",
+                    "name": "C/C++ Project Health",
+                    "contextualTitle": "C/C++ Project Health",
                     "showCollapseAll": false
                 },
                 {
@@ -165,6 +212,11 @@
             {
                 "command": "cpm.configureInstallation",
                 "title": "C/C++ Project Manager: Detect / Select Toolchain",
+                "icon": "$(settings-gear)"
+            },
+            {
+                "command": "cpm.selectAutocompleteProfile",
+                "title": "C/C++ Project Manager: Select Autocompletion Profile",
                 "icon": "$(settings-gear)"
             },
             {
@@ -371,6 +423,18 @@
             {
                 "command": "cpm.collapseAll",
                 "title": "Collapse All"
+            },
+            {
+                "command": "cpm.runDebug",
+                "title": "C/C++ Project Manager: Run Debug",
+                "category": "C/C++ Project Manager",
+                "icon": "$(debug-start)"
+            },
+            {
+                "command": "cpm.runDebugProject",
+                "title": "Run Debug",
+                "category": "C/C++ Project Manager",
+                "icon": "$(debug-start)"
             },
             {
                 "command": "cpm.debugWithGdb",
@@ -751,6 +815,134 @@
                 "title": "Generate Source From File Symbols...",
                 "category": "C/C++ Project Manager",
                 "icon": "$(new-file)"
+            },
+            {
+                "command": "cpm.selectLinkageMode",
+                "title": "C/C++ Project Manager: Select Linkage Mode",
+                "icon": "$(link)"
+            },
+            {
+                "command": "cpm.inspectRuntimeDependencies",
+                "title": "C/C++ Project Manager: Inspect Built Runtime DLL Dependencies",
+                "icon": "$(search)"
+            },
+            {
+                "command": "cpm.refreshProjectHealth",
+                "title": "C/C++ Project Manager: Refresh Project Health",
+                "icon": "$(refresh)"
+            },
+            {
+                "command": "cpm.openProjectHealthReport",
+                "title": "C/C++ Project Manager: Open Project Health Report",
+                "icon": "$(report)"
+            },
+            {
+                "command": "cpm.repairProjectHealth",
+                "title": "C/C++ Project Manager: Repair Project Health...",
+                "icon": "$(wrench)"
+            },
+            {
+                "command": "cpm.dependencies.configure",
+                "title": "C/C++ Project Manager: Configure Dependency Managers",
+                "icon": "$(settings-gear)"
+            },
+            {
+                "command": "cpm.dependencies.detectTools",
+                "title": "C/C++ Project Manager: Detect Dependency Tools",
+                "icon": "$(search)"
+            },
+            {
+                "command": "cpm.dependencies.generateManifests",
+                "title": "C/C++ Project Manager: Generate Dependency Manifests",
+                "icon": "$(file-code)"
+            },
+            {
+                "command": "cpm.dependencies.install",
+                "title": "C/C++ Project Manager: Install / Synchronize Dependencies",
+                "icon": "$(cloud-download)"
+            },
+            {
+                "command": "cpm.dependencies.openReport",
+                "title": "C/C++ Project Manager: Open Dependency Report",
+                "icon": "$(preview)"
+            },
+            {
+                "command": "cpm.dependencies.revealOutput",
+                "title": "C/C++ Project Manager: Reveal Dependency Output",
+                "icon": "$(folder-opened)"
+            },
+            {
+                "command": "cpm.dependencies.clean",
+                "title": "C/C++ Project Manager: Clean Dependency Output",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "cpm.openSshDeviceManager",
+                "title": "C/C++ Project Manager: OpenSSH Device Manager",
+                "icon": "$(remote-explorer)"
+            },
+            {
+                "command": "cpm.remote.configure",
+                "title": "C/C++ Project Manager: Configure Remote Linux / Raspberry Pi",
+                "icon": "$(settings-gear)"
+            },
+            {
+                "command": "cpm.remote.testConnection",
+                "title": "C/C++ Project Manager: Test Remote SSH Connection",
+                "icon": "$(plug)"
+            },
+            {
+                "command": "cpm.remote.sync",
+                "title": "C/C++ Project Manager: Synchronize Project to Remote Linux",
+                "icon": "$(sync)"
+            },
+            {
+                "command": "cpm.remote.build",
+                "title": "C/C++ Project Manager: Build on Remote Linux",
+                "icon": "$(tools)"
+            },
+            {
+                "command": "cpm.remote.run",
+                "title": "C/C++ Project Manager: Run on Remote Linux",
+                "icon": "$(run)"
+            },
+            {
+                "command": "cpm.remote.buildRun",
+                "title": "C/C++ Project Manager: Build and Run on Remote Linux",
+                "icon": "$(play)"
+            },
+            {
+                "command": "cpm.remote.debug",
+                "title": "C/C++ Project Manager: Debug on Remote Linux with gdbserver",
+                "icon": "$(debug-alt)"
+            },
+            {
+                "command": "cpm.remote.openTerminal",
+                "title": "C/C++ Project Manager: Open Remote SSH Terminal",
+                "icon": "$(terminal)"
+            },
+            {
+                "command": "cpm.remote.openReport",
+                "title": "C/C++ Project Manager: Open Remote Linux Report",
+                "icon": "$(preview)"
+            },
+            {
+                "command": "cpm.selectBuildBackend",
+                "title": "C/C++ Project Manager: Select Build Backend",
+                "category": "C/C++ Project Manager",
+                "icon": "$(gear)"
+            },
+            {
+                "command": "cpm.cmake.configure",
+                "title": "C/C++ Project Manager: Configure CMake Project",
+                "category": "C/C++ Project Manager",
+                "icon": "$(gear)"
+            },
+            {
+                "command": "cpm.cmake.openReport",
+                "title": "C/C++ Project Manager: Open CMake Backend Report",
+                "category": "C/C++ Project Manager",
+                "icon": "$(report)"
             }
         ],
         "menus": {
@@ -776,59 +968,64 @@
                     "group": "navigation@4"
                 },
                 {
+                    "command": "cpm.runDebug",
+                    "when": "view == cpm.workspaceExplorer && cpm.targetType != lib",
+                    "group": "navigation@5"
+                },
+                {
                     "command": "cpm.chooseRunAction",
                     "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@5"
+                    "group": "navigation@6"
                 },
                 {
                     "command": "cpm.selectBuildModeD32",
                     "when": "view == cpm.workspaceExplorer && cpm.buildMode == debug",
-                    "group": "navigation@6"
+                    "group": "navigation@7"
                 },
                 {
                     "command": "cpm.selectBuildModeR32",
                     "when": "view == cpm.workspaceExplorer && cpm.buildMode == release",
-                    "group": "navigation@6"
+                    "group": "navigation@7"
                 },
                 {
                     "command": "cpm.selectBuildModeD64",
                     "when": "view == cpm.workspaceExplorer && cpm.buildMode == debug64",
-                    "group": "navigation@6"
+                    "group": "navigation@7"
                 },
                 {
                     "command": "cpm.selectBuildModeR64",
                     "when": "view == cpm.workspaceExplorer && cpm.buildMode == release64",
-                    "group": "navigation@6"
+                    "group": "navigation@7"
                 },
                 {
                     "command": "cpm.selectTargetTypeEXE",
                     "when": "view == cpm.workspaceExplorer && cpm.targetType == exe",
-                    "group": "navigation@7"
+                    "group": "navigation@8"
                 },
                 {
                     "command": "cpm.selectTargetTypeDLL",
                     "when": "view == cpm.workspaceExplorer && cpm.targetType == dll",
-                    "group": "navigation@7"
+                    "group": "navigation@8"
                 },
                 {
                     "command": "cpm.selectTargetTypeLIB",
                     "when": "view == cpm.workspaceExplorer && cpm.targetType == lib",
-                    "group": "navigation@7"
+                    "group": "navigation@8"
                 },
                 {
                     "command": "cpm.editBuildSettings",
                     "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@8"
+                    "group": "navigation@9"
                 },
                 {
                     "command": "cpm.refresh",
                     "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@9"
+                    "group": "navigation@10"
                 },
                 {
                     "command": "cpm.configureSdl",
                     "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@8.5"
+                    "group": "navigation@9.5"
                 },
                 {
                     "command": "cpm.library.findFunction",
@@ -889,6 +1086,66 @@
                     "command": "cpm.generateFileSymbolsSource",
                     "when": "view == cpm.fileSymbols",
                     "group": "navigation@5"
+                },
+                {
+                    "command": "cpm.refreshProjectHealth",
+                    "when": "view == cpm.projectHealth",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "cpm.openProjectHealthReport",
+                    "when": "view == cpm.projectHealth",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "cpm.repairProjectHealth",
+                    "when": "view == cpm.projectHealth",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "cpm.dependencies.configure",
+                    "when": "view == cpm.dependencies",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "cpm.dependencies.install",
+                    "when": "view == cpm.dependencies",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "cpm.dependencies.detectTools",
+                    "when": "view == cpm.dependencies",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "cpm.remote.testConnection",
+                    "when": "view == cpm.remoteLinux",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "cpm.remote.sync",
+                    "when": "view == cpm.remoteLinux",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "cpm.remote.buildRun",
+                    "when": "view == cpm.remoteLinux",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "cpm.remote.debug",
+                    "when": "view == cpm.remoteLinux",
+                    "group": "navigation@4"
+                },
+                {
+                    "command": "cpm.remote.configure",
+                    "when": "view == cpm.remoteLinux",
+                    "group": "navigation@5"
+                },
+                {
+                    "command": "cpm.selectBuildBackend",
+                    "when": "view == cpm.workspaceExplorer",
+                    "group": "navigation@8.5"
                 }
             ],
             "view/item/context": [
@@ -1133,6 +1390,11 @@
                     "group": "navigation@5"
                 },
                 {
+                    "command": "cpm.runDebugProject",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "build@3.8"
+                },
+                {
                     "command": "cpm.debugProjectWithGdb",
                     "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
                     "group": "build@4"
@@ -1196,6 +1458,31 @@
                     "command": "cpm.copyFileSymbolDeclaration",
                     "when": "view == cpm.fileSymbols && viewItem == cpmFileSymbol",
                     "group": "clipboard@2"
+                },
+                {
+                    "command": "cpm.selectLinkageMode",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "settings@1.5"
+                },
+                {
+                    "command": "cpm.inspectRuntimeDependencies",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "build@3.5"
+                },
+                {
+                    "command": "cpm.remote.buildRun",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "remote@1"
+                },
+                {
+                    "command": "cpm.remote.debug",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "remote@2"
+                },
+                {
+                    "command": "cpm.remote.sync",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "remote@3"
                 }
             ],
             "commandPalette": [
@@ -1620,15 +1907,44 @@
                     },
                     "description": "Additional include directories appended to the generated C/C++ IntelliSense configuration."
                 },
+                "cpm.autocompleteProfile": {
+                    "type": "string",
+                    "enum": [
+                        "hybrid",
+                        "native",
+                        "nativeSignature",
+                        "standardAssist",
+                        "custom"
+                    ],
+                    "enumDescriptions": [
+                        "Hybrid: CPM adds active-project symbols, lightweight standard-library assistance and immediate Signature Help. Microsoft C/C++ or another native provider may also contribute results.",
+                        "Native: CPM contributes no completion items or Signature Help; Microsoft C/C++ (or another installed provider) remains untouched.",
+                        "Native + CPM Signature Help: completion stays native while CPM provides immediate prototypes and active-parameter hints after ( and ,.",
+                        "Standard Library Assist: project completion stays native; CPM adds missing-header standard-library completion plus immediate Signature Help.",
+                        "Custom: use the advanced CPM completion/signature switches below."
+                    ],
+                    "default": "hybrid",
+                    "description": "Select how CPM participates in C/C++ autocompletion. CPM never disables or rewrites another extension provider when switching profiles."
+                },
                 "cpm.enableSupplementalCompletionProvider": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "Provide supplemental completion items parsed from active project sources only. Disabled by default to leave completion fully managed by Microsoft C/C++ and avoid extra work while typing."
+                    "default": true,
+                    "description": "Custom profile only: master switch for the CPM supplemental C/C++ completion provider. It is scoped to files belonging to the active CPM workspace."
+                },
+                "cpm.enableSupplementalProjectCompletion": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Custom profile only: include functions discovered in the active CPM project sources and headers in CPM completion."
                 },
                 "cpm.enableStandardLibraryCompletionProvider": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Provide lightweight completion items for common C/C++ standard-library symbols only when the matching header is not already included. This avoids duplicates with Microsoft C/C++ IntelliSense while still allowing auto-include insertion before the header exists."
+                    "description": "Custom profile only: include lightweight completion items for common C/C++ standard-library symbols when the matching header is not already included."
+                },
+                "cpm.enableSupplementalSignatureHelp": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Custom profile only: show immediate parameter/signature help for project and standard-library functions after typing ( or , in CPM workspace files."
                 },
                 "cpm.standardLibraryCompletionAutoInclude": {
                     "type": "boolean",
@@ -1829,7 +2145,7 @@
                         "static-link"
                     ],
                     "default": "copy-dlls",
-                    "description": "Generic toolchain runtime dependency handling for normal C/C++ builds. copy-dlls copies detected GCC/MinGW/MSYS2 and LLVM/Clang runtime DLLs beside the target; path-only prepends the selected toolchain bin directory to PATH for CPM run/debug; static-link injects GCC/Clang static runtime link flags when supported by the toolchain."
+                    "description": "Dynamic-runtime deployment policy. copy-dlls copies detected GCC/MinGW/MSYS2 and LLVM/Clang runtime DLLs beside the target; path-only uses the selected toolchain through PATH. The legacy static-link value is still accepted for migration, but new static builds should use the per-project Linkage mode in CPM Build Settings."
                 },
                 "cpm.deployRuntimeDlls": {
                     "type": "string",

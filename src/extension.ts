@@ -3,6 +3,9 @@ import * as vscode from 'vscode';
 import { CpmParser } from './model/cpmParser';
 import { CpmTreeProvider, FileNode, FolderNode, ProjectNode } from './providers/cpmTreeProvider';
 import { CpmFileSymbolsProvider } from './providers/cpmFileSymbolsProvider';
+import { CpmProjectHealthProvider } from './providers/cpmProjectHealthProvider';
+import { CpmDependencyProvider } from './providers/cpmDependencyProvider';
+import { CpmRemoteLinuxProvider } from './providers/cpmRemoteLinuxProvider';
 import { CpmBuildService } from './services/cpmBuildService';
 import { CpmCppToolsService } from './services/cpmCppToolsService';
 import { CpmInstallationService } from './services/cpmInstallationService';
@@ -15,11 +18,15 @@ import { CpmProjectSettingsService } from './services/cpmProjectSettingsService'
 import { CpmSdlService } from './services/cpmSdlService';
 import { BuildSettingsPanel } from './views/buildSettingsPanel';
 import { QuickActionsView } from './views/quickActionsView';
-import { CpmCompletionProvider, CpmSourceSymbol, CpmSymbolService, isSourceOrHeader } from './services/cpmSymbolService';
+import { CpmAutocompleteProfile, CpmCompletionProvider, CpmSignatureHelpProvider, CpmSourceSymbol, CpmSymbolService, getCpmAutocompleteSettings, isSourceOrHeader } from './services/cpmSymbolService';
 import { CpmFunctionPanelService } from './services/cpmFunctionPanelService';
 import { CpmWorkspace } from './model/types';
 import { CpmColorValueService } from './services/cpmColorValueService';
 import { CpmEditorUtilitiesService } from './services/cpmEditorUtilitiesService';
+import { CpmDependencyService } from './services/cpmDependencyService';
+import { CpmRemoteLinuxService } from './services/cpmRemoteLinuxService';
+import { openSshDeviceManager } from './services/cpmSshDeviceManager';
+import { CpmCMakeService } from './services/cpmCMakeService';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
@@ -34,13 +41,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const sdl = new CpmSdlService(output);
   const workspaces = new CpmWorkspaceService(context, parser, installations, templates, sdl, output);
   const projectSettings = new CpmProjectSettingsService(workspaces, parser, output);
-  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output, buildTraceOutput, programOutput, buildDiagnostics);
+  const dependencies = new CpmDependencyService(workspaces, projectSettings, output);
+  const cmake = new CpmCMakeService(workspaces, projectSettings, output);
+  cppTools.setExternalIncludePathsProvider(() => { const ref = workspaces.activeProjectRef; return ref?.exists ? dependencies.getIntegration(ref).includeDirectories : []; });
+  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output, buildTraceOutput, programOutput, buildDiagnostics, dependencies, cmake);
+  const remoteLinux = new CpmRemoteLinuxService(workspaces, parser, projectSettings, builds, output, programOutput);
   const treeProvider = new CpmTreeProvider(workspaces);
   const treeView = vscode.window.createTreeView('cpm.workspaceExplorer', { treeDataProvider: treeProvider, dragAndDropController: treeProvider, showCollapseAll: true, canSelectMany: true });
   const symbols = new CpmSymbolService(context.extensionPath, workspaces);
   const fileSymbolsProvider = new CpmFileSymbolsProvider(symbols);
   const fileSymbolsView = vscode.window.createTreeView('cpm.fileSymbols', { treeDataProvider: fileSymbolsProvider });
   fileSymbolsProvider.attachView(fileSymbolsView);
+  const projectHealthProvider = new CpmProjectHealthProvider(workspaces, parser, installations, builds, projectSettings, cppTools, dependencies, remoteLinux, cmake);
+  const projectHealthView = vscode.window.createTreeView('cpm.projectHealth', { treeDataProvider: projectHealthProvider });
+  projectHealthProvider.attachView(projectHealthView);
+  const dependencyProvider = new CpmDependencyProvider(dependencies);
+  const dependencyView = vscode.window.createTreeView('cpm.dependencies', { treeDataProvider: dependencyProvider });
+  dependencyProvider.attachView(dependencyView);
+  const remoteLinuxProvider = new CpmRemoteLinuxProvider(remoteLinux);
+  const remoteLinuxView = vscode.window.createTreeView('cpm.remoteLinux', { treeDataProvider: remoteLinuxProvider });
+  remoteLinuxProvider.attachView(remoteLinuxView);
   const completionProvider = new CpmCompletionProvider(symbols);
   const functionPanels = new CpmFunctionPanelService();
   const colorValues = new CpmColorValueService();
@@ -48,6 +68,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const completionRegistration = vscode.languages.registerCompletionItemProvider(
     [{ language: 'c', scheme: 'file' }, { language: 'cpp', scheme: 'file' }],
     completionProvider
+  );
+  const signatureHelpProvider = new CpmSignatureHelpProvider(symbols);
+  const signatureHelpRegistration = vscode.languages.registerSignatureHelpProvider(
+    [{ language: 'c', scheme: 'file' }, { language: 'cpp', scheme: 'file' }],
+    signatureHelpProvider,
+    '(', ','
   );
   const home = new HomePanel(context, workspaces, builds, installations);
   const buildSettings = new BuildSettingsPanel(workspaces, parser, projectSettings);
@@ -60,9 +86,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     createStatusBarAction('$(tools)', 'Build / rebuild / clean the active C/C++ project', 'cpm.chooseBuildAction', 97),
     createStatusBarAction('$(play)', 'Build and run the active C/C++ target', 'cpm.run', 96),
     createStatusBarAction('$(list-selection)', 'Advanced C/C++ run options', 'cpm.chooseRunAction', 95),
-    createStatusBarAction('$(debug-alt-small)', 'Build and debug with GDB/cppdbg', 'cpm.debugWithGdb', 94.5),
+    createStatusBarAction('$(debug-start)', 'Run Debug without rebuilding', 'cpm.runDebug', 94.5),
     createStatusBarAction('D32', 'Select the C/C++ build mode', 'cpm.selectBuildMode', 94),
-    createStatusBarAction('EXE', 'Select the C/C++ target type', 'cpm.selectTargetType', 93)
+    createStatusBarAction('EXE', 'Select the C/C++ target type', 'cpm.selectTargetType', 93),
+    createStatusBarAction('DIR', 'Select build backend', 'cpm.selectBuildBackend', 92.5),
+    createStatusBarAction('DYN', 'Select C/C++ linkage mode', 'cpm.selectLinkageMode', 92)
   ];
 
   const updateToolbarContexts = (): void => {
@@ -71,23 +99,58 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const targetKey = targetType === 'Dynamic Link Library' ? 'dll' : targetType === 'Static Library' ? 'lib' : targetType === 'Executable' ? 'exe' : 'none';
     void vscode.commands.executeCommand('setContext', 'cpm.buildMode', builds.buildMode);
     void vscode.commands.executeCommand('setContext', 'cpm.targetType', targetKey);
+    void vscode.commands.executeCommand('setContext', 'cpm.linkageMode', builds.getLinkageMode());
+    void vscode.commands.executeCommand('setContext', 'cpm.buildBackend', activeRef?.exists ? projectSettings.getSettings(activeRef).buildBackend : 'direct');
   };
 
   const updateStatusBar = (): void => {
     const targetType = workspaces.activeProject?.targetType;
     const modeText = builds.buildMode === 'debug64' ? 'D64' : builds.buildMode === 'release64' ? 'R64' : builds.buildMode === 'release' ? 'REL' : 'DBG';
     const targetText = targetType === 'Dynamic Link Library' ? 'DLL' : targetType === 'Static Library' ? 'LIB' : targetType === 'Executable' ? 'EXE' : '---';
-    statusBarItems[5].text = '$(debug-alt-small) Debug';
-    statusBarItems[5].tooltip = 'Build and debug the active executable with VS Code cppdbg/GDB.';
+    statusBarItems[5].text = '$(debug-start) Debug';
+    statusBarItems[5].tooltip = 'Run the existing active executable, or DLL host, under VS Code cppdbg/GDB without rebuilding.';
     statusBarItems[6].text = modeText;
     statusBarItems[6].tooltip = `C/C++ build mode: ${modeText}. Click to change.`;
     statusBarItems[7].text = targetText;
     statusBarItems[7].tooltip = `C/C++ target type: ${targetText}. Click to change.`;
+    const backend = workspaces.activeProjectRef?.exists ? projectSettings.getSettings(workspaces.activeProjectRef).buildBackend : 'direct';
+    statusBarItems[8].text = backend === 'cmake' ? 'CMAKE' : 'DIR';
+    statusBarItems[8].tooltip = `C/C++ build backend: ${backend === 'cmake' ? 'CMake / Ninja' : 'Direct GCC / Clang'}. Click to change.`;
+    const linkageMode = builds.getLinkageMode();
+    statusBarItems[9].text = linkageMode === 'static' ? 'STA' : linkageMode === 'static-runtime' ? 'RTS' : 'DYN';
+    statusBarItems[9].tooltip = `C/C++ linkage: ${linkageMode === 'static' ? 'Fully static when available' : linkageMode === 'static-runtime' ? 'Static compiler runtime' : 'Dynamic'}. Click to change.`;
     const show = vscode.workspace.getConfiguration('cpm').get<boolean>('showPersistentStatusBarActions', true);
     for (const item of statusBarItems) {
       if (show) item.show(); else item.hide();
     }
     updateToolbarContexts();
+  };
+
+  const selectAutocompleteProfile = async (): Promise<void> => {
+    const current = getCpmAutocompleteSettings().profile;
+    const items: Array<vscode.QuickPickItem & { value: CpmAutocompleteProfile }> = [
+      { label: '$(combine) Hybrid', description: 'CPM + native C/C++ provider', detail: 'Project symbols + standard-library assist + immediate CPM Signature Help.', value: 'hybrid' },
+      { label: '$(symbol-method) Native', description: 'Native C/C++ provider only', detail: 'CPM withdraws its completion and Signature Help providers without changing Microsoft C/C++ settings.', value: 'native' },
+      { label: '$(info) Native + CPM Signature Help', description: 'Native completion, immediate parameter hints', detail: 'Avoid duplicate completion entries while keeping immediate parameter hints after ( and ,.', value: 'nativeSignature' },
+      { label: '$(library) Standard Library Assist', description: 'Native project completion + CPM standard-library fallback', detail: 'CPM contributes missing-header standard-library completion plus Signature Help.', value: 'standardAssist' },
+      { label: '$(settings-gear) Custom', description: 'Use advanced CPM completion toggles', detail: 'Uses project, standard-library and Signature Help switches from CPM settings.', value: 'custom' }
+    ];
+    const selected = await vscode.window.showQuickPick(items, {
+      title: 'C/C++ Project Manager Autocompletion Profile',
+      placeHolder: `Current profile: ${current}`
+    });
+    if (!selected) return;
+    const config = vscode.workspace.getConfiguration('cpm');
+    const target = vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
+    await config.update('autocompleteProfile', selected.value, target);
+    output.appendLine(`[C/C++] Autocompletion profile changed to ${selected.value}.`);
+    const action = await vscode.window.showInformationMessage(
+      `CPM autocompletion profile: ${selected.label.replace(/^\$\([^)]*\)\s*/, '')}`,
+      ...(selected.value === 'custom' ? ['Open Autocompletion Settings'] : [])
+    );
+    if (action === 'Open Autocompletion Settings') {
+      await vscode.commands.executeCommand('workbench.action.openSettings', 'cpm autocomplete');
+    }
   };
 
   const register = (command: string, handler: (...args: any[]) => unknown): vscode.Disposable => vscode.commands.registerCommand(command, async (...args: any[]) => {
@@ -107,6 +170,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   };
 
   const runGdbDebug = async (): Promise<boolean> => builds.debugWithGdb();
+  const runDebugWithoutBuild = async (): Promise<boolean> => builds.debugWithoutBuild();
 
   context.subscriptions.push(
     output,
@@ -122,7 +186,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     cppTools,
     treeView,
     fileSymbolsView,
+    projectHealthProvider,
+    projectHealthView,
+    dependencies,
+    dependencyProvider,
+    dependencyView,
+    remoteLinux,
+    remoteLinuxProvider,
+    remoteLinuxView,
     completionRegistration,
+    signatureHelpRegistration,
     ...statusBarItems,
     treeView.onDidChangeSelection((event) => {
       const selected = event.selection[0];
@@ -138,6 +211,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     workspaces.onDidChange(() => {
       symbols.invalidateProjectCache();
       fileSymbolsProvider.refresh();
+      projectHealthProvider.refresh();
+      dependencyProvider.refresh();
+      remoteLinuxProvider.refresh();
+      remoteLinux.refresh();
+      void dependencies.refresh();
       updateStatusBar();
       void scheduleOptionalCppToolsSync(cppTools, workspaces.currentWorkspace);
     }),
@@ -146,6 +224,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         updateStatusBar();
         home.update();
         quickActions.update();
+        projectHealthProvider.refresh();
+        dependencyProvider.refresh();
+        remoteLinuxProvider.refresh();
+        remoteLinux.refresh();
       }
       if (event.affectsConfiguration('cpm.activeInstallation') || event.affectsConfiguration('cpm.autoConfigureCppTools') || event.affectsConfiguration('cpm.autoAddCpmFolderToWorkspace') || event.affectsConfiguration('cpm.useCppToolsConfigurationProvider') || event.affectsConfiguration('cpm.intelliSenseCompilerPath') || event.affectsConfiguration('cpm.additionalIncludePaths') || event.affectsConfiguration('cpm.sdlRootPath') || event.affectsConfiguration('cpm.sdlEnabled') || event.affectsConfiguration('cpm.sdlPackages')) {
         void scheduleOptionalCppToolsSync(cppTools, workspaces.currentWorkspace);
@@ -156,6 +238,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.createWorkspaceProject', () => workspaces.createWorkspaceProject()),
     register('cpm.createSdlWorkspaceProject', () => workspaces.createSdlWorkspaceProject()),
     register('cpm.refresh', () => workspaces.refresh()),
+    register('cpm.refreshProjectHealth', () => projectHealthProvider.refresh()),
+    register('cpm.openProjectHealthReport', () => projectHealthProvider.openReport()),
+    register('cpm.repairProjectHealth', () => projectHealthProvider.repair()),
+    register('cpm.repairWorkspaceCompatibility', () => workspaces.repairNativeWorkspaceCompatibility()),
+    register('cpm.dependencies.configure', () => dependencies.configure()),
+    register('cpm.dependencies.detectTools', () => dependencies.detectTools()),
+    register('cpm.dependencies.generateManifests', () => dependencies.generateManifests()),
+    register('cpm.dependencies.install', () => dependencies.install()),
+    register('cpm.dependencies.openReport', () => dependencies.openReport()),
+    register('cpm.dependencies.revealOutput', () => dependencies.revealOutput()),
+    register('cpm.dependencies.clean', () => dependencies.clean()),
+    register('cpm.openSshDeviceManager', () => openSshDeviceManager(context)),
+    register('cpm.remote.configure', () => remoteLinux.configure()),
+    register('cpm.remote.testConnection', () => remoteLinux.testConnection()),
+    register('cpm.remote.sync', () => remoteLinux.syncProject()),
+    register('cpm.remote.build', () => remoteLinux.remoteBuild()),
+    register('cpm.remote.run', () => remoteLinux.remoteRun()),
+    register('cpm.remote.buildRun', () => remoteLinux.remoteBuildAndRun()),
+    register('cpm.remote.debug', () => remoteLinux.debugRemote()),
+    register('cpm.remote.openTerminal', () => remoteLinux.openTerminal()),
+    register('cpm.remote.openReport', () => remoteLinux.openReport()),
+
+    register('cpm.openActiveProjectFile', () => { const ref = workspaces.activeProjectRef; return ref?.exists ? workspaces.openPath(ref.absolutePath) : undefined; }),
     register('cpm.configureInstallation', async () => {
       const installation = await installations.selectInstallation(workspaces.currentWorkspace?.cpmDir);
       if (installation) {
@@ -169,6 +274,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       home.update();
       quickActions.update();
     }),
+    register('cpm.selectAutocompleteProfile', () => selectAutocompleteProfile()),
     register('cpm.syncCppTools', () => cppTools.sync(workspaces.currentWorkspace, true)),
     register('cpm.diagnoseCppTools', () => cppTools.diagnose(workspaces.currentWorkspace)),
     register('cpm.repairCppToolsProvider', () => cppTools.repairCppToolsProviderSelection(workspaces.currentWorkspace)),
@@ -179,6 +285,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.selectBuildModeR32', () => builds.selectBuildMode()),
     register('cpm.selectBuildModeD64', () => builds.selectBuildMode()),
     register('cpm.selectBuildModeR64', () => builds.selectBuildMode()),
+    register('cpm.selectBuildBackend', (node?: ProjectNode) => cmake.selectBackend(node?.ref)),
+    register('cpm.cmake.configure', (node?: ProjectNode) => cmake.configure(node?.ref, true)),
+    register('cpm.cmake.openReport', (node?: ProjectNode) => cmake.openReport(node?.ref)),
+    register('cpm.selectLinkageMode', (node?: ProjectNode) => builds.selectLinkageMode(node?.ref)),
+    register('cpm.inspectRuntimeDependencies', (node?: ProjectNode) => builds.inspectRuntimeDependencies(node?.ref)),
     register('cpm.chooseBuildAction', () => builds.chooseBuildAction()),
     register('cpm.showBuildProblems', () => builds.showBuildProblems()),
     register('cpm.showFullBuildTrace', () => builds.showFullBuildTrace()),
@@ -188,6 +299,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.run', () => builds.buildAndRun()),
     register('cpm.chooseRunAction', () => builds.chooseRunAction()),
     register('cpm.runWithoutBuild', () => builds.runWithoutBuild()),
+    register('cpm.runDebug', () => runDebugWithoutBuild()),
     register('cpm.debugWithGdb', () => runGdbDebug()),
     register('cpm.openWorkspaceFile', () => builds.openWorkspaceFile()),
     register('cpm.setActiveProject', (node?: ProjectNode) => workspaces.setActiveProject(node?.ref)),
@@ -201,6 +313,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.editBuildSettings', (node?: ProjectNode) => buildSettings.show(node?.ref)),
     register('cpm.editBuildSettingsSafeMode', (node?: ProjectNode) => buildSettings.showSafeMode(node?.ref)),
     register('cpm.executeProject', (node?: ProjectNode) => node ? builds.buildAndRun(node.ref) : undefined),
+    register('cpm.runDebugProject', async (node?: ProjectNode) => { if (node?.ref) await workspaces.setActiveProject(node.ref); return await runDebugWithoutBuild(); }),
     register('cpm.debugProjectWithGdb', async (node?: ProjectNode) => { if (node?.ref) await workspaces.setActiveProject(node.ref); return await runGdbDebug(); }),
     register('cpm.editProjectFile', (node?: ProjectNode) => node ? builds.openProjectFile(node.ref.absolutePath) : undefined),
     register('cpm.openProjectFile', (node?: ProjectNode) => node ? workspaces.openPath(node.ref.absolutePath) : undefined),

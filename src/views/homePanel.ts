@@ -143,7 +143,7 @@ function renderHtml(state: HomeState): string {
         <div class="actions project-actions">
           <button data-command="cpm.chooseBuildAction">Build / rebuild / clean</button>
           <button class="secondary" data-command="cpm.run">Build + run</button>
-          <button class="secondary" data-command="cpm.debugInCpm">Build + debug</button>
+          <button class="secondary" data-command="cpm.runDebug">Run debug</button><button class="secondary" data-command="cpm.debugWithGdb">Build + debug</button>
           <button class="secondary" data-command="cpm.chooseRunAction">Run options</button>
           <button class="secondary" data-command="cpm.selectBuildMode">Build mode</button>
           <button class="secondary" data-command="cpm.selectTargetType">Target type</button>
@@ -299,6 +299,8 @@ function renderHtml(state: HomeState): string {
         <button data-command="cpm.configureInstallation">Detect / select toolchain</button>
         <button class="secondary" data-command="cpm.syncCppTools">Sync IntelliSense</button>
         <button class="secondary" data-command="cpm.diagnoseCppTools">Diagnose IntelliSense</button>
+        <button class="secondary" data-command="cpm.openProjectHealthReport">Project Health</button>
+        <button class="secondary" data-command="cpm.repairProjectHealth">Repair Health</button>
         <button class="secondary" data-command="cpm.repairCppToolsProvider">Repair provider</button>
       </div>
     </article>

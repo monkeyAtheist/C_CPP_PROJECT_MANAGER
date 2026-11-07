@@ -1,5 +1,92 @@
 # Changelog
 
+## 0.2.79
+
+- Added a project-scoped **Build backend** selector with **Direct GCC/Clang** (existing CPM engine) and **CMake / Ninja**. Existing projects remain on the direct backend by default.
+- Added CMake settings for executable, generator, Ninja path, source/build directories, target, generator platform/toolset, toolchain file, cache variables and extra configure/build arguments.
+- Added `Configure CMake Project`, `Select Build Backend` and `Open CMake Backend Report` commands plus a DIR/CMAKE status-bar indicator.
+- Added CMake File API integration. CPM writes a client query before configure, reads the codemodel reply, discovers CMake targets/artifacts and reuses the resolved executable/shared/static-library artifact for Run and Debug.
+- Routed Build, Rebuild and Clean through `cmake --build` when the CMake backend is selected, including configurable parallel jobs, `--clean-first`, multi-config `--config`, and selected target support.
+- Added automatic generator-cache reset when the configured generator changes, and support for an explicit/custom Ninja executable through `CMAKE_MAKE_PROGRAM`.
+- Added optional inheritance of CPM C/C++ compiler paths and automatic dependency-manager toolchain reuse: explicit toolchain first, then Conan `conan_toolchain.cmake`, then vcpkg `scripts/buildsystems/vcpkg.cmake`.
+- Extended Project Health with CMake executable/Ninja/CMakeLists/cache/target/artifact checks. Direct-only PCH/Unity/link-engine settings are identified as CMake-managed when the backend is CMake.
+- Added real CMake 3/Ninja validation covering configure, File API discovery, build, artifact resolution and executable launch, while keeping all previous regression suites green.
+
+## 0.2.78
+
+- Added a dedicated **Run Debug** command and workspace-toolbar button using the VS Code `debug-start` icon. It launches the existing executable or configured DLL host directly under `cppdbg`/GDB without rebuilding.
+- Kept **Build & Debug** as a separate action. If Run Debug cannot find the binary for the active build mode it offers to fall back to Build & Debug.
+- Fixed stale Home/Quick Actions references to the removed `cpm.debugInCpm` command and exposed both Run Debug and Build & Debug explicitly.
+- Added project-scoped **Precompiled Headers (PCH)** for C and C++ independently. CPM generates wrapper headers and `.gch` artifacts inside the object directory, tracks nested PCH dependencies with `.d` files, and rebuilds the PCH only when required.
+- Added opt-in **Unity Build** with configurable batch size (2-128). CPM generates C and C++ unity translation units in the object directory, while existing GCC/Clang dependency tracking invalidates a unity unit whenever any included source/header changes.
+- Added Build Settings and safe-mode controls for PCH/Unity and surfaced their state in Project Health. Both accelerators are disabled by default to preserve existing build semantics.
+- Added real GCC/G++ validation covering a generated C++ PCH reused by a Unity translation unit, plus toolbar/debug and settings regression tests.
+
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
+
+## 0.2.76
+
+- Added project-scoped external dependency management inspired by QPM, with dedicated support for **vcpkg manifest mode**, **Conan 2**, and **pkg-config/pkgconf**.
+- Added a new **C/C++ Dependencies** tree view with tool detection, manifest generation, synchronization/install, report, reveal-output and clean actions.
+- Added a new **Packages** page in Project Build Settings covering manager enablement, auto-sync before build, vcpkg triplets/baselines/overlays, Conan profiles/options/lockfiles, pkg-config search paths/static mode and manual build-integration overrides.
+- Added normalized `.cpm/dependencies/integration.json` metadata. The direct GCC/Clang build now consumes dependency include directories, library directories, libraries, compiler flags and linker flags automatically.
+- Added automatic vcpkg triplet inference from the active CPM 32/64-bit build mode; fully-static Windows linkage defaults to the matching `-static` triplet when no explicit triplet is configured.
+- Added Conan manifest generation with `PkgConfigDeps`, `CMakeDeps`, `CMakeToolchain` and `cmake_layout`. Conan generator folders are automatically appended to pkg-config search paths for direct-build metadata resolution.
+- Added pkg-config flag parsing for `-I`, `-isystem`, `-L`, `-l`, defines, compiler flags, pthread and linker flags, including optional `--static`.
+- Added dependency preparation to normal builds and single-file compilation. Optional auto-install runs enabled package managers before the build; otherwise CPM generates/uses the normalized integration metadata.
+- Integrated dependency include directories into the managed Microsoft C/C++ IntelliSense configuration.
+- Extended Project Health with external dependency-manager state, missing-tool detection and repair/navigation actions.
+- Added regression coverage for manifest generation, pkg-config parsing, build integration, settings UI and IntelliSense integration.
+
+## 0.2.75
+
+- Added a QPM-inspired **C/C++ Project Health** view with read-only checks for project/workspace integrity, files, dependency order, compiler toolchain, architecture, include/library paths, build engine, linkage, runtime DLLs, run/debug readiness, IntelliSense and configured icons.
+- Added **Refresh Project Health**, **Open Project Health Report**, and **Repair Project Health...** commands. The repair picker routes each finding to the existing CPM command that owns the change instead of mutating project settings silently.
+- Added workspace compatibility repair to Project Health and exposed the existing native `.cws` repair path through a command.
+- Added build and IntelliSense health snapshots so the diagnostic view uses the same resolved target paths, linkage state, runtime imports and managed C/C++ configuration as the real build/services.
+- Added Project Health shortcuts to the Home panel and C/C++ Actions view.
+- Added regression coverage for healthy projects, missing registered files, DLL host errors, stale IntelliSense provider state, static-link DLL leftovers and obvious architecture mismatches.
+
+## 0.2.74
+
+- Ported the generic QPM build-engine improvements to CPM: exact GCC/Clang dependency tracking, configurable parallel compilation, GNU linker response files and robust Windows cleanup.
+- Every C/C++ compile now emits an adjacent `.d` dependency file with `-MMD -MP -MF`. Incremental builds recompile a source when its own file or any actually included non-system header is newer, missing, or when dependency metadata is unavailable.
+- Added per-project **Parallel jobs** (`0 = automatic logical CPU count`, `1 = sequential`, up to 256) and a **Use GNU response files** option to the Build settings page and safe-mode editor.
+- Compilation jobs now run concurrently while preserving the deterministic object-file order used by the linker. A failed compile stops scheduling new work and skips the link step.
+- Long GNU/MinGW linker command lines automatically switch to `cpm_link.rsp` (24,000-character safety threshold on Windows; 100,000 on POSIX). Small links keep normal arguments.
+- Reworked Clean/Rebuild to use atomic directory rename plus retry/backoff where possible, with an in-place fallback for Windows `EPERM`, `EACCES`, `EBUSY` and `ENOTEMPTY` conditions. The whole build-mode directory is cleaned, including objects, `.d` files, response files and generated helpers.
+- Avoided rewriting unchanged generated SDL icon helper files, preventing the new dependency tracker from forcing unnecessary recompilation.
+
+## 0.2.73
+
+- Added explicit per-project **Linkage** modes inspired by QPM: **Dynamic**, **Static compiler runtime**, and **Fully static when available**.
+- Static compiler-runtime mode adds GCC/MinGW static runtime flags without forcing third-party libraries static; fully-static mode adds the global static link request and forces SDL packages to their static archives when available.
+- Added `C/C++ Project Manager: Select Linkage Mode`, a DYN/RTS/STA status-bar indicator, and `Inspect Built Runtime DLL Dependencies`.
+- Added post-link PE import inspection. CPM now separates normal Windows system DLL imports from remaining third-party/runtime DLL dependencies and warns when a supposedly standalone build still imports external DLLs.
+- Switching to a static mode stops CPM from copying toolchain runtime DLLs; fully-static builds also remove previously deployed SDL runtime DLLs so stale files do not make a static build look dynamic.
+- Kept the historical workspace `static-link` runtime-deployment value as a migration path, but new builds store linkage explicitly in the project settings.
+- Audited QPM 0.34.11 for generic features that can strengthen CPM. The highest-value future ports are exact `.d` dependency tracking, parallel compilation, GNU linker response files, robust Windows build cleanup, project-health/repair diagnostics, dependency managers and Remote Linux/Raspberry Pi build/debug support.
+
+## 0.2.72
+
+- Added LabWindows/CVI-style DLL host execution: DLL projects now use an editable **Program name** executable plus command-line arguments, working directory and environment options.
+- Run / Build and Run can launch a DLL through its configured host executable; relative Program name and working-directory paths are resolved from the project directory.
+- GDB/cppdbg debugging now supports DLL projects by building the DLL and launching the configured host executable under the debugger. Static libraries remain non-runnable.
+- Added advanced autocompletion profiles inspired by the CVI extension: **Hybrid**, **Native**, **Native + CPM Signature Help**, **Standard Library Assist**, and **Custom**.
+- Added configurable project-symbol completion, standard-library fallback completion, immediate Signature Help, and the existing standard-header auto-include behavior to the new Autocompletion settings page.
+- Added `C/C++ Project Manager: Select Autocompletion Profile` and exposed all profile controls in VS Code settings and CPM Build Settings. Legacy completion booleans are preserved through automatic Custom-profile compatibility.
+
 ## 0.2.71
 
 - Fixed File Symbols false positives inside C++ overloaded-operator bodies.
@@ -86,6 +173,19 @@
 - Added marketplace-oriented package/publish scripts and documentation notes recommending VSIX size reduction over relying on request-timeout changes.
 
 # Changelog
+
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
 
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.
@@ -361,6 +461,19 @@
 
 # Changelog
 
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
+
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.
 - Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
@@ -493,6 +606,19 @@
 
 # Changelog
 
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
+
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.
 - Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
@@ -620,6 +746,19 @@
 
 # Changelog
 
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
+
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.
 - Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
@@ -659,6 +798,19 @@
 
 # Changelog
 
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
+
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.
 - Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
@@ -692,6 +844,19 @@
 - Reordered the sidebar so CVI Workspace appears before the collapsible CVI Actions summary.
 
 # Changelog
+
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
 
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.
@@ -746,6 +911,19 @@
 
 # Changelog
 
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
+
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.
 - Files can now be moved to another CPM logical folder from the file context menu with `Move File To Folder...`.
@@ -770,6 +948,19 @@
 - Adds the 128 × 128 Marketplace icon.
 
 # Changelog
+
+## 0.2.77
+
+- Added project-scoped **Remote Linux / Raspberry Pi** support inspired by QPM: OpenSSH endpoint configuration, project synchronization, remote GCC/G++ build, remote run and `gdbserver` debugging.
+- Added a native **C/C++ Remote Linux** tree view plus commands for connection testing, synchronization, remote build/run/debug, SSH terminal, report and configuration.
+- Ported the OpenSSH Device Manager so CPM can manage `~/.ssh/config` aliases, inspect hosts/neighbours, generate Ed25519 keys and enroll public keys without storing private-key material in CPM.
+- Added a dedicated **Remote Linux** page to Project Build Settings with SSH/SCP/rsync tools, remote directories/toolchain, portable build flags, pkg-config packages, environment variables and optional custom build/run commands.
+- Added CPM-generated `.cpm/remote/cpm_remote_build.sh` for direct Linux builds. Project-relative source/include/library paths are mapped to the remote project; non-portable absolute Windows paths are deliberately skipped and reported.
+- Remote direct builds produce native Linux executables, `.so` shared libraries or `.a` static libraries and reuse CPM standards, defines, warnings, optimization/debug settings and linkage mode where portable.
+- Remote Run follows the existing CPM output mode: integrated SSH terminal for interactive programs, Program Output capture for non-interactive stdout/stderr, or detached `nohup` execution.
+- Remote Debug can start `gdbserver` and launches Microsoft C/C++ `cppdbg` with SSH `pipeTransport`, remote GDB and automatic remote-to-local source mapping, avoiding a local cross-architecture GDB requirement.
+- Extended Project Health and C/C++ Actions with Remote Linux status and repair/navigation actions.
+- Added regression coverage for remote script generation, Windows-path filtering, Linux target naming, SSH/scp workflows, remote cppdbg configuration, settings, Project Health and SSH-device-manager integration.
 
 ## 0.2.61
 - Added logical file moves in the C/C++ Workspace tree.

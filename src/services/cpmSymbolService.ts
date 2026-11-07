@@ -3,6 +3,91 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { CpmWorkspaceService } from './cpmWorkspaceService';
 
+export type CpmAutocompleteProfile = 'hybrid' | 'native' | 'nativeSignature' | 'standardAssist' | 'custom';
+
+export interface CpmAutocompleteSettings {
+  profile: CpmAutocompleteProfile;
+  completionEnabled: boolean;
+  includeProjectCompletion: boolean;
+  includeStandardCompletion: boolean;
+  signatureHelpEnabled: boolean;
+}
+
+export interface CpmAutocompleteCustomSettings {
+  completionEnabled?: boolean;
+  includeProjectCompletion?: boolean;
+  includeStandardCompletion?: boolean;
+  signatureHelpEnabled?: boolean;
+}
+
+export function resolveAutocompleteProfile(
+  profile: CpmAutocompleteProfile,
+  custom: CpmAutocompleteCustomSettings = {}
+): CpmAutocompleteSettings {
+  switch (profile) {
+    case 'native':
+      return { profile, completionEnabled: false, includeProjectCompletion: false, includeStandardCompletion: false, signatureHelpEnabled: false };
+    case 'nativeSignature':
+      return { profile, completionEnabled: false, includeProjectCompletion: false, includeStandardCompletion: false, signatureHelpEnabled: true };
+    case 'standardAssist':
+      return { profile, completionEnabled: true, includeProjectCompletion: false, includeStandardCompletion: true, signatureHelpEnabled: true };
+    case 'custom':
+      return {
+        profile,
+        completionEnabled: custom.completionEnabled ?? true,
+        includeProjectCompletion: custom.includeProjectCompletion ?? true,
+        includeStandardCompletion: custom.includeStandardCompletion ?? true,
+        signatureHelpEnabled: custom.signatureHelpEnabled ?? true
+      };
+    case 'hybrid':
+    default:
+      return { profile: 'hybrid', completionEnabled: true, includeProjectCompletion: true, includeStandardCompletion: true, signatureHelpEnabled: true };
+  }
+}
+
+export function getCpmAutocompleteSettings(): CpmAutocompleteSettings {
+  const config = vscode.workspace.getConfiguration('cpm');
+  const profile = configuredAutocompleteProfile(config);
+  return resolveAutocompleteProfile(profile, {
+    completionEnabled: config.get<boolean>('enableSupplementalCompletionProvider', true),
+    includeProjectCompletion: config.get<boolean>('enableSupplementalProjectCompletion', true),
+    includeStandardCompletion: config.get<boolean>('enableStandardLibraryCompletionProvider', true),
+    signatureHelpEnabled: config.get<boolean>('enableSupplementalSignatureHelp', true)
+  });
+}
+
+function configuredAutocompleteProfile(config: vscode.WorkspaceConfiguration): CpmAutocompleteProfile {
+  const allowed = new Set<CpmAutocompleteProfile>(['hybrid', 'native', 'nativeSignature', 'standardAssist', 'custom']);
+  const configured = config.get<string>('autocompleteProfile', 'hybrid') as CpmAutocompleteProfile;
+  const canInspect = typeof config.inspect === 'function';
+  const inspect = canInspect ? config.inspect<string>('autocompleteProfile') : undefined;
+  const profileExplicit = hasExplicitConfigurationValue(inspect) || (!canInspect && configured !== 'hybrid');
+  if (!profileExplicit) {
+    const legacyKeys = [
+      'enableSupplementalCompletionProvider',
+      'enableSupplementalProjectCompletion',
+      'enableStandardLibraryCompletionProvider',
+      'enableSupplementalSignatureHelp'
+    ];
+    const legacyExplicit = canInspect
+      ? legacyKeys.some((key) => hasExplicitConfigurationValue(config.inspect(key)))
+      : config.get<boolean>('enableSupplementalCompletionProvider', true) !== true
+        || config.get<boolean>('enableSupplementalProjectCompletion', true) !== true
+        || config.get<boolean>('enableStandardLibraryCompletionProvider', true) !== true
+        || config.get<boolean>('enableSupplementalSignatureHelp', true) !== true;
+    if (legacyExplicit) return 'custom';
+  }
+  return allowed.has(configured) ? configured : 'hybrid';
+}
+
+function hasExplicitConfigurationValue(inspect: any): boolean {
+  if (!inspect) return false;
+  return [
+    'globalValue', 'workspaceValue', 'workspaceFolderValue',
+    'globalLanguageValue', 'workspaceLanguageValue', 'workspaceFolderLanguageValue'
+  ].some((key) => inspect[key] !== undefined);
+}
+
 export interface CpmSourceSymbol {
   name: string;
   qualifiedName?: string;
@@ -22,6 +107,7 @@ export interface CpmCompletionSymbol {
   origin: 'project' | 'standard';
   header?: string;
   insertText?: string;
+  filePath?: string;
 }
 
 const FUNCTION_KINDS = new Set<vscode.SymbolKind>([
@@ -69,7 +155,7 @@ const STANDARD_COMPLETIONS: StandardCompletionDefinition[] = [
 ];
 
 export class CpmSymbolService {
-  private projectCache?: { key: string; symbols: CpmCompletionSymbol[] };
+  private projectCache?: { key: string; symbols: CpmCompletionSymbol[]; signatures: CpmCompletionSymbol[] };
 
   constructor(
     private readonly extensionPath: string,
@@ -89,11 +175,27 @@ export class CpmSymbolService {
   }
 
   completionSymbols(): CpmCompletionSymbol[] {
-    // Do not inject bundled API-pack symbols into normal Qt/C++ IntelliSense.
-    // The Microsoft Qt/C++ extension remains responsible for standard-library
-    // symbols such as FILE, printf, std::vector, etc. This provider only adds
-    // lightweight symbols parsed from the active project files.
     return this.projectCompletionSymbols();
+  }
+
+  signatureSymbols(name: string): CpmCompletionSymbol[] {
+    const normalized = String(name || '').trim().toLowerCase();
+    if (!normalized) return [];
+    const project = this.projectSignatureSymbols().filter((symbol) => symbol.name.toLowerCase() === normalized || symbol.name.split('::').pop()?.toLowerCase() === normalized);
+    if (project.length) {
+      const headerDeclarations = project.filter((symbol) => symbol.filePath && isHeaderFile(symbol.filePath));
+      return headerDeclarations.length ? headerDeclarations : project;
+    }
+    return STANDARD_COMPLETIONS
+      .filter((definition) => definition.name.toLowerCase() === normalized || definition.name.split('::').pop()?.toLowerCase() === normalized)
+      .map((definition) => ({
+        name: definition.name,
+        signature: definition.signature,
+        description: `${definition.description} Header: <${definition.header}>`,
+        origin: 'standard' as const,
+        header: definition.header,
+        insertText: definition.insertText
+      }));
   }
 
   isCpmWorkspaceFile(filePath: string): boolean {
@@ -149,12 +251,18 @@ export class CpmSymbolService {
           name: symbol.name,
           signature: symbol.signature,
           description: `Project symbol · ${path.basename(filePath)}`,
-          origin: 'project'
+          origin: 'project',
+          filePath
         });
       }
     }
-    this.projectCache = { key, symbols: dedupeCompletionSymbols(symbols) };
+    this.projectCache = { key, symbols: dedupeCompletionSymbols(symbols), signatures: dedupeSignatureSymbols(symbols) };
     return this.projectCache.symbols;
+  }
+
+  private projectSignatureSymbols(): CpmCompletionSymbol[] {
+    this.projectCompletionSymbols();
+    return this.projectCache?.signatures ?? [];
   }
 }
 
@@ -162,19 +270,17 @@ export class CpmCompletionProvider implements vscode.CompletionItemProvider {
   constructor(private readonly symbols: CpmSymbolService) {}
 
   provideCompletionItems(document: vscode.TextDocument): vscode.CompletionItem[] | undefined {
+    const settings = getCpmAutocompleteSettings();
     const configuration = vscode.workspace.getConfiguration('cpm');
-    const projectEnabled = configuration.get<boolean>('enableSupplementalCompletionProvider', false);
-    const standardEnabled = configuration.get<boolean>('enableStandardLibraryCompletionProvider', true);
-
-    if (document.uri.scheme !== 'file' || !this.symbols.isCpmWorkspaceFile(document.uri.fsPath)) {
+    if (!settings.completionEnabled || document.uri.scheme !== 'file' || !this.symbols.isCpmWorkspaceFile(document.uri.fsPath)) {
       return undefined;
     }
 
     const result: vscode.CompletionItem[] = [];
-    if (standardEnabled) {
+    if (settings.includeStandardCompletion) {
       result.push(...createStandardCompletionItems(document, configuration.get<boolean>('standardLibraryCompletionAutoInclude', true)));
     }
-    if (projectEnabled) {
+    if (settings.includeProjectCompletion) {
       result.push(...this.symbols.completionSymbols().map((symbol) => {
         const item = new vscode.CompletionItem(symbol.name, vscode.CompletionItemKind.Function);
         item.detail = symbol.signature;
@@ -186,6 +292,114 @@ export class CpmCompletionProvider implements vscode.CompletionItemProvider {
     }
     return result.length ? result : undefined;
   }
+}
+
+export class CpmSignatureHelpProvider implements vscode.SignatureHelpProvider {
+  constructor(private readonly symbols: CpmSymbolService) {}
+
+  provideSignatureHelp(document: vscode.TextDocument, position: vscode.Position): vscode.SignatureHelp | undefined {
+    const settings = getCpmAutocompleteSettings();
+    if (!settings.signatureHelpEnabled || document.uri.scheme !== 'file' || !this.symbols.isCpmWorkspaceFile(document.uri.fsPath)) {
+      return undefined;
+    }
+    const prefix = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
+    const context = findCpmCallContext(prefix);
+    if (!context) return undefined;
+    const candidates = this.symbols.signatureSymbols(context.functionName);
+    if (!candidates.length) return undefined;
+    const help = new vscode.SignatureHelp();
+    help.signatures = candidates.map((candidate) => signatureInformation(candidate));
+    help.activeParameter = Math.max(0, context.activeParameter);
+    const compatible = help.signatures.findIndex((signature) => {
+      const count = signature.parameters.length;
+      return count === 0 ? context.activeParameter === 0 : context.activeParameter < count;
+    });
+    help.activeSignature = compatible >= 0 ? compatible : 0;
+    return help;
+  }
+}
+
+export interface CpmCallContext { functionName: string; activeParameter: number; }
+
+export function findCpmCallContext(sourceBeforeCursor: string): CpmCallContext | undefined {
+  const masked = maskCommentsAndStrings(String(sourceBeforeCursor || ''));
+  let parenDepth = 0, bracketDepth = 0, braceDepth = 0, commas = 0;
+  for (let index = masked.length - 1; index >= 0; index -= 1) {
+    const ch = masked[index];
+    if (ch === ')') { parenDepth += 1; continue; }
+    if (ch === '(') {
+      if (parenDepth > 0) { parenDepth -= 1; continue; }
+      const before = masked.slice(0, index);
+      const match = /((?:[A-Za-z_]\w*::)*[A-Za-z_]\w*)\s*$/.exec(before);
+      if (!match) continue;
+      const qualified = match[1];
+      const functionName = qualified.split('::').pop() || qualified;
+      if (['if', 'for', 'while', 'switch', 'sizeof', 'catch', 'return'].includes(functionName)) continue;
+      return { functionName, activeParameter: commas };
+    }
+    if (ch === ']') { bracketDepth += 1; continue; }
+    if (ch === '[') { if (bracketDepth > 0) bracketDepth -= 1; continue; }
+    if (ch === '}') { braceDepth += 1; continue; }
+    if (ch === '{') { if (braceDepth > 0) braceDepth -= 1; continue; }
+    if (ch === ',' && parenDepth === 0 && bracketDepth === 0 && braceDepth === 0) commas += 1;
+  }
+  return undefined;
+}
+
+function signatureInformation(symbol: CpmCompletionSymbol): vscode.SignatureInformation {
+  const label = symbol.signature.trim().replace(/;\s*$/, '');
+  const information = new vscode.SignatureInformation(label, new vscode.MarkdownString(symbol.description || 'C/C++ symbol.'));
+  information.parameters = extractSignatureParameters(label, symbol.name.split('::').pop()).map((parameter) => new vscode.ParameterInformation(parameter));
+  return information;
+}
+
+export function extractSignatureParameters(signature: string, functionName?: string): string[] {
+  const text = String(signature || '').trim();
+  const openParen = findSignatureOpenParen(text, functionName);
+  if (openParen < 0) return [];
+  const closeParen = findMatchingCloseParen(text, openParen);
+  if (closeParen < 0) return [];
+  const raw = text.slice(openParen + 1, closeParen).trim();
+  if (!raw || raw === 'void') return [];
+  return splitTopLevelParameters(raw);
+}
+
+function findSignatureOpenParen(signature: string, functionName?: string): number {
+  if (functionName) {
+    const escaped = functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`\\b${escaped}\\s*\\(`, 'g');
+    let match: RegExpExecArray | null;
+    let last = -1;
+    while ((match = pattern.exec(signature)) !== null) last = match.index + match[0].lastIndexOf('(');
+    if (last >= 0) return last;
+  }
+  return signature.indexOf('(');
+}
+
+function splitTopLevelParameters(parameters: string): string[] {
+  const result: string[] = [];
+  let current = '', paren = 0, bracket = 0, brace = 0;
+  let quote: string | undefined;
+  let escaped = false;
+  const flush = (): void => { const value = current.trim(); if (value) result.push(value); current = ''; };
+  for (let index = 0; index < parameters.length; index += 1) {
+    const ch = parameters[index];
+    if (quote) {
+      current += ch;
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === quote) quote = undefined;
+      continue;
+    }
+    if (ch === '"' || ch === "'") { quote = ch; current += ch; continue; }
+    if (ch === '(') paren += 1; else if (ch === ')') paren = Math.max(0, paren - 1);
+    else if (ch === '[') bracket += 1; else if (ch === ']') bracket = Math.max(0, bracket - 1);
+    else if (ch === '{') brace += 1; else if (ch === '}') brace = Math.max(0, brace - 1);
+    if (ch === ',' && paren === 0 && bracket === 0 && brace === 0) { flush(); continue; }
+    current += ch;
+  }
+  flush();
+  return result;
 }
 
 function createStandardCompletionItems(document: vscode.TextDocument, autoInclude: boolean): vscode.CompletionItem[] {
@@ -818,6 +1032,8 @@ function dedupeSourceSymbols(symbols: CpmSourceSymbol[]): CpmSourceSymbol[] {
   }).sort((left, right) => left.line - right.line || left.name.localeCompare(right.name));
 }
 
+function isHeaderFile(filePath: string): boolean { return /\.(?:h|hh|hpp|hxx)$/i.test(filePath); }
+
 function dedupeCompletionSymbols(symbols: CpmCompletionSymbol[]): CpmCompletionSymbol[] {
   const map = new Map<string, CpmCompletionSymbol>();
   for (const symbol of symbols) {
@@ -834,6 +1050,18 @@ function isPathInside(candidate: string, parent: string): boolean {
   const normalizedCandidate = path.resolve(candidate).toLowerCase();
   const normalizedParent = path.resolve(parent).toLowerCase();
   return normalizedCandidate === normalizedParent || normalizedCandidate.startsWith(`${normalizedParent}${path.sep}`);
+}
+
+function dedupeSignatureSymbols(symbols: CpmCompletionSymbol[]): CpmCompletionSymbol[] {
+  const seen = new Set<string>();
+  const result: CpmCompletionSymbol[] = [];
+  for (const symbol of symbols) {
+    const key = `${symbol.name.toLowerCase()}|${symbol.signature.replace(/\s+/g, ' ').trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(symbol);
+  }
+  return result;
 }
 
 function safeMtime(filePath: string): number {
