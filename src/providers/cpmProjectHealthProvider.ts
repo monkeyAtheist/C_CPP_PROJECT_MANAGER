@@ -266,7 +266,7 @@ export class CpmProjectHealthProvider implements vscode.TreeDataProvider<CpmHeal
         cmakeProblems.length ? 'cpm.editBuildSettings' : 'cpm.cmake.openReport'
       ));
     } else {
-      items.push(health('build-backend', 'Build backend', 'Direct GCC / Clang', 'ok', 'CPM native build engine with .d incremental tracking, parallel compilation, response files, PCH and Unity Build.', 'cpm.selectBuildBackend'));
+      items.push(health('build-backend', 'Build backend', 'Direct GCC / Clang', 'ok', 'CPM native build engine with .d incremental tracking, parallel compilation, response files, PCH and Unity Build.', 'cpm.editBuildSettings'));
     }
 
     const installation = this.installations.getActiveInstallation(workspace.cpmDir, false);

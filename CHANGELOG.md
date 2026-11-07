@@ -1,3 +1,16 @@
+## 0.2.81
+
+- Removed **Select Build Backend** from the crowded C/C++ Workspace toolbar and removed the DIR/CMAKE status-bar shortcut. The backend is now intentionally configured from **Project Build Settings → Build → Build backend**.
+- Added a single-file Windows setup bootstrapper (`CPM-Setup-0.2.81.exe`) that embeds the CPM VSIX and the toolchain installer script, then launches the existing graphical MSYS2/MinGW x64+x86 setup.
+
+# 0.2.80
+
+- Added a Windows **CPM Toolchain Installer** available from `Detect / Select Toolchain`, the Home page and Build Settings.
+- Added supported side-by-side MSYS2 toolchain provisioning for **MinGW-w64 UCRT64 x64** and **MinGW-w64 MINGW32 x86**, with optional CMake/Ninja and Microsoft C/C++ installation.
+- The installer keeps the 32-bit and 64-bit GCC directories out of PATH by default to avoid `gcc/g++` collisions; it records `MSYS2_ROOT` and `CPM_TOOLCHAINS_ROOT` instead.
+- Toolchain discovery now expands `MSYS2_ROOT`/`CPM_TOOLCHAINS_ROOT` into `ucrt64/bin`, `mingw64/bin`, `mingw32/bin` and `clang64/bin`, so both x86 and x64 installations can be selected independently.
+- A standalone CPM Setup bundle can install the VSIX and the supported development environment from one graphical PowerShell setup.
+
 # Changelog
 
 ## 0.2.79

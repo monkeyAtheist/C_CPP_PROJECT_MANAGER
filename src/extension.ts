@@ -27,6 +27,7 @@ import { CpmDependencyService } from './services/cpmDependencyService';
 import { CpmRemoteLinuxService } from './services/cpmRemoteLinuxService';
 import { openSshDeviceManager } from './services/cpmSshDeviceManager';
 import { CpmCMakeService } from './services/cpmCMakeService';
+import { CpmToolchainInstallerService } from './services/cpmToolchainInstallerService';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
@@ -36,6 +37,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   await migrateLegacyConfiguration(output);
   const parser = new CpmParser();
   const installations = new CpmInstallationService(output);
+  const toolchainInstaller = new CpmToolchainInstallerService(context, output);
   const cppTools = new CpmCppToolsService(installations, parser, output);
   const templates = new CpmTemplateService(context, installations, output);
   const sdl = new CpmSdlService(output);
@@ -89,7 +91,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     createStatusBarAction('$(debug-start)', 'Run Debug without rebuilding', 'cpm.runDebug', 94.5),
     createStatusBarAction('D32', 'Select the C/C++ build mode', 'cpm.selectBuildMode', 94),
     createStatusBarAction('EXE', 'Select the C/C++ target type', 'cpm.selectTargetType', 93),
-    createStatusBarAction('DIR', 'Select build backend', 'cpm.selectBuildBackend', 92.5),
     createStatusBarAction('DYN', 'Select C/C++ linkage mode', 'cpm.selectLinkageMode', 92)
   ];
 
@@ -113,12 +114,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     statusBarItems[6].tooltip = `C/C++ build mode: ${modeText}. Click to change.`;
     statusBarItems[7].text = targetText;
     statusBarItems[7].tooltip = `C/C++ target type: ${targetText}. Click to change.`;
-    const backend = workspaces.activeProjectRef?.exists ? projectSettings.getSettings(workspaces.activeProjectRef).buildBackend : 'direct';
-    statusBarItems[8].text = backend === 'cmake' ? 'CMAKE' : 'DIR';
-    statusBarItems[8].tooltip = `C/C++ build backend: ${backend === 'cmake' ? 'CMake / Ninja' : 'Direct GCC / Clang'}. Click to change.`;
     const linkageMode = builds.getLinkageMode();
-    statusBarItems[9].text = linkageMode === 'static' ? 'STA' : linkageMode === 'static-runtime' ? 'RTS' : 'DYN';
-    statusBarItems[9].tooltip = `C/C++ linkage: ${linkageMode === 'static' ? 'Fully static when available' : linkageMode === 'static-runtime' ? 'Static compiler runtime' : 'Dynamic'}. Click to change.`;
+    statusBarItems[8].text = linkageMode === 'static' ? 'STA' : linkageMode === 'static-runtime' ? 'RTS' : 'DYN';
+    statusBarItems[8].tooltip = `C/C++ linkage: ${linkageMode === 'static' ? 'Fully static when available' : linkageMode === 'static-runtime' ? 'Static compiler runtime' : 'Dynamic'}. Click to change.`;
     const show = vscode.workspace.getConfiguration('cpm').get<boolean>('showPersistentStatusBarActions', true);
     for (const item of statusBarItems) {
       if (show) item.show(); else item.hide();
@@ -261,6 +259,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.remote.openReport', () => remoteLinux.openReport()),
 
     register('cpm.openActiveProjectFile', () => { const ref = workspaces.activeProjectRef; return ref?.exists ? workspaces.openPath(ref.absolutePath) : undefined; }),
+    register('cpm.installSupportedToolchains', () => toolchainInstaller.openInstaller()),
     register('cpm.configureInstallation', async () => {
       const installation = await installations.selectInstallation(workspaces.currentWorkspace?.cpmDir);
       if (installation) {

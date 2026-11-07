@@ -28,3 +28,9 @@ docs/history/**
 **/SHA256SUMS-*.txt
 media/cvi*
 data/templates/*cvi*
+
+setup/CPM-Setup.cmd
+setup/README.md
+setup/CPM-Setup.nsi
+setup/BUILD_INSTALLER_EXE.cmd
+setup/CPM-Setup-Launcher.go

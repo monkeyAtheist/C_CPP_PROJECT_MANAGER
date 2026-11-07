@@ -98,7 +98,7 @@ The setting prefix is kept for compatibility with the original project-manager c
 
 ## Build backends: Direct GCC/Clang or CMake/Ninja
 
-CPM 0.2.79 keeps the native **Direct GCC/Clang** engine as the default for every existing project and adds an optional **CMake / Ninja** backend. Select it from **Project Build Settings → Build → Build backend**, the command palette, or the DIR/CMAKE status-bar indicator.
+CPM 0.2.79 keeps the native **Direct GCC/Clang** engine as the default for every existing project and adds an optional **CMake / Ninja** backend. Select it only from **Project Build Settings → Build → Build backend**. CPM keeps this project-scoped choice out of the main workspace toolbar to preserve space for frequent Run/Debug/build actions.
 
 The CMake backend is designed for projects that already contain a `CMakeLists.txt`. CPM can configure the source/build directories, generator, CMake/Ninja executable, selected target, generator platform/toolset, cache variables, toolchain file and extra configure/build arguments. `Ninja` is the default generator, but CMake default, Ninja Multi-Config, MinGW Makefiles and Unix Makefiles are also available.
 
@@ -340,3 +340,14 @@ For SDL window icons, BMP works with the core SDL runtime. PNG, JPG and WebP sho
 
 The current Marketplace payload includes the curated CPM packs plus the cleaned Lua catalog from JC Lib 0.8.38 and the LabWindows/CVI structured API catalog. CVI is exposed under its own `CVI` environment. On activation, CPM also performs a one-way cleanup of retired catalog content left in user global pack storage by older versions.
 
+
+## Windows CPM Setup / supported toolchains
+
+CPM 0.2.80 includes a Windows toolchain installer. Use **C/C++ Project Manager: Install / Manage Supported Toolchains** or select **Install / update supported MinGW toolchains...** from the toolchain picker.
+
+The supported setup provisions side-by-side MSYS2 environments:
+
+- `ucrt64` — MinGW-w64 GCC/G++ 64-bit (recommended), GDB, Make and pkgconf; optional CMake/Ninja.
+- `mingw32` — MinGW-w64 GCC/G++ 32-bit plus GDB and Make.
+
+The installer does not place both compiler directories on PATH. It records the MSYS2 root and CPM discovers the architecture-specific `bin` directories independently. A standalone setup bundle can also install/update the VSIX and Microsoft C/C++ (`ms-vscode.cpptools`).

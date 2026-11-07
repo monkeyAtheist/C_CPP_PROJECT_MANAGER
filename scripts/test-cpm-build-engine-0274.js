@@ -26,7 +26,7 @@ let passed=0,failed=0;
 async function test(name,fn){try{await fn();passed++;console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+': '+(e.stack||e));}}
 
 (async()=>{
-  await test('version is 0.2.79',()=>assert.strictEqual(pkg.version,'0.2.79'));
+  await test('version is 0.2.81',()=>assert.strictEqual(pkg.version,'0.2.81'));
   await test('GNU response threshold protects Windows command lines',()=>{
     assert.strictEqual(rsp.shouldUseGnuResponseFile(['-o','a.exe'],'win32'),false);
     assert.strictEqual(rsp.shouldUseGnuResponseFile(['x'.repeat(25000)],'win32'),true);

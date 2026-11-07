@@ -13,10 +13,11 @@ const {CpmCMakeService}=require('../out/services/cpmCMakeService.js');
 const {DEFAULT_CMAKE_CONFIGURATION,DEFAULT_EXTERNAL_DEPENDENCIES,DEFAULT_REMOTE_LINUX}=require('../out/services/cpmProjectSettingsService.js');
 let passed=0,failed=0;async function test(name,fn){try{await fn();passed++;console.log('PASS '+name)}catch(e){failed++;console.error('FAIL '+name+': '+(e.stack||e))}}
 (async()=>{
- await test('version is 0.2.79',()=>assert.strictEqual(pkg.version,'0.2.79'));
+ await test('version is 0.2.81',()=>assert.strictEqual(pkg.version,'0.2.81'));
  await test('manifest exposes CMake backend commands',()=>{
    for(const id of ['cpm.selectBuildBackend','cpm.cmake.configure','cpm.cmake.openReport']) assert(pkg.contributes.commands.some(x=>x.command===id),id);
-   assert(pkg.contributes.menus['view/title'].some(x=>x.command==='cpm.selectBuildBackend'));
+   assert(!pkg.contributes.menus['view/title'].some(x=>x.command==='cpm.selectBuildBackend'));
+   assert(fs.readFileSync(path.join(root,'src/views/buildSettingsPanel.ts'),'utf8').includes("data-command=\"cpm.selectBuildBackend\""));
  });
  await test('project settings default to direct backend with Ninja CMake configuration',()=>{
    assert.strictEqual(DEFAULT_CMAKE_CONFIGURATION.generator,'Ninja');

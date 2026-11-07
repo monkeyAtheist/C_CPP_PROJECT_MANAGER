@@ -2,7 +2,7 @@
     "name": "c-cpp-project-manager-and-build",
     "displayName": "C/C++ Project Manager and Build",
     "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-    "version": "0.2.79",
+    "version": "0.2.81",
     "publisher": "JerryCrozet-ElectronicEngineer",
     "license": "MIT",
     "engines": {
@@ -123,7 +123,7 @@
         "package": "vsce package",
         "package:marketplace": "vsce package --allow-missing-repository",
         "publish:marketplace": "vsce publish --allow-missing-repository",
-        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.79.vsix",
+        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.81.vsix",
         "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
     },
     "contributes": {
@@ -213,6 +213,11 @@
                 "command": "cpm.configureInstallation",
                 "title": "C/C++ Project Manager: Detect / Select Toolchain",
                 "icon": "$(settings-gear)"
+            },
+            {
+                "command": "cpm.installSupportedToolchains",
+                "title": "C/C++ Project Manager: Install / Manage Supported Toolchains",
+                "icon": "$(cloud-download)"
             },
             {
                 "command": "cpm.selectAutocompleteProfile",
@@ -1141,11 +1146,6 @@
                     "command": "cpm.remote.configure",
                     "when": "view == cpm.remoteLinux",
                     "group": "navigation@5"
-                },
-                {
-                    "command": "cpm.selectBuildBackend",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@8.5"
                 }
             ],
             "view/item/context": [
@@ -1660,6 +1660,10 @@
                 },
                 {
                     "command": "cpm.moveFileToFolder",
+                    "when": "false"
+                },
+                {
+                    "command": "cpm.selectBuildBackend",
                     "when": "false"
                 }
             ],

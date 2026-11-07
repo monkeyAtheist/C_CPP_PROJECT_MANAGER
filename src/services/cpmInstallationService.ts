@@ -247,10 +247,17 @@ export class CpmInstallationService {
 
   scanInstallations(): CpmInstallation[] {
     const roots: string[] = [];
-    for (const variableName of ['MINGW_HOME', 'MSYS2_ROOT', 'LLVM_HOME', 'GCC_HOME']) {
+    for (const variableName of ['MINGW_HOME', 'MSYS2_ROOT', 'CPM_TOOLCHAINS_ROOT', 'LLVM_HOME', 'GCC_HOME']) {
       const value = process.env[variableName];
       if (value) {
-        roots.push(value, path.join(value, 'bin'));
+        roots.push(
+          value,
+          path.join(value, 'bin'),
+          path.join(value, 'ucrt64', 'bin'),
+          path.join(value, 'mingw64', 'bin'),
+          path.join(value, 'mingw32', 'bin'),
+          path.join(value, 'clang64', 'bin')
+        );
       }
     }
     roots.push(...splitPathEnvironment());
@@ -303,12 +310,19 @@ export class CpmInstallationService {
 
   async selectInstallation(workspaceCpmDir?: string): Promise<CpmInstallation | undefined> {
     const installations = this.getKnownInstallations(workspaceCpmDir);
-    const choices: Array<vscode.QuickPickItem & { installation?: CpmInstallation; manualFolder?: boolean; manualExecutables?: boolean }> = installations.map((installation) => ({
+    const choices: Array<vscode.QuickPickItem & { installation?: CpmInstallation; manualFolder?: boolean; manualExecutables?: boolean; installSupported?: boolean }> = installations.map((installation) => ({
       label: `$(tools) ${toolchainKind(installation)}`,
       description: installation.root,
       detail: `${pathDetail(installation.cCompilerExe, 'C compiler missing')} · ${pathDetail(installation.cppCompilerExe, 'C++ compiler missing')} · ${pathDetail(installation.debuggerExe, 'debugger missing')} · ${installation.source}`,
       installation
     }));
+    if (process.platform === 'win32') {
+      choices.push({
+        label: '$(cloud-download) Install / update supported MinGW toolchains...',
+        description: 'Provision side-by-side MSYS2 UCRT64 (64-bit) and MINGW32 (32-bit) GCC/G++ toolchains.',
+        installSupported: true
+      });
+    }
     choices.push({
       label: '$(folder-opened) Add toolchain from folder...',
       description: 'Choose a bin directory or a toolchain root containing gcc/g++/clang.',
@@ -325,6 +339,10 @@ export class CpmInstallationService {
       placeHolder: 'Detected GCC, MinGW, MSYS2 and Clang toolchains are listed first.'
     });
     if (!selected) {
+      return undefined;
+    }
+    if (selected.installSupported) {
+      await vscode.commands.executeCommand('cpm.installSupportedToolchains');
       return undefined;
     }
 

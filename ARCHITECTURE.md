@@ -360,3 +360,7 @@ Synchronization prefers `rsync` and falls back to `scp`. Before transfer, CPM ge
 Remote Run reuses CPM's existing output-mode semantics. Remote Debug builds the target, optionally starts `gdbserver`, resolves absolute remote project/target paths, and starts `cppdbg` with SSH `pipeTransport`, remote GDB, `miDebuggerServerAddress=127.0.0.1:<port>` and `sourceFileMap` back to the local project. This architecture lets a Windows CPM host debug ARM/AArch64 Raspberry Pi programs without requiring a matching local cross-GDB.
 
 `CpmProjectHealthProvider` consumes the remote service status for endpoint/tool diagnostics and repair navigation. The generated direct remote build is intentionally project-local; complex multi-project/workspace builds or platform-specific systems can use the custom remote build/run command hooks.
+
+## Supported Windows toolchain provisioning (0.2.80)
+
+`setup/CPM-Toolchain-Installer.ps1` is the Windows provisioning entry point. It downloads the official MSYS2 installer when required, uses `pacman` to provision UCRT64 x64 and MINGW32 x86 toolchains side-by-side, and persists `MSYS2_ROOT` / `CPM_TOOLCHAINS_ROOT` at user scope. `CpmToolchainInstallerService` launches the installer from CPM, while `CpmInstallationService` expands those roots into architecture-specific toolchain directories. The design intentionally avoids adding both compiler bins to PATH.

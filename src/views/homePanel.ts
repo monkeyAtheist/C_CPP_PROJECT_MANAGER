@@ -127,7 +127,7 @@ function renderHtml(state: HomeState): string {
           <div class="actions primary-row">
             <button data-command="cpm.openWorkspace">Open workspace</button>
             <button data-command="cpm.createWorkspaceProject">Create workspace and project</button>
-            <button data-command="cpm.configureInstallation">Select toolchain</button>
+            <button data-command="cpm.configureInstallation">Select toolchain</button><button data-command="cpm.installSupportedToolchains">Install toolchains</button>
           </div>
         </div>
       </div>` : '';
@@ -296,7 +296,7 @@ function renderHtml(state: HomeState): string {
         <div class="path">${compilerLine}</div>
       </div>
       <div class="actions">
-        <button data-command="cpm.configureInstallation">Detect / select toolchain</button>
+        <button data-command="cpm.configureInstallation">Detect / select toolchain</button><button data-command="cpm.installSupportedToolchains">Install toolchains</button>
         <button class="secondary" data-command="cpm.syncCppTools">Sync IntelliSense</button>
         <button class="secondary" data-command="cpm.diagnoseCppTools">Diagnose IntelliSense</button>
         <button class="secondary" data-command="cpm.openProjectHealthReport">Project Health</button>
