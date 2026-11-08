@@ -8,6 +8,28 @@ import { CpmWorkspaceService } from './cpmWorkspaceService';
 
 export type CpmLinkageMode = 'dynamic' | 'static-runtime' | 'static';
 export type CpmBuildBackend = 'direct' | 'cmake';
+export type CpmStaticLibraryFormat = 'auto' | 'gnu-a' | 'windows-lib';
+export type CpmDllImportLibraryFormat = 'auto' | 'gnu-a' | 'gnu-dll-a' | 'windows-lib' | 'gnu-both' | 'gnu-a-windows-lib' | 'both' | 'all' | 'none';
+
+
+export type CpmImportLibraryArchitecture = 'auto' | 'x86' | 'x64' | 'arm64';
+export type CpmImportLibraryGenerator = 'auto' | 'msvc-lib' | 'llvm-lib' | 'llvm-dlltool' | 'gnu-dlltool';
+
+export interface CpmImportLibraryConfiguration {
+  generator: CpmImportLibraryGenerator;
+  generatorPath: string;
+  architecture: CpmImportLibraryArchitecture;
+  outputDirectory: string;
+  keepDefinitionFile: boolean;
+}
+
+export const DEFAULT_IMPORT_LIBRARY_CONFIGURATION: CpmImportLibraryConfiguration = {
+  generator: 'auto',
+  generatorPath: '',
+  architecture: 'auto',
+  outputDirectory: 'lib',
+  keepDefinitionFile: true
+};
 
 export interface CpmCMakeConfiguration {
   executable: string;
@@ -120,6 +142,8 @@ export interface CpmProjectBuildSettings {
   buildBackend: CpmBuildBackend;
   cmake: CpmCMakeConfiguration;
   linkageMode: CpmLinkageMode;
+  staticLibraryFormat: CpmStaticLibraryFormat;
+  dllImportLibraryFormat: CpmDllImportLibraryFormat;
   parallelJobs: number;
   useResponseFiles: boolean;
   precompiledHeadersEnabled: boolean;
@@ -132,6 +156,7 @@ export interface CpmProjectBuildSettings {
   dependencies: string[];
   externalDependencies: CpmExternalDependenciesConfiguration;
   remoteLinux: CpmRemoteLinuxConfiguration;
+  importLibraries: CpmImportLibraryConfiguration;
   run: CpmRunSettings;
   nativeBuildActions: boolean;
 }
@@ -555,6 +580,8 @@ function normalizeSettings(value?: Partial<CpmProjectBuildSettings>, fallbackRun
     buildBackend: value?.buildBackend === 'cmake' ? 'cmake' : 'direct',
     cmake: normalizeCMakeConfiguration(value?.cmake),
     linkageMode: normalizeLinkageMode(value?.linkageMode),
+    staticLibraryFormat: normalizeStaticLibraryFormat(value?.staticLibraryFormat),
+    dllImportLibraryFormat: normalizeDllImportLibraryFormat(value?.dllImportLibraryFormat),
     parallelJobs: normalizeParallelJobs(value?.parallelJobs),
     useResponseFiles: value?.useResponseFiles !== false,
     precompiledHeadersEnabled: value?.precompiledHeadersEnabled === true,
@@ -567,6 +594,7 @@ function normalizeSettings(value?: Partial<CpmProjectBuildSettings>, fallbackRun
     dependencies: Array.isArray(value?.dependencies) ? value.dependencies.map(String) : [],
     externalDependencies: normalizeExternalDependencies(value?.externalDependencies),
     remoteLinux: normalizeRemoteLinux(value?.remoteLinux),
+    importLibraries: normalizeImportLibraryConfiguration(value?.importLibraries),
     run: {
       arguments: String(fallbackRun?.arguments ?? value?.run?.arguments ?? EMPTY_RUN_SETTINGS.arguments),
       workingDirectory: String(fallbackRun?.workingDirectory ?? value?.run?.workingDirectory ?? EMPTY_RUN_SETTINGS.workingDirectory),
@@ -577,6 +605,15 @@ function normalizeSettings(value?: Partial<CpmProjectBuildSettings>, fallbackRun
   };
 }
 
+
+
+function normalizeStaticLibraryFormat(value: unknown): CpmStaticLibraryFormat {
+  return value === 'gnu-a' || value === 'windows-lib' ? value : 'auto';
+}
+
+function normalizeDllImportLibraryFormat(value: unknown): CpmDllImportLibraryFormat {
+  return value === 'gnu-a' || value === 'gnu-dll-a' || value === 'windows-lib' || value === 'gnu-both' || value === 'gnu-a-windows-lib' || value === 'both' || value === 'all' || value === 'none' ? value : 'auto';
+}
 
 function normalizeCMakeConfiguration(value: unknown): CpmCMakeConfiguration {
   const raw = value && typeof value === 'object' && !Array.isArray(value) ? value as Partial<CpmCMakeConfiguration> : {};
@@ -597,6 +634,21 @@ function normalizeCMakeConfiguration(value: unknown): CpmCMakeConfiguration {
     cacheVariables: normalizeActions(raw.cacheVariables),
     configureArguments: normalizeActions(raw.configureArguments),
     buildArguments: normalizeActions(raw.buildArguments)
+  };
+}
+
+function normalizeImportLibraryConfiguration(value: unknown): CpmImportLibraryConfiguration {
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? value as Partial<CpmImportLibraryConfiguration> : {};
+  const generators = new Set<CpmImportLibraryGenerator>(['auto', 'msvc-lib', 'llvm-lib', 'llvm-dlltool', 'gnu-dlltool']);
+  const architectures = new Set<CpmImportLibraryArchitecture>(['auto', 'x86', 'x64', 'arm64']);
+  const generator = generators.has(raw.generator as CpmImportLibraryGenerator) ? raw.generator as CpmImportLibraryGenerator : DEFAULT_IMPORT_LIBRARY_CONFIGURATION.generator;
+  const architecture = architectures.has(raw.architecture as CpmImportLibraryArchitecture) ? raw.architecture as CpmImportLibraryArchitecture : DEFAULT_IMPORT_LIBRARY_CONFIGURATION.architecture;
+  return {
+    generator,
+    generatorPath: String(raw.generatorPath ?? '').trim(),
+    architecture,
+    outputDirectory: String(raw.outputDirectory ?? DEFAULT_IMPORT_LIBRARY_CONFIGURATION.outputDirectory).trim() || DEFAULT_IMPORT_LIBRARY_CONFIGURATION.outputDirectory,
+    keepDefinitionFile: raw.keepDefinitionFile !== false
   };
 }
 

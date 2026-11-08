@@ -2,19 +2,19 @@
 setlocal
 set "ROOT=%~dp0.."
 set "SETUP=%~dp0"
-set "VSIX=%ROOT%\c-cpp-project-manager-and-build-0.2.84.vsix"
-set "LOCALVSIX=%SETUP%c-cpp-project-manager-and-build-0.2.84.vsix"
-set "OUT=%ROOT%\CPM-Setup-0.2.84.exe"
+set "VSIX=%ROOT%\c-cpp-project-manager-and-build-0.2.88.vsix"
+set "LOCALVSIX=%SETUP%c-cpp-project-manager-and-build-0.2.88.vsix"
+set "OUT=%ROOT%\CPM-Setup-0.2.88.exe"
 
 where go.exe >nul 2>nul
 if errorlevel 1 (
   echo Go was not found on PATH.
-  echo Install Go or use the prebuilt CPM-Setup-0.2.84.exe.
+  echo Install Go or use the prebuilt CPM-Setup-0.2.88.exe.
   exit /b 1
 )
 if not exist "%VSIX%" (
   echo VSIX not found: %VSIX%
-  echo Build/package CPM 0.2.84 first.
+  echo Build/package CPM 0.2.88 first.
   exit /b 1
 )
 copy /Y "%VSIX%" "%LOCALVSIX%" >nul

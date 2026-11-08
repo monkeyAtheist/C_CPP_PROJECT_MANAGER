@@ -2,7 +2,7 @@
     "name": "c-cpp-project-manager-and-build",
     "displayName": "C/C++ Project Manager and Build",
     "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-    "version": "0.2.84",
+    "version": "0.2.88",
     "publisher": "JerryCrozet-ElectronicEngineer",
     "license": "MIT",
     "engines": {
@@ -115,7 +115,13 @@
         "onCommand:cpm.selectBuildBackend",
         "onCommand:cpm.cmake.configure",
         "onCommand:cpm.cmake.openReport",
-        "onCommand:cpm.buildAndRunProject"
+        "onCommand:cpm.buildAndRunProject",
+        "onCommand:cpm.generateImportLibraryFromHeaders",
+        "onCommand:cpm.generateImportLibraryFromDll",
+        "onCommand:cpm.extractDllDefinitionFile",
+        "onCommand:cpm.openImportLibraryReport",
+        "onCommand:cpm.analyzeDll",
+        "onCommand:cpm.analyzeLibrary"
     ],
     "main": "./out/extension.js",
     "scripts": {
@@ -125,7 +131,7 @@
         "package": "vsce package",
         "package:marketplace": "vsce package --allow-missing-repository",
         "publish:marketplace": "vsce publish --allow-missing-repository",
-        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.84.vsix",
+        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.88.vsix",
         "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
     },
     "contributes": {
@@ -814,9 +820,39 @@
                 "category": "C/C++ Project Manager"
             },
             {
-                "command": "cpm.prepareDllImportLibraryGeneration",
-                "title": "Prepare DLL Import Library Generation in editor...",
+                "command": "cpm.generateImportLibraryFromHeaders",
+                "title": "Generate Import Library (.lib) from Header(s)...",
                 "icon": "$(library)",
+                "category": "C/C++ Project Manager"
+            },
+            {
+                "command": "cpm.generateImportLibraryFromDll",
+                "title": "Generate DLL Import Library (.lib)...",
+                "icon": "$(library)",
+                "category": "C/C++ Project Manager"
+            },
+            {
+                "command": "cpm.extractDllDefinitionFile",
+                "title": "Extract DLL Exports (.def)...",
+                "icon": "$(file-code)",
+                "category": "C/C++ Project Manager"
+            },
+            {
+                "command": "cpm.openImportLibraryReport",
+                "title": "Open Import Library Generation Report",
+                "icon": "$(output)",
+                "category": "C/C++ Project Manager"
+            },
+            {
+                "command": "cpm.analyzeDll",
+                "title": "Analyze DLL...",
+                "icon": "$(search)",
+                "category": "C/C++ Project Manager"
+            },
+            {
+                "command": "cpm.analyzeLibrary",
+                "title": "Analyze .a / .lib Library...",
+                "icon": "$(search)",
                 "category": "C/C++ Project Manager"
             },
             {
@@ -1515,9 +1551,29 @@
                     "group": "build@4"
                 },
                 {
-                    "command": "cpm.prepareDllImportLibraryGeneration",
+                    "command": "cpm.generateImportLibraryFromHeaders",
                     "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.header\\./",
                     "group": "build@5"
+                },
+                {
+                    "command": "cpm.generateImportLibraryFromDll",
+                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
+                    "group": "build@5"
+                },
+                {
+                    "command": "cpm.extractDllDefinitionFile",
+                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
+                    "group": "build@6"
+                },
+                {
+                    "command": "cpm.analyzeDll",
+                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
+                    "group": "build@7"
+                },
+                {
+                    "command": "cpm.analyzeLibrary",
+                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-(lib|a)$/",
+                    "group": "build@7.5"
                 },
                 {
                     "command": "cpm.createSdlProjectInWorkspace",
@@ -1750,10 +1806,6 @@
                 },
                 {
                     "command": "cpm.selectTargetTypeLIB",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.prepareDllImportLibraryGeneration",
                     "when": "false"
                 },
                 {

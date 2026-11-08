@@ -28,6 +28,7 @@ import { CpmRemoteLinuxService } from './services/cpmRemoteLinuxService';
 import { openSshDeviceManager } from './services/cpmSshDeviceManager';
 import { CpmCMakeService } from './services/cpmCMakeService';
 import { CpmToolchainInstallerService } from './services/cpmToolchainInstallerService';
+import { CpmImportLibraryService } from './services/cpmImportLibraryService';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
@@ -43,10 +44,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const sdl = new CpmSdlService(output);
   const workspaces = new CpmWorkspaceService(context, parser, installations, templates, sdl, output);
   const projectSettings = new CpmProjectSettingsService(workspaces, parser, output);
+  const importLibraries = new CpmImportLibraryService(workspaces, projectSettings, installations, output);
   const dependencies = new CpmDependencyService(workspaces, projectSettings, output);
   const cmake = new CpmCMakeService(workspaces, projectSettings, output);
   cppTools.setExternalIncludePathsProvider(() => { const ref = workspaces.activeProjectRef; return ref?.exists ? dependencies.getIntegration(ref).includeDirectories : []; });
-  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output, buildTraceOutput, programOutput, buildDiagnostics, dependencies, cmake);
+  const builds = new CpmBuildService(parser, workspaces, installations, projectSettings, undefined, output, buildTraceOutput, programOutput, buildDiagnostics, dependencies, cmake, importLibraries);
   const remoteLinux = new CpmRemoteLinuxService(workspaces, parser, projectSettings, builds, output, programOutput);
   const treeProvider = new CpmTreeProvider(workspaces);
   const treeView = vscode.window.createTreeView('cpm.workspaceExplorer', { treeDataProvider: treeProvider, dragAndDropController: treeProvider, showCollapseAll: true, canSelectMany: true });
@@ -351,7 +353,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.moveFileToFolder', (node?: FileNode) => node ? workspaces.moveFileToFolder(node.ref, node.file) : undefined),
     register('cpm.compileFile', (node?: FileNode) => node ? builds.compileFile(node.file.absolutePath, node.ref) : undefined),
     register('cpm.generatePrototypes', (node?: FileNode) => node ? workspaces.generatePrototypes(node.ref, node.file) : undefined),
-    register('cpm.prepareDllImportLibraryGeneration', (node?: FileNode) => node ? builds.prepareDllImportLibraryGeneration(node.file.absolutePath) : undefined),
+    register('cpm.prepareDllImportLibraryGeneration', (node?: FileNode) => importLibraries.generateFromHeaderSelection(node, treeView.selection)),
+    register('cpm.generateImportLibraryFromHeaders', (node?: FileNode) => importLibraries.generateFromHeaderSelection(node, treeView.selection)),
+    register('cpm.generateImportLibraryFromDll', (node?: FileNode) => importLibraries.generateFromDll(node?.file.absolutePath, node?.ref)),
+    register('cpm.extractDllDefinitionFile', (node?: FileNode) => importLibraries.extractDefinitionFromDll(node?.file.absolutePath, node?.ref)),
+    register('cpm.openImportLibraryReport', () => importLibraries.openReport()),
+    register('cpm.analyzeDll', (node?: FileNode) => buildSettings.showDllAnalyzer(node?.ref, node?.file.absolutePath)),
+    register('cpm.analyzeLibrary', (node?: FileNode) => buildSettings.showLibraryAnalyzer(node?.ref, node?.file.absolutePath)),
     register('cpm.refreshFileSymbols', () => fileSymbolsProvider.refresh()),
     register('cpm.revealFileSymbol', (symbol?: CpmSourceSymbol) => symbol ? fileSymbolsProvider.reveal(symbol) : undefined),
     register('cpm.copyFileSymbol', (symbol?: CpmSourceSymbol) => fileSymbolsProvider.copySymbol(symbol)),

@@ -125,8 +125,8 @@ The generic build pipeline compiles each included C/C++ source into an object fi
 Supported target types:
 
 - `Executable` -> `.exe` on Windows-style project outputs;
-- `Dynamic Link Library` -> `.dll`;
-- `Static Library` -> `.a`.
+- `Dynamic Link Library` -> `.dll`, optionally accompanied by GNU/MinGW `.dll.a` and/or `.a` import libraries, a Windows `.lib` import library, any supported combination, or none;
+- `Static Library` -> a real static archive in `.a` (GNU/LLVM `ar`) or `.lib` (Microsoft/LLVM librarian) format, selected from Project Build Settings.
 
 Debug uses VS Code `cppdbg` with the configured debugger path, usually `gdb` for MinGW/GCC projects.
 
@@ -351,3 +351,40 @@ The supported setup provisions side-by-side MSYS2 environments:
 - `mingw32` — MinGW-w64 GCC/G++ 32-bit plus GDB and Make.
 
 The installer does not place both compiler directories on PATH. It records the MSYS2 root and CPM discovers the architecture-specific `bin` directories independently. A standalone setup bundle can also install/update the VSIX and Microsoft C/C++ (`ms-vscode.cpptools`).
+
+## Windows import libraries (.lib)
+
+CPM can generate Windows **DLL import libraries** from either C/C++ header declarations or from an existing DLL. The feature is available from file context menus and from **Project Build Settings → Libraries**.
+
+### Header(s) → import library
+
+Select one or several `.h/.hpp/.hh/.hxx` files in the project tree and use **Generate Import Library (.lib) from Header(s)...**. CPM scans free-function declarations, lets you choose the exported names, writes a module-definition (`.def`) file and invokes the configured generator.
+
+A header contains declarations, not the DLL implementation. This workflow therefore creates an **import library**, not a self-contained static library: the matching DLL is still required when the application runs. For overloaded C++ APIs, exact decorated export names cannot be reconstructed reliably from headers alone; prefer DLL-based generation or an `extern "C"` API.
+
+### DLL(s) → import libraries
+
+Right-click a `.dll` registered in the CPM project and choose **Generate DLL Import Library (.lib)...**. CPM opens a dedicated batch editor instead of a simple export picker. The clicked DLL is preloaded and **+ Add DLL(s)…** can add more inputs. Every DLL row has its own source-file browser, `.lib` output browser, export filter and Select All/None controls. CPM generates **one `.lib` per DLL**, which keeps the Windows import descriptor/runtime DLL association explicit. Duplicate DLL base names receive unique default output names.
+
+CPM reads each PE export directory, detects x86/x64/ARM64 and preserves decorated C++ export names because they come from the DLL itself. An additional **Extract DLL Exports (.def)...** action remains available for manual review/editing.
+
+Supported generators are Microsoft `lib.exe`, LLVM `llvm-lib`, LLVM `llvm-dlltool` and GNU/MinGW `dlltool`. Automatic mode follows the active CPM toolchain. Generated libraries may be added directly to the project.
+
+## DLL Analyzer
+
+CPM 0.2.86 adds **Analyze DLL...** to DLL context menus and a dedicated **Project Build Settings → DLL Analyzer** page. The analyzer works directly on Windows PE files and displays: architecture and PE32/PE32+ format, image base/entry point/subsystem, link timestamp, file size and SHA-256, fixed/string VERSIONINFO fields (including FileVersion/ProductVersion and revision), named/ordinal exports, imported DLLs and functions, sections, resource types, PE/DLL flags, Authenticode certificate-table presence, CLR/.NET header presence and CodeView/PDB information when present. The analysis can be exported as Markdown.
+
+The analyzer is structural and read-only: certificate-table presence does not by itself validate trust/signature status, and a PE export table does not reliably distinguish exported data from exported functions. Those limits are reported rather than guessed.
+
+## .a / .lib Library Analyzer and library output formats
+
+CPM 0.2.87 adds **Analyze .a / .lib Library...** to `.a` and `.lib` project-file context menus and a dedicated **Project Build Settings → .a / .lib Analyzer** page. The analyzer reads the archive itself rather than trusting the extension. It reports archive members, linker symbols, detected COFF/ELF/LLVM object members, architectures, short COFF import objects and referenced runtime DLL names. It classifies an archive as a **static library**, **import library**, **mixed archive**, or **unknown**.
+
+A `.lib` extension is not a separate semantic target type: a `.lib` can contain real static COFF object code or act as a Windows DLL import library. Likewise, MinGW commonly uses `.dll.a` for import libraries. CPM therefore keeps the target types **Static Library** and **Dynamic Link Library** and exposes the format separately.
+
+For the Direct GCC/Clang backend, **Static Library format** can be `Automatic`, `GNU/LLVM archive (.a)`, or `Windows COFF library (.lib)`. A real static `.lib` requires a compatible librarian such as Microsoft `lib.exe` or LLVM `llvm-lib`; CPM does not merely rename an `ar` archive to `.lib`.
+
+For **Dynamic Link Library**, **DLL import-library outputs** can be `Automatic`, GNU/MinGW `.dll.a`, GNU/MinGW `.a` (legacy/ambiguous naming), Windows `.lib`, combinations of those outputs, or `none`. GNU output is emitted directly by the linker with `--out-implib`; when both GNU names are requested CPM duplicates the same import archive under both `.dll.a` and `.a`. `.lib` generation reuses CPM's DLL export/import-library generator. The `.dll` always remains the runtime implementation.
+
+Archive files generally do not carry a PE `VERSIONINFO` block at archive level, so CPM does not invent FileVersion/ProductVersion/revision values for `.a/.lib`. Versioning must come from project/package metadata or from a DLL/executable that embeds Windows version resources.
+

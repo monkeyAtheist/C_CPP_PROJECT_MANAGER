@@ -32,7 +32,7 @@ assert(compilerPaths.some(x => x.includes(path.join('ucrt64','bin').toLowerCase(
 assert(compilerPaths.some(x => x.includes(path.join('mingw32','bin').toLowerCase())), 'MINGW32 toolchain was not detected');
 
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
-assert.equal(pkg.version, '0.2.84');
+assert(/^0\.2\.\d+$/.test(pkg.version));
 assert(pkg.contributes.commands.some(x => x.command === 'cpm.installSupportedToolchains'), 'installer command missing');
 
 const viewTitle = pkg.contributes.menus['view/title'] || [];
@@ -40,7 +40,7 @@ assert(!viewTitle.some(x => x.command === 'cpm.selectBuildBackend' && String(x.w
 const commandPalette = pkg.contributes.menus.commandPalette || [];
 assert(commandPalette.some(x => x.command === 'cpm.selectBuildBackend' && x.when === 'false'), 'build backend quick selector should be hidden from the command palette');
 const launcher = fs.readFileSync(path.join(__dirname, '..', 'setup', 'CPM-Setup-Launcher.go'), 'utf8');
-assert(launcher.includes('go:embed CPM-Toolchain-Installer.ps1 c-cpp-project-manager-and-build-0.2.84.vsix'), 'single-file EXE bootstrapper does not embed the 0.2.84 payload');
+assert(launcher.includes(`go:embed CPM-Toolchain-Installer.ps1 c-cpp-project-manager-and-build-${pkg.version}.vsix`), `single-file EXE bootstrapper does not embed the ${pkg.version} payload`);
 
 const installer = fs.readFileSync(path.join(__dirname, '..', 'setup', 'CPM-Toolchain-Installer.ps1'), 'utf8');
 for (const required of [
@@ -54,5 +54,5 @@ for (const required of [
 ]) assert(installer.includes(required), `installer is missing: ${required}`);
 
 assert(!installer.includes("Add-UserPathEntry (Join-Path $Root 'mingw32\\bin')"), '32-bit bin must not be added to PATH');
-console.log(`CPM 0.2.84 toolchain/setup tests: PASS (${found.length} detected toolchain entries)`);
+console.log(`CPM ${pkg.version} toolchain/setup tests: PASS (${found.length} detected toolchain entries)`);
 fs.rmSync(root, { recursive: true, force: true });

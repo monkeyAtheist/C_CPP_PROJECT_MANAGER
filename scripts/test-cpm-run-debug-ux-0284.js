@@ -7,7 +7,7 @@ const read = p => fs.readFileSync(path.join(root, p), 'utf8');
 const pkg = JSON.parse(read('package.json'));
 const command = id => pkg.contributes.commands.find(c => c.command === id);
 
-assert.strictEqual(pkg.version, '0.2.84');
+assert(/^0\.2\.\d+$/.test(pkg.version));
 for (const [id, title] of [
   ['cpm.run', 'Run'],
   ['cpm.runDebug', 'Debug'],
@@ -56,4 +56,4 @@ assert(quick.includes("action('Build & Debug', 'cpm.debugWithGdb', 'debug-alt-sm
 const context = pkg.contributes.menus['view/item/context'].filter(m => ['cpm.executeProject','cpm.runDebugProject','cpm.buildAndRunProject','cpm.debugProjectWithGdb'].includes(m.command));
 assert.deepStrictEqual(context.map(x => x.command), ['cpm.executeProject','cpm.runDebugProject','cpm.buildAndRunProject','cpm.debugProjectWithGdb']);
 
-console.log('CPM 0.2.84 Run/Debug UX consistency: PASS');
+console.log('CPM Run/Debug UX consistency: PASS');

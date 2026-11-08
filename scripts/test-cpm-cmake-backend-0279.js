@@ -13,7 +13,7 @@ const {CpmCMakeService}=require('../out/services/cpmCMakeService.js');
 const {DEFAULT_CMAKE_CONFIGURATION,DEFAULT_EXTERNAL_DEPENDENCIES,DEFAULT_REMOTE_LINUX}=require('../out/services/cpmProjectSettingsService.js');
 let passed=0,failed=0;async function test(name,fn){try{await fn();passed++;console.log('PASS '+name)}catch(e){failed++;console.error('FAIL '+name+': '+(e.stack||e))}}
 (async()=>{
- await test('version is 0.2.84',()=>assert.strictEqual(pkg.version,'0.2.84'));
+ await test('package version is a CPM 0.2.x release',()=>assert(/^0\.2\.\d+$/.test(pkg.version)));
  await test('manifest exposes CMake backend commands',()=>{
    for(const id of ['cpm.selectBuildBackend','cpm.cmake.configure','cpm.cmake.openReport']) assert(pkg.contributes.commands.some(x=>x.command===id),id);
    assert(!pkg.contributes.menus['view/title'].some(x=>x.command==='cpm.selectBuildBackend'));

@@ -44,7 +44,7 @@ function target(overrides={}){return{targetType:'Dynamic Link Library',outputPat
 function compilerValue(key,fallback){return fallback;}
 
 (async()=>{
- await test('version is 0.2.84',()=>assert.strictEqual(pkg.version,'0.2.84'));
+ await test('package version is a CPM 0.2.x release',()=>assert(/^0\.2\.\d+$/.test(pkg.version)));
  await test('autocomplete profile manifest exists',()=>{const p=pkg.contributes.configuration.properties['cpm.autocompleteProfile'];assert(p);assert.strictEqual(p.default,'hybrid');assert.deepStrictEqual(p.enum,['hybrid','native','nativeSignature','standardAssist','custom']);});
  await test('profile resolver mirrors advanced CVI-style modes',()=>{assert.deepStrictEqual(sym.resolveAutocompleteProfile('nativeSignature'),{profile:'nativeSignature',completionEnabled:false,includeProjectCompletion:false,includeStandardCompletion:false,signatureHelpEnabled:true});assert.deepStrictEqual(sym.resolveAutocompleteProfile('standardAssist'),{profile:'standardAssist',completionEnabled:true,includeProjectCompletion:false,includeStandardCompletion:true,signatureHelpEnabled:true});});
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'cpm0272-'));

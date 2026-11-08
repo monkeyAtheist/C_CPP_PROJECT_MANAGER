@@ -278,6 +278,11 @@ export class CpmProjectHealthProvider implements vscode.TreeDataProvider<CpmHeal
     if (cSources.length && !cCompiler) compilerFailures.push(`C compiler not found: ${build?.cCompilerPath || 'gcc'}`);
     if (cppSources.length && !cppCompiler) compilerFailures.push(`C++ compiler not found: ${build?.cppCompilerPath || 'g++'}`);
     if (project.targetType === 'Static Library' && !archiver) compilerFailures.push(`Archiver not found: ${build?.archiverPath || 'ar'}`);
+    if (project.targetType === 'Static Library' && settings.staticLibraryFormat === 'windows-lib') {
+      const selectedBase = path.basename(archiver ?? build?.archiverPath ?? '').toLowerCase();
+      const compatible = selectedBase === 'lib.exe' || selectedBase === 'lib' || selectedBase === 'llvm-lib.exe' || selectedBase === 'llvm-lib';
+      if (!compatible && !resolveExecutable('llvm-lib') && !resolveExecutable('lib')) compilerFailures.push('Static .lib format requires lib.exe or llvm-lib; neither was detected.');
+    }
     const compilerDetail = [
       `Selected installation: ${installation?.label ?? 'none'}`,
       `C compiler: ${cCompiler ?? build?.cCompilerPath ?? 'not configured'}`,
@@ -362,13 +367,18 @@ export class CpmProjectHealthProvider implements vscode.TreeDataProvider<CpmHeal
         `External DLL imports: ${build.externalRuntimeDlls.length ? build.externalRuntimeDlls.join(', ') : build.targetExists ? '<none detected>' : '<target not built>'}`
       ].join('\n');
       if (project.targetType === 'Static Library') {
-        items.push(health('linkage', 'Linkage', 'Static-library target (.a)', 'ok', linkageDetail, 'cpm.editBuildSettings'));
+        items.push(health('linkage', 'Linkage', `Static-library target (${settings.staticLibraryFormat === 'windows-lib' ? '.lib' : settings.staticLibraryFormat === 'gnu-a' ? '.a' : 'automatic .a/.lib'})`, 'ok', `${linkageDetail}\nStatic library format: ${settings.staticLibraryFormat}`, 'cpm.editBuildSettings'));
       } else if (build.linkageMode === 'static' && build.targetExists && build.externalRuntimeDlls.length) {
         items.push(health('linkage', 'Linkage', `${build.externalRuntimeDlls.length} non-system DLL dependency/dependencies remain`, 'warning', linkageDetail, 'cpm.inspectRuntimeDependencies'));
       } else if (build.linkageMode === 'static-runtime' && build.targetExists && build.externalRuntimeDlls.some(isKnownCompilerRuntimeDll)) {
         items.push(health('linkage', 'Linkage', 'Compiler runtime DLL dependency remains', 'warning', linkageDetail, 'cpm.inspectRuntimeDependencies'));
       } else {
         items.push(health('linkage', 'Linkage', linkageLabel(build.linkageMode), build.linkageMode === 'dynamic' ? 'info' : 'ok', linkageDetail, 'cpm.selectLinkageMode'));
+      }
+
+      if (project.targetType === 'Dynamic Link Library') {
+        const importLabel = settings.dllImportLibraryFormat === 'gnu-a' ? '.a' : settings.dllImportLibraryFormat === 'gnu-dll-a' ? '.dll.a' : settings.dllImportLibraryFormat === 'windows-lib' ? '.lib' : settings.dllImportLibraryFormat === 'gnu-both' ? '.dll.a + .a' : settings.dllImportLibraryFormat === 'both' ? '.dll.a + .lib' : settings.dllImportLibraryFormat === 'gnu-a-windows-lib' ? '.a + .lib' : settings.dllImportLibraryFormat === 'all' ? '.dll.a + .a + .lib' : settings.dllImportLibraryFormat === 'none' ? 'disabled' : 'automatic';
+        items.push(health('dll-import-library', 'DLL import library', importLabel, settings.dllImportLibraryFormat === 'none' ? 'info' : 'ok', `Configured output: ${settings.dllImportLibraryFormat}\nThe DLL remains the runtime binary; .dll.a/.a/.lib are link-time import libraries.`, 'cpm.editBuildSettings'));
       }
 
       items.push(health(

@@ -200,8 +200,8 @@ export class CpmWorkspaceService implements vscode.Disposable {
 
     const target = await vscode.window.showQuickPick([
       { label: 'Executable', value: 'Executable', description: 'Generate an .exe target' },
-      { label: 'Dynamic Link Library', value: 'Dynamic Link Library', description: 'Generate a .dll target' },
-      { label: 'Static Library', value: 'Static Library', description: 'Generate a .lib target' }
+      { label: 'Dynamic Link Library', value: 'Dynamic Link Library', description: 'Generate a .dll target plus configurable .dll.a/.lib import library' },
+      { label: 'Static Library', value: 'Static Library', description: 'Generate a static .a or .lib archive' }
     ], { title: 'Select the C/C++ target type' });
     if (!target) {
       return;
@@ -427,8 +427,8 @@ export class CpmWorkspaceService implements vscode.Disposable {
 
     const target = await vscode.window.showQuickPick([
       { label: 'Executable', value: 'Executable', description: 'Generate an .exe target' },
-      { label: 'Dynamic Link Library', value: 'Dynamic Link Library', description: 'Generate a .dll target' },
-      { label: 'Static Library', value: 'Static Library', description: 'Generate a .lib target' }
+      { label: 'Dynamic Link Library', value: 'Dynamic Link Library', description: 'Generate a .dll target plus configurable .dll.a/.lib import library' },
+      { label: 'Static Library', value: 'Static Library', description: 'Generate a static .a or .lib archive' }
     ], { title: 'Select the C/C++ target type' });
     if (!target) {
       return;
@@ -496,6 +496,23 @@ export class CpmWorkspaceService implements vscode.Disposable {
     const count = this.parser.addFilesToProject(ref.absolutePath, files.map((file) => file.fsPath), folder || undefined);
     this.refresh();
     vscode.window.showInformationMessage(`${count} file(s) added to ${ref.name}.`);
+  }
+
+  async addFilePaths(projectRef: CpmWorkspaceProjectRef, filePaths: string[], folderOverride?: string): Promise<number> {
+    if (!projectRef?.exists) {
+      vscode.window.showErrorMessage('No existing C/C++ project is selected.');
+      return 0;
+    }
+    const existing = filePaths.filter((filePath) => fs.existsSync(filePath));
+    if (!existing.length) {
+      return 0;
+    }
+    const count = this.parser.addFilesToProject(projectRef.absolutePath, existing, folderOverride);
+    this.refresh();
+    if (count > 0) {
+      vscode.window.showInformationMessage(`${count} generated file(s) added to ${projectRef.name}.`);
+    }
+    return count;
   }
 
   async createNewFile(projectRef?: CpmWorkspaceProjectRef, folderOverride?: string): Promise<void> {
@@ -812,8 +829,8 @@ export class CpmWorkspaceService implements vscode.Disposable {
     const project = this.getProject(ref);
     const selected = await vscode.window.showQuickPick([
       { label: 'Executable', value: 'Executable', description: 'Generate an .exe target' },
-      { label: 'Dynamic Link Library', value: 'Dynamic Link Library', description: 'Generate a .dll target and import library' },
-      { label: 'Static Library', value: 'Static Library', description: 'Generate a .lib target' }
+      { label: 'Dynamic Link Library', value: 'Dynamic Link Library', description: 'Generate a .dll target plus configurable .dll.a/.lib import library' },
+      { label: 'Static Library', value: 'Static Library', description: 'Generate a static .a or .lib archive' }
     ], { title: `Select the C/C++ target type for ${ref.name}`, placeHolder: project?.targetType });
     if (!selected) {
       return;

@@ -12,7 +12,7 @@ import (
     "unsafe"
 )
 
-//go:embed CPM-Toolchain-Installer.ps1 c-cpp-project-manager-and-build-0.2.84.vsix
+//go:embed CPM-Toolchain-Installer.ps1 c-cpp-project-manager-and-build-0.2.88.vsix
 var payload embed.FS
 
 func messageBox(title, message string, flags uintptr) {
@@ -36,7 +36,7 @@ func writeEmbedded(name, dst string) error {
 }
 
 func main() {
-    tempRoot, err := os.MkdirTemp("", "CPM-Setup-0.2.84-")
+    tempRoot, err := os.MkdirTemp("", "CPM-Setup-0.2.88-")
     if err != nil {
         fail(fmt.Errorf("unable to create temporary setup directory: %w", err))
         return
@@ -44,12 +44,12 @@ func main() {
     defer os.RemoveAll(tempRoot)
 
     scriptPath := filepath.Join(tempRoot, "CPM-Toolchain-Installer.ps1")
-    vsixPath := filepath.Join(tempRoot, "c-cpp-project-manager-and-build-0.2.84.vsix")
+    vsixPath := filepath.Join(tempRoot, "c-cpp-project-manager-and-build-0.2.88.vsix")
     if err := writeEmbedded("CPM-Toolchain-Installer.ps1", scriptPath); err != nil {
         fail(fmt.Errorf("unable to extract installer script: %w", err))
         return
     }
-    if err := writeEmbedded("c-cpp-project-manager-and-build-0.2.84.vsix", vsixPath); err != nil {
+    if err := writeEmbedded("c-cpp-project-manager-and-build-0.2.88.vsix", vsixPath); err != nil {
         fail(fmt.Errorf("unable to extract CPM extension: %w", err))
         return
     }

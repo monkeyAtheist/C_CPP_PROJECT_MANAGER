@@ -7,13 +7,14 @@ import * as vscode from 'vscode';
 import { CpmBuildMode, CpmProjectFile, CpmWorkspaceProjectRef } from '../model/types';
 import { CpmNativeTargetSettings, CpmParser } from '../model/cpmParser';
 import { CpmWorkspaceService } from './cpmWorkspaceService';
-import { CpmLinkageMode, CpmProjectSettingsService } from './cpmProjectSettingsService';
+import { CpmDllImportLibraryFormat, CpmLinkageMode, CpmProjectSettingsService, CpmStaticLibraryFormat } from './cpmProjectSettingsService';
 import { normalizeRuntimePath } from '../utils/pathUtils';
 import { CpmSdlConfiguration, createSdlBuildPlan } from './cpmSdlService';
 import { createGnuResponseFileArguments, estimateGnuArgumentLength, shouldUseGnuResponseFile } from './cpmGnuResponseFile';
 import { cleanCpmBuildDirectory, removePathWithRetries } from './cpmBuildCleanup';
 import { CpmDependencyService } from './cpmDependencyService';
 import { CpmCMakeService } from './cpmCMakeService';
+import { CpmImportLibraryService } from './cpmImportLibraryService';
 import { emptyDependencyIntegration } from './cpmDependencyModel';
 
 type CpmRuntimeDependencyMode = 'copy-dlls' | 'path-only' | 'static-link';
@@ -142,7 +143,8 @@ export class CpmBuildService {
     private readonly programOutput: vscode.OutputChannel,
     private readonly diagnostics: vscode.DiagnosticCollection,
     private readonly dependencies?: CpmDependencyService,
-    private readonly cmake?: CpmCMakeService
+    private readonly cmake?: CpmCMakeService,
+    private readonly importLibraries?: CpmImportLibraryService
   ) {}
 
   private currentReport: CpmBuildReport | undefined;
@@ -265,7 +267,7 @@ export class CpmBuildService {
     }
     const project = this.workspaces.getProject(ref);
     if (project?.targetType === 'Static Library') {
-      vscode.window.showInformationMessage('Linkage mode applies to executable and DLL targets. A static-library target is already archived as .a.');
+      vscode.window.showInformationMessage('Linkage mode applies to executable and DLL targets. A static-library target is already archived as a .a or .lib according to its library-format setting.');
       return;
     }
     const current = this.getLinkageMode(ref);
@@ -393,6 +395,14 @@ export class CpmBuildService {
     const candidates = new Set<string>([artifacts.targetPath]);
     if (path.extname(artifacts.targetPath).toLowerCase() === '.exe') {
       candidates.add(replaceExtension(artifacts.targetPath, '.pdb'));
+    }
+    const project = this.workspaces.getProject(ref);
+    if (project?.targetType === 'Dynamic Link Library') {
+      candidates.add(this.gnuDllImportLibraryPath(artifacts.targetPath));
+      candidates.add(this.gnuLegacyDllImportLibraryPath(artifacts.targetPath));
+      candidates.add(this.windowsDllImportLibraryPath(artifacts.targetPath));
+      candidates.add(replaceExtension(this.windowsDllImportLibraryPath(artifacts.targetPath), '.def'));
+      candidates.add(replaceExtension(this.windowsDllImportLibraryPath(artifacts.targetPath), '.exp'));
     }
     let removed = 0;
     for (const candidate of candidates) {
@@ -740,10 +750,6 @@ export class CpmBuildService {
     await this.workspaces.openPath(projectPath);
   }
 
-  async prepareDllImportLibraryGeneration(headerPath: string): Promise<void> {
-    await vscode.env.clipboard.writeText(headerPath);
-    vscode.window.showInformationMessage('The header path was copied. Use your compiler toolchain or dlltool to generate an import library if required.');
-  }
 
   async openPanelFile(panelPath: string): Promise<void> {
     await this.workspaces.openPath(panelPath);
@@ -997,8 +1003,9 @@ export class CpmBuildService {
       this.currentReport.linkRun += 1;
     }
     if (targetType === 'Static Library') {
-      const args = ['rcs', artifacts.targetPath, ...artifacts.objectFiles];
-      return await this.spawnTool(config.archiverPath || 'ar', args, path.dirname(ref.absolutePath), `Archive ${path.basename(artifacts.targetPath)}`);
+      const archive = this.resolveStaticLibraryArchiver(ref, artifacts.targetPath, artifacts.objectFiles, config);
+      if (!archive) return false;
+      return await this.spawnTool(archive.executable, archive.args, path.dirname(ref.absolutePath), `Archive ${path.basename(artifacts.targetPath)}`);
     }
 
     const fileLibraries = files.filter((file) => !file.excluded && isLibrary(file.absolutePath)).map((file) => file.absolutePath);
@@ -1036,6 +1043,7 @@ export class CpmBuildService {
       ...this.modeFlags(config),
       ...this.runtimeLinkFlags(config, targetType, sdlPlan, linkageMode),
       ...(targetType === 'Dynamic Link Library' ? ['-shared'] : []),
+      ...this.gnuDllImportLibraryFlags(ref, targetType, artifacts.targetPath, config),
       ...artifacts.objectFiles,
       ...windowsResourceObjects,
       ...fileLibraries,
@@ -1061,6 +1069,10 @@ export class CpmBuildService {
     }
     const success = await this.spawnTool(config.cppCompilerPath || 'g++', linkArgs, path.dirname(ref.absolutePath), `Link ${path.basename(artifacts.targetPath)}`);
     if (success) {
+      if (targetType === 'Dynamic Link Library') {
+        this.materializeGnuDllImportAliases(ref, artifacts.targetPath, config);
+        await this.generateWindowsDllImportLibraryIfRequested(ref, artifacts.targetPath, config);
+      }
       this.deployToolchainRuntimeDlls(artifacts.targetPath, config, linkageMode);
       this.deploySdlRuntimeDlls(artifacts.targetPath, sdlPlan, linkageMode);
       this.deployApplicationIconAssets(ref, artifacts.targetPath, targetSettings);
@@ -1069,6 +1081,113 @@ export class CpmBuildService {
     return success;
   }
 
+
+  private staticLibraryExtension(ref: CpmWorkspaceProjectRef, config: GenericCompilerConfiguration): '.a' | '.lib' {
+    const format = this.projectSettings.getSettings(ref, this.buildMode).staticLibraryFormat;
+    if (format === 'gnu-a') return '.a';
+    if (format === 'windows-lib') return '.lib';
+    const base = path.basename(resolveExecutableFromPath(config.archiverPath || 'ar')).toLowerCase();
+    return base === 'lib.exe' || base === 'lib' || base.includes('llvm-lib') ? '.lib' : '.a';
+  }
+
+  private resolveStaticLibraryArchiver(ref: CpmWorkspaceProjectRef, targetPath: string, objectFiles: string[], config: GenericCompilerConfiguration): { executable: string; args: string[] } | undefined {
+    const extension = path.extname(targetPath).toLowerCase();
+    const configured = config.archiverPath || (extension === '.lib' ? 'lib' : 'ar');
+    if (extension === '.lib') {
+      const candidates = [configured, 'llvm-lib', 'lib'];
+      const executable = candidates.map(resolveExecutableFromPath).find((candidate) => {
+        const base = path.basename(candidate).toLowerCase();
+        return (base === 'lib' || base === 'lib.exe' || base === 'llvm-lib' || base === 'llvm-lib.exe') && (fs.existsSync(candidate) || candidate === configured);
+      });
+      if (!executable) {
+        this.output.appendLine('[C/C++] Static .lib requested, but no Microsoft/LLVM-compatible librarian (lib.exe or llvm-lib) was found.');
+        vscode.window.showErrorMessage('Static .lib build requires lib.exe or llvm-lib. Select a compatible archiver, or choose GNU .a format.');
+        return undefined;
+      }
+      return { executable, args: ['/NOLOGO', `/OUT:${targetPath}`, ...objectFiles] };
+    }
+    let executable = resolveExecutableFromPath(configured);
+    const base = path.basename(executable).toLowerCase();
+    if (base === 'lib' || base === 'lib.exe' || base === 'llvm-lib' || base === 'llvm-lib.exe') {
+      const fallback = ['ar', 'llvm-ar'].map(resolveExecutableFromPath).find((candidate) => fs.existsSync(candidate) || candidate === 'ar' || candidate === 'llvm-ar');
+      if (fallback) executable = fallback;
+    }
+    return { executable, args: ['rcs', targetPath, ...objectFiles] };
+  }
+
+  private resolveDllImportLibraryFormat(ref: CpmWorkspaceProjectRef, config: GenericCompilerConfiguration): CpmDllImportLibraryFormat {
+    const requested = this.projectSettings.getSettings(ref, this.buildMode).dllImportLibraryFormat;
+    if (requested !== 'auto') return requested;
+    const compiler = path.basename(resolveExecutableFromPath(config.cppCompilerPath || 'g++')).toLowerCase();
+    return compiler === 'cl.exe' || compiler === 'cl' || compiler.includes('clang-cl') ? 'windows-lib' : 'gnu-dll-a';
+  }
+
+  private gnuDllImportLibraryPath(dllPath: string): string {
+    const directory = path.dirname(dllPath);
+    const stem = path.basename(dllPath, path.extname(dllPath));
+    const prefix = stem.toLowerCase().startsWith('lib') ? '' : 'lib';
+    return path.join(directory, `${prefix}${stem}.dll.a`);
+  }
+
+  private gnuLegacyDllImportLibraryPath(dllPath: string): string {
+    const directory = path.dirname(dllPath);
+    const stem = path.basename(dllPath, path.extname(dllPath));
+    const prefix = stem.toLowerCase().startsWith('lib') ? '' : 'lib';
+    return path.join(directory, `${prefix}${stem}.a`);
+  }
+
+  private windowsDllImportLibraryPath(dllPath: string): string {
+    return path.join(path.dirname(dllPath), `${path.basename(dllPath, path.extname(dllPath))}.lib`);
+  }
+
+  private resolvedDllImportOutputs(ref: CpmWorkspaceProjectRef, config: GenericCompilerConfiguration): { gnuA: boolean; gnuDllA: boolean; windowsLib: boolean } {
+    const format = this.resolveDllImportLibraryFormat(ref, config);
+    return {
+      gnuA: format === 'gnu-a' || format === 'gnu-both' || format === 'gnu-a-windows-lib' || format === 'all',
+      gnuDllA: format === 'gnu-dll-a' || format === 'gnu-both' || format === 'both' || format === 'all',
+      windowsLib: format === 'windows-lib' || format === 'gnu-a-windows-lib' || format === 'both' || format === 'all'
+    };
+  }
+
+  private gnuDllImportLibraryFlags(ref: CpmWorkspaceProjectRef, targetType: string, dllPath: string, config: GenericCompilerConfiguration): string[] {
+    if (targetType !== 'Dynamic Link Library') return [];
+    const outputs = this.resolvedDllImportOutputs(ref, config);
+    if (!outputs.gnuA && !outputs.gnuDllA) return [];
+    // GNU ld can emit only one import archive directly. Prefer the conventional .dll.a
+    // when both GNU names are requested, then duplicate it to the legacy .a alias post-link.
+    const outputPath = outputs.gnuDllA ? this.gnuDllImportLibraryPath(dllPath) : this.gnuLegacyDllImportLibraryPath(dllPath);
+    return [`-Wl,--out-implib,${outputPath}`];
+  }
+
+  private materializeGnuDllImportAliases(ref: CpmWorkspaceProjectRef, dllPath: string, config: GenericCompilerConfiguration): void {
+    const outputs = this.resolvedDllImportOutputs(ref, config);
+    if (!outputs.gnuA || !outputs.gnuDllA) return;
+    const source = this.gnuDllImportLibraryPath(dllPath);
+    const alias = this.gnuLegacyDllImportLibraryPath(dllPath);
+    if (!fs.existsSync(source)) {
+      this.output.appendLine(`[C/C++] Warning: requested GNU .a alias was not generated because ${source} was not found after link.`);
+      return;
+    }
+    try {
+      fs.copyFileSync(source, alias);
+      this.output.appendLine(`[C/C++] DLL import library (GNU .a alias): ${alias}`);
+    } catch (error) {
+      this.output.appendLine(`[C/C++] Warning: unable to create GNU .a import-library alias: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async generateWindowsDllImportLibraryIfRequested(ref: CpmWorkspaceProjectRef, dllPath: string, config: GenericCompilerConfiguration): Promise<void> {
+    const outputs = this.resolvedDllImportOutputs(ref, config);
+    if (!outputs.windowsLib) return;
+    const outputLibrary = this.windowsDllImportLibraryPath(dllPath);
+    if (!this.importLibraries) {
+      this.output.appendLine('[C/C++] Warning: Windows .lib generation service is unavailable; DLL build itself succeeded.');
+      return;
+    }
+    const result = await this.importLibraries.generateBuiltDllImportLibrary(ref, dllPath, outputLibrary);
+    this.output.appendLine(`[C/C++] DLL import library (.lib): ${result.ok ? outputLibrary : `not generated — ${result.message}`}`);
+    if (!result.ok) vscode.window.showWarningMessage(`DLL built, but Windows import library was not generated: ${result.message}`);
+  }
 
   private async prepareApplicationIconGeneration(ref: CpmWorkspaceProjectRef, targetType: string, artifacts: BuildArtifacts, files: CpmProjectFile[], config: GenericCompilerConfiguration): Promise<ApplicationIconGeneration> {
     const targetSettings = this.parser.getNativeTargetSettings(ref.absolutePath, this.buildMode);
@@ -1299,12 +1418,14 @@ export class CpmBuildService {
       const cmakeArtifact = this.cmake?.resolveArtifact(ref, targetType);
       if (cmakeArtifact) return cmakeArtifact;
     }
+    const config = this.getCompilerConfiguration();
+    const extension = targetType === 'Dynamic Link Library' ? '.dll' : targetType === 'Static Library' ? this.staticLibraryExtension(ref, config) : '.exe';
     const configured = this.parser.getTargetPath(ref.absolutePath, this.buildMode);
     if (configured) {
-      return normalizeRuntimePath(configured);
+      const normalized = normalizeRuntimePath(configured);
+      return targetType === 'Static Library' ? replaceExtension(normalized, extension) : normalized;
     }
-    const extension = targetType === 'Dynamic Link Library' ? '.dll' : targetType === 'Static Library' ? '.a' : '.exe';
-    return path.join(path.dirname(ref.absolutePath), this.getCompilerConfiguration().outputDirectory || 'build', `${ref.name}${extension}`);
+    return path.join(path.dirname(ref.absolutePath), config.outputDirectory || 'build', `${ref.name}${extension}`);
   }
 
   private objectPathForSource(sourcePath: string, projectPath: string, objectDirectory: string): string {

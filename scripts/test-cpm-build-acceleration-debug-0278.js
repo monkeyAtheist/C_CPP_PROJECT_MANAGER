@@ -21,7 +21,7 @@ const {DEFAULT_EXTERNAL_DEPENDENCIES,DEFAULT_REMOTE_LINUX}=require('../out/servi
 let passed=0,failed=0;
 async function test(name,fn){try{await fn();passed++;console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+': '+(e.stack||e));}}
 (async()=>{
- await test('version is 0.2.84',()=>assert.strictEqual(pkg.version,'0.2.84'));
+ await test('package version is a CPM 0.2.x release',()=>assert(/^0\.2\.\d+$/.test(pkg.version)));
  await test('workspace toolbar exposes Debug with debug-alt icon',()=>{
    const cmd=pkg.contributes.commands.find(x=>x.command==='cpm.runDebug');assert(cmd);assert.strictEqual(cmd.icon,'$(debug-alt)');
    const menu=pkg.contributes.menus['view/title'].find(x=>x.command==='cpm.runDebug');assert(menu);assert(menu.when.includes('cpm.workspaceExplorer'));

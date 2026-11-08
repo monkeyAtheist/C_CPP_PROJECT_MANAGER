@@ -1,0 +1,20 @@
+
+'use strict';
+const assert=require('assert');
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+assert.strictEqual(pkg.version,'0.2.88');
+const settings=fs.readFileSync(path.join(root,'src/services/cpmProjectSettingsService.ts'),'utf8');
+for(const token of ["'gnu-a'","'gnu-dll-a'","'windows-lib'","'gnu-both'","'gnu-a-windows-lib'","'all'","'none'"]) assert(settings.includes(token), token);
+const panel=fs.readFileSync(path.join(root,'src/views/buildSettingsPanel.ts'),'utf8');
+for(const token of ['DLL import-library outputs','GNU/MinGW import library (.a)','Generate all (.dll.a + .a + .lib)','target.targetType === \'Dynamic Link Library\'']) assert(panel.includes(token), token);
+const build=fs.readFileSync(path.join(root,'src/services/cpmBuildService.ts'),'utf8');
+for(const token of ['gnuLegacyDllImportLibraryPath','materializeGnuDllImportAliases','resolvedDllImportOutputs','--out-implib']) assert(build.includes(token), token);
+assert(build.includes("format === 'all'"));
+assert(build.includes("format === 'gnu-both'"));
+assert(build.includes("format === 'gnu-a-windows-lib'"));
+const health=fs.readFileSync(path.join(root,'src/providers/cpmProjectHealthProvider.ts'),'utf8');
+assert(health.includes("'.dll.a + .a + .lib'"));
+console.log('CPM DLL output format selection 0.2.88: PASS');

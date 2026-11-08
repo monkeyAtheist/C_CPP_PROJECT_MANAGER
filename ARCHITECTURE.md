@@ -26,6 +26,9 @@ For multi-architecture SDL SDKs, include directory resolution now returns the pr
 - `src/services/cpmTemplateService.ts`: C/C++ starter files, snippets, DLL helpers, error/logging modules and CPM_Utility bundle integration.
 - `src/services/cpmColorValueService.ts`: editor context-menu color picker webview and color value insertion/copy helpers.
 - `src/services/cpmLibraryPackService.ts`: embedded JC Lib / CPM library-pack seeding and migration.
+- `src/services/cpmImportLibraryService.ts`: header/DLL Windows import-library generation, multi-DLL batch editor, `.def` emission and `lib.exe`/`dlltool` generator orchestration.
+- `src/services/cpmDllAnalyzerService.ts`: read-only PE/DLL inspection for architecture, VERSIONINFO, imports/exports, sections/resources, certificate/CLR presence and PDB metadata.
+- `src/services/cpmLibraryAnalyzerService.ts`: read-only GNU/COFF archive inspection for `.a`, `.dll.a` and `.lib` files; classifies static/import/mixed archives and reports members, linker symbols, architectures, import objects and runtime-DLL references.
 - `src/providers/cpmTreeProvider.ts`: native VS Code tree views for workspaces, actions, file symbols and libraries. The workspace tree also owns the internal file drag-and-drop controller for logical folder moves.
 - `src/jcLibEmbedded.ts`: embedded library explorer and structured prototype/snippet UI.
 - `src/views/homePanel.ts`: global workspace and toolchain dashboard.
@@ -364,3 +367,47 @@ Remote Run reuses CPM's existing output-mode semantics. Remote Debug builds the 
 ## Supported Windows toolchain provisioning (0.2.80)
 
 `setup/CPM-Toolchain-Installer.ps1` is the Windows provisioning entry point. It downloads the official MSYS2 installer when required, uses `pacman` to provision UCRT64 x64 and MINGW32 x86 toolchains side-by-side, and persists `MSYS2_ROOT` / `CPM_TOOLCHAINS_ROOT` at user scope. `CpmToolchainInstallerService` launches the installer from CPM, while `CpmInstallationService` expands those roots into architecture-specific toolchain directories. The design intentionally avoids adding both compiler bins to PATH.
+
+## Import-library generation service
+
+`CpmImportLibraryService` owns Windows DLL import-library workflows. It accepts a multi-selection of headers or a PE DLL, normalizes selected exports into a `.def`, resolves a compatible generator from the active CPM toolchain (`lib.exe`, `llvm-lib`, `llvm-dlltool`, or GNU `dlltool`) and writes a persistent report under `.cpm/import-libraries/`.
+
+Header mode uses `CpmSymbolService` to discover free-function declarations and is intentionally best-effort for external symbol names. DLL mode contains a PE export-table reader so the actual exported/decorated symbol names and machine architecture are used. The service is exposed both through Workspace Explorer context menus and the Project Settings **Libraries** page.
+
+## Windows import-library and DLL-analysis pipeline
+
+```text
+Header(s)
+  -> scan free-function declarations
+  -> select external names
+  -> .def
+  -> lib.exe / llvm-lib / llvm-dlltool / dlltool
+  -> import .lib
+
+DLL(s)
+  -> PE export-table parser
+  -> one row per DLL in batch editor
+  -> select exports + output .lib per row
+  -> .def per DLL
+  -> generator matching active toolchain
+  -> one import .lib per runtime DLL
+
+DLL Analyzer
+  -> PE headers/data directories
+  -> exports + imports + sections + resources
+  -> VERSIONINFO + file/product revision
+  -> CodeView/PDB + certificate/CLR presence
+  -> settings-page view / Markdown report
+
+.a / .lib Analyzer
+  -> ar/COFF archive parser
+  -> linker symbol table + members
+  -> COFF/ELF/LLVM object detection
+  -> COFF short import objects + runtime DLL references
+  -> static/import/mixed classification
+  -> settings-page view / Markdown report
+```
+
+The analyzers and import-library parser do not execute the inspected binary/archive. Header-based generation remains a declaration-only best effort and cannot reconstruct C++ name decoration reliably. DLL-based generation uses the actual PE export names. Archive analysis deliberately does not synthesize FileVersion/ProductVersion metadata because `.a/.lib` archives do not normally carry PE VERSIONINFO at archive level.
+
+For the Direct backend, `Static Library` is a semantic target whose archive format is selected separately (`.a` through GNU/LLVM `ar`, or `.lib` through `lib.exe`/`llvm-lib`). `Dynamic Link Library` always produces the runtime `.dll`; its link-time import-library outputs are configured separately and can be GNU `.dll.a`, GNU `.a` (legacy naming), Windows `.lib`, supported combinations of those formats, or none. When both GNU names are requested, CPM emits one GNU import archive during link and mirrors it under the second filename because the binary archive contents are equivalent.

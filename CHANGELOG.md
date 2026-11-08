@@ -1,3 +1,52 @@
+## 0.2.88
+
+### Explicit DLL output formats
+
+- Expanded **Dynamic Link Library → DLL import-library outputs** in Project Build Settings with explicit GNU `.dll.a`, GNU `.a`, Windows `.lib`, combined and all-format choices.
+- Kept the `.dll` as the mandatory runtime artifact; selected `.a`/`.dll.a`/`.lib` files are link-time import libraries generated alongside it.
+- Added the legacy GNU `.a` import-library naming mode without confusing it with the separate **Static Library** target type.
+- When both GNU names are requested, CPM emits the conventional `.dll.a` during the link then mirrors the same import archive as `.a`.
+- Safe-mode Build Settings now show static-library format only for Static Library targets and DLL import-library outputs only for Dynamic Link Library targets.
+- Clean/rebuild removes the generated GNU `.a` alias in addition to `.dll.a`, `.lib`, `.def` and `.exp`.
+- Extended Project Health and regression tests for all DLL output combinations.
+
+## 0.2.87
+
+### .a/.lib Library Analyzer and explicit library build formats
+
+- Added **Analyze .a / .lib Library...** to `.a`/`.lib` project-file context menus and a dedicated Project Build Settings analyzer page.
+- The archive analyzer classifies static/import/mixed libraries from member/symbol evidence, reports archive members, linker symbols, detected architectures, COFF/ELF/LLVM object members, import objects and referenced runtime DLLs.
+- Clarified that `.a`/`.lib` are library formats rather than additional semantic CPM target types. **Static Library** now has an explicit format setting: automatic, GNU/LLVM `.a`, or Windows COFF `.lib`.
+- Direct static `.lib` builds require Microsoft `lib.exe` or LLVM `llvm-lib`; CPM no longer presents a GNU `ar` archive with a renamed `.lib` extension as an equivalent result.
+- **Dynamic Link Library** now has a configurable import-library output: automatic, GNU/MinGW `.dll.a`, Windows `.lib`, both, or disabled.
+- GNU DLL builds can emit `.dll.a` directly through `--out-implib`; Windows `.lib` generation is chained through the existing DLL export/import-library service.
+- Clean/rebuild removes generated `.dll.a`, `.lib`, `.def` and `.exp` artifacts associated with the DLL target.
+- Extended Project Health and Build Settings to surface the selected static/import-library formats and report missing compatible `.lib` librarians.
+- Added real-archive analyzer regression tests using GCC/`ar` plus a synthetic COFF short-import-object archive.
+
+## 0.2.86
+
+### Multi-DLL import-library workflow and DLL Analyzer
+
+- Replaced the single-DLL export Quick Pick with a dedicated multi-DLL webview. The right-click DLL action now opens a batch editor with **+ Add DLL(s)**, a source browser on every row, a per-row `.lib` output browser, export filtering and Select All/None controls.
+- Batch generation deliberately creates **one import library per DLL** instead of merging unrelated DLL import descriptors into one ambiguous `.lib`. Duplicate DLL base names receive unique default output names.
+- Added **Analyze DLL...** to DLL context menus and a dedicated **DLL Analyzer** page in Project Build Settings. The analyzer reports PE architecture/format, link timestamp, SHA-256, file/product version and revision, imports, exports, sections, resources, PE flags, certificate-table presence, CLR presence and CodeView/PDB metadata when available.
+- Hardened PE export parsing by respecting `NumberOfRvaAndSizes` before reading the export directory.
+- Audited the 0.2.85 import-library implementation and kept the existing header-to-import-library, `.def` extraction and generator selection workflows intact.
+- Reworked historical regression version assertions so old feature tests no longer fail solely because the CPM patch version advanced. All CPM regression suites now run green together with the new DLL analyzer tests.
+
+## 0.2.85
+
+### Windows import-library generation
+
+- Replaced the historical header-path clipboard placeholder with real Windows import-library generation.
+- Added **Generate Import Library (.lib) from Header(s)...** with multi-header selection from the CPM tree or a file picker.
+- Added **Generate DLL Import Library (.lib)...** on `.dll` project files; CPM reads the PE export table and preserves named/decorated exports.
+- Added `.def` extraction, generator auto-detection (`lib.exe`, `llvm-lib`, `llvm-dlltool`, GNU `dlltool`), architecture selection and a generation report.
+- Added a dedicated **Libraries** page in Project Build Settings for generator/output configuration and access to all import-library workflows.
+- Generated `.lib` files can be added back to the active CPM project.
+- Header-based generation is explicitly treated as import-library generation: the corresponding DLL remains required at runtime; no static implementation can be reconstructed from declarations alone.
+
 ## 0.2.84
 
 - Unified the local execution UX: **Run** and **Debug** never build first; **Build & Run** and **Build & Debug** are explicit separate actions.

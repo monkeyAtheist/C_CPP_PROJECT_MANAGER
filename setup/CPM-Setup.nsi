@@ -1,6 +1,6 @@
 Unicode True
-Name "C/C++ Project Manager Setup 0.2.84"
-OutFile "CPM-Setup-0.2.84.exe"
+Name "C/C++ Project Manager Setup 0.2.88"
+OutFile "CPM-Setup-0.2.88.exe"
 RequestExecutionLevel user
 SilentInstall normal
 AutoCloseWindow true
@@ -10,7 +10,7 @@ Icon "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
 Section "CPM Setup"
   SetOutPath "$PLUGINSDIR\CPM-Setup"
   File "CPM-Toolchain-Installer.ps1"
-  File "c-cpp-project-manager-and-build-0.2.84.vsix"
-  ExecWait 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\CPM-Setup\CPM-Toolchain-Installer.ps1" -VsixPath "$PLUGINSDIR\CPM-Setup\c-cpp-project-manager-and-build-0.2.84.vsix"' $0
+  File "c-cpp-project-manager-and-build-0.2.88.vsix"
+  ExecWait 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\CPM-Setup\CPM-Toolchain-Installer.ps1" -VsixPath "$PLUGINSDIR\CPM-Setup\c-cpp-project-manager-and-build-0.2.88.vsix"' $0
   SetErrorLevel $0
 SectionEnd

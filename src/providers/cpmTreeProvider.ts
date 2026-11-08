@@ -266,7 +266,8 @@ function contextValueForFile(file: CpmProjectFile): string {
           : 'other';
   const build = file.excluded ? 'excluded' : 'included';
   const obj = file.type === 'CSource' ? (file.compileIntoObjectFile ? 'objOn' : 'objOff') : 'objNA';
-  return `cpmFile.${kind}.${build}.${obj}`;
+  const extension = path.extname(file.absolutePath).toLowerCase().replace(/^\./, '').replace(/[^a-z0-9_-]/g, '') || 'none';
+  return `cpmFile.${kind}.${build}.${obj}.ext-${extension}`;
 }
 
 function statusDescription(file: CpmProjectFile): string | undefined {
