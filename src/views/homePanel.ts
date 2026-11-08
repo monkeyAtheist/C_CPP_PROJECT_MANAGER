@@ -143,8 +143,8 @@ function renderHtml(state: HomeState): string {
         <div class="actions project-actions">
           <button data-command="cpm.chooseBuildAction">Build / rebuild / clean</button>
           <button class="secondary" data-command="cpm.run">Run</button>
-          <button class="secondary" data-command="cpm.runDebug">Run debug</button>
-          <button class="secondary" data-command="cpm.buildAndRun">Build + run</button><button class="secondary" data-command="cpm.debugWithGdb">Build + debug</button>
+          <button class="secondary" data-command="cpm.runDebug">Debug</button>
+          <button class="secondary" data-command="cpm.buildAndRun">Build &amp; Run</button><button class="secondary" data-command="cpm.debugWithGdb">Build &amp; Debug</button>
           <button class="secondary" data-command="cpm.chooseRunAction">Run options</button>
           <button class="secondary" data-command="cpm.selectBuildMode">Build mode</button>
           <button class="secondary" data-command="cpm.selectTargetType">Target type</button>

@@ -47,7 +47,7 @@ function makeProvider(overrides={}){
 }
 
 (async()=>{
-  await test('version is 0.2.81',()=>assert.strictEqual(pkg.version,'0.2.81'));
+  await test('version is 0.2.84',()=>assert.strictEqual(pkg.version,'0.2.84'));
   await test('Project Health view and commands are contributed',()=>{
     assert(pkg.contributes.views.cpm.some(v=>v.id==='cpm.projectHealth'));
     for(const c of ['cpm.refreshProjectHealth','cpm.openProjectHealthReport','cpm.repairProjectHealth'])assert(pkg.contributes.commands.some(x=>x.command===c));

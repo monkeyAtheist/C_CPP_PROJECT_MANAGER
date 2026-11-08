@@ -169,10 +169,10 @@ export class CpmBuildService {
 
   async chooseRunAction(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
     const selected = await vscode.window.showQuickPick([
-      { label: '$(play) Build and run', value: 'buildRun', description: 'Build the active target and launch the executable or configured DLL host' },
-      { label: '$(run) Run without build', value: 'runOnly', description: 'Launch the existing executable target or configured DLL host' },
-      { label: '$(debug-alt) Run Debug', value: 'debugOnly', description: 'Start a VS Code C/C++ debugger session with the existing binary, without rebuilding' },
-      { label: '$(debug-alt) Build and debug', value: 'debug', description: 'Build, then start a VS Code C/C++ debugger session' }
+      { label: '$(play) Run', value: 'runOnly', description: 'Launch the existing executable target or configured DLL host without building' },
+      { label: '$(debug-alt) Debug', value: 'debugOnly', description: 'Start a VS Code C/C++ debugger session with the existing binary, without building' },
+      { label: '$(run-all) Build & Run', value: 'buildRun', description: 'Build the active target, then launch the executable or configured DLL host' },
+      { label: '$(debug-alt) Build & Debug', value: 'debug', description: 'Build the active target, then start a VS Code C/C++ debugger session' }
     ], { title: 'C/C++ run action' });
     if (!selected) {
       return;
@@ -717,7 +717,7 @@ export class CpmBuildService {
     }
     const debugEnvironment = this.debugEnvironmentFromProcessEnv(this.createRuntimeEnvironment(this.projectSettings.parseEnvironment(runSettings.environmentOptions), config, program, builtTargetPath));
     const debugConfig: vscode.DebugConfiguration = {
-      name: `${buildFirst ? 'Build & Debug' : 'Run Debug'} ${targetType === 'Dynamic Link Library' ? `${ref.name} via ${path.basename(program)}` : ref.name}`,
+      name: `${buildFirst ? 'Build & Debug' : 'Debug'} ${targetType === 'Dynamic Link Library' ? `${ref.name} via ${path.basename(program)}` : ref.name}`,
       type: 'cppdbg', request: 'launch', program, args, cwd, stopAtEntry: false,
       externalConsole: false, avoidWindowsConsoleRedirection: false, internalConsoleOptions: 'neverOpen',
       logging: { programOutput: true }, MIMode: 'gdb', miDebuggerPath: config.debuggerPath || 'gdb', environment: debugEnvironment

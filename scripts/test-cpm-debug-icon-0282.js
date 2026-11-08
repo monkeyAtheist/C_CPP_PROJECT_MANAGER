@@ -12,20 +12,20 @@ for (const id of ['cpm.runDebug', 'cpm.runDebugProject']) {
 }
 
 const srcBuild = read('src/services/cpmBuildService.ts');
-assert(srcBuild.includes("$(debug-alt) Run Debug"), 'Run Options Run Debug must use debug-alt');
-assert(!srcBuild.includes("$(debug-start) Run Debug"), 'Run Options still contains debug-start');
+assert(srcBuild.includes("$(debug-alt) Debug"), 'Run Options Debug must use debug-alt');
+assert(!srcBuild.includes("$(debug-start) Debug"), 'Run Options still contains debug-start');
 
 const srcQuick = read('src/views/quickActionsView.ts');
-assert(srcQuick.includes("action('Run Debug', 'cpm.runDebug', 'debug-alt')"), 'Quick Actions Run Debug must use debug-alt');
+assert(srcQuick.includes("action('Debug', 'cpm.runDebug', 'debug-alt')"), 'Quick Actions Debug must use debug-alt');
 
 const srcExt = read('src/extension.ts');
-assert(srcExt.includes("createStatusBarAction('$(debug-alt)', 'Run Debug without rebuilding'"), 'status bar Run Debug must use debug-alt');
+assert(srcExt.includes("createStatusBarAction('$(debug-alt)', 'Debug active target without build'"), 'status bar Debug must use debug-alt');
 
 const outBuild = read('out/services/cpmBuildService.js');
 const outQuick = read('out/views/quickActionsView.js');
 const outExt = read('out/extension.js');
-assert(outBuild.includes("$(debug-alt) Run Debug"), 'published Run Options JS must use debug-alt');
-assert(outQuick.includes("action('Run Debug', 'cpm.runDebug', 'debug-alt')"), 'published Quick Actions JS must use debug-alt');
-assert(outExt.includes("createStatusBarAction('$(debug-alt)', 'Run Debug without rebuilding'"), 'published status bar JS must use debug-alt');
+assert(outBuild.includes("$(debug-alt) Debug"), 'published Run Options JS must use debug-alt');
+assert(outQuick.includes("action('Debug', 'cpm.runDebug', 'debug-alt')"), 'published Quick Actions JS must use debug-alt');
+assert(outExt.includes("createStatusBarAction('$(debug-alt)', 'Debug active target without build'"), 'published status bar JS must use debug-alt');
 
 console.log('CPM 0.2.82 debug icon consistency: PASS');

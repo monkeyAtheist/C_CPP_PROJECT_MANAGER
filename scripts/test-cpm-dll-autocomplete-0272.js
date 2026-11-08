@@ -44,7 +44,7 @@ function target(overrides={}){return{targetType:'Dynamic Link Library',outputPat
 function compilerValue(key,fallback){return fallback;}
 
 (async()=>{
- await test('version is 0.2.81',()=>assert.strictEqual(pkg.version,'0.2.81'));
+ await test('version is 0.2.84',()=>assert.strictEqual(pkg.version,'0.2.84'));
  await test('autocomplete profile manifest exists',()=>{const p=pkg.contributes.configuration.properties['cpm.autocompleteProfile'];assert(p);assert.strictEqual(p.default,'hybrid');assert.deepStrictEqual(p.enum,['hybrid','native','nativeSignature','standardAssist','custom']);});
  await test('profile resolver mirrors advanced CVI-style modes',()=>{assert.deepStrictEqual(sym.resolveAutocompleteProfile('nativeSignature'),{profile:'nativeSignature',completionEnabled:false,includeProjectCompletion:false,includeStandardCompletion:false,signatureHelpEnabled:true});assert.deepStrictEqual(sym.resolveAutocompleteProfile('standardAssist'),{profile:'standardAssist',completionEnabled:true,includeProjectCompletion:false,includeStandardCompletion:true,signatureHelpEnabled:true});});
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'cpm0272-'));
@@ -81,7 +81,7 @@ function compilerValue(key,fallback){return fallback;}
    assert(entries.some(x=>x.name==='CPM_DLL_TEST_ENV'&&x.value==='enabled'));
    assert(entries.some(x=>x.name.toLowerCase()==='path'&&x.value===custom.PATH));
  });
- await test('run/debug source supports DLL host and opens settings when missing',()=>{const src=fs.readFileSync(path.join(root,'src/services/cpmBuildService.ts'),'utf8');assert(src.includes("targetType === 'Dynamic Link Library'"));assert(src.includes('Configure Program name'));assert(src.includes("vscode.commands.executeCommand('cpm.editBuildSettings'"));assert(src.includes('Run Debug') && src.includes('via ${path.basename(program)}'));assert(!/VS Code debugger launch is available only for executable targets/.test(src));});
+ await test('run/debug source supports DLL host and opens settings when missing',()=>{const src=fs.readFileSync(path.join(root,'src/services/cpmBuildService.ts'),'utf8');assert(src.includes("targetType === 'Dynamic Link Library'"));assert(src.includes('Configure Program name'));assert(src.includes("vscode.commands.executeCommand('cpm.editBuildSettings'"));assert(src.includes("'Debug'") && src.includes('via ${path.basename(program)}'));assert(!/VS Code debugger launch is available only for executable targets/.test(src));});
  await test('profile selector command is contributed and registered',()=>{assert(pkg.contributes.commands.some(x=>x.command==='cpm.selectAutocompleteProfile'));const src=fs.readFileSync(path.join(root,'src/extension.ts'),'utf8');assert(src.includes("register('cpm.selectAutocompleteProfile'"));assert(src.includes('CpmSignatureHelpProvider'));});
  console.log(`RESULT ${passed} passed, ${failed} failed`);if(failed)process.exitCode=1;
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;});

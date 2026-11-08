@@ -34,7 +34,7 @@ const baseConfig={cCompilerPath:'gcc',cppCompilerPath:'g++',debuggerPath:'gdb',r
 let passed=0,failed=0;
 function test(name,fn){try{fn();passed++;console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+': '+(e.stack||e));}}
 
-test('version is 0.2.81',()=>assert.strictEqual(pkg.version,'0.2.81'));
+test('version is 0.2.84',()=>assert.strictEqual(pkg.version,'0.2.84'));
 test('linkage commands are contributed',()=>{assert(pkg.contributes.commands.some(x=>x.command==='cpm.selectLinkageMode'));assert(pkg.contributes.commands.some(x=>x.command==='cpm.inspectRuntimeDependencies'));});
 test('dynamic linkage adds no static linker flags',()=>assert.deepStrictEqual(service['runtimeLinkFlags'](baseConfig,'Executable',undefined,'dynamic'),[]));
 test('static-runtime embeds compiler runtime without global -static',()=>{const flags=service['runtimeLinkFlags'](baseConfig,'Executable',undefined,'static-runtime');assert(flags.includes('-static-libgcc'));assert(flags.includes('-static-libstdc++'));assert(!flags.includes('-static'));});

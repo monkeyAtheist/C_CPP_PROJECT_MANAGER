@@ -102,7 +102,7 @@ CPM 0.2.79 keeps the native **Direct GCC/Clang** engine as the default for every
 
 The CMake backend is designed for projects that already contain a `CMakeLists.txt`. CPM can configure the source/build directories, generator, CMake/Ninja executable, selected target, generator platform/toolset, cache variables, toolchain file and extra configure/build arguments. `Ninja` is the default generator, but CMake default, Ninja Multi-Config, MinGW Makefiles and Unix Makefiles are also available.
 
-Before configure, CPM writes a **CMake File API** query under the build tree. The codemodel reply is then used to discover the real CMake targets and artifacts. This means **Build & Run**, **Run Debug** and **Build & Debug** use the artifact produced by CMake instead of assuming CPM's direct-build output path. If several targets of the expected type exist, configure the CMake target name explicitly.
+Before configure, CPM writes a **CMake File API** query under the build tree. The codemodel reply is then used to discover the real CMake targets and artifacts. This means **Build & Run**, **Debug** and **Build & Debug** use the artifact produced by CMake instead of assuming CPM's direct-build output path. If several targets of the expected type exist, configure the CMake target name explicitly.
 
 Build/Rebuild/Clean map to standard CMake commands (`cmake -S/-B`, `cmake --build`, `--clean-first`, and the `clean` target). The existing CPM parallel-jobs setting is reused for `cmake --build --parallel`. Multi-config generators receive `--config Debug/Release`.
 
@@ -110,15 +110,15 @@ When **Inherit CPM C/C++ compilers** is enabled, the selected CPM compiler paths
 
 PCH, Unity Build, direct linker flags and `.d` tracking remain features of the Direct backend. For CMake projects, configure their equivalents in `CMakeLists.txt` (`target_precompile_headers`, `UNITY_BUILD`, target link properties, etc.). Project Health makes this distinction explicit.
 
-## Run Debug, Precompiled Headers and Unity Build
+## Debug, Precompiled Headers and Unity Build
 
-CPM 0.2.78 separates **Run Debug** from **Build & Debug**. The new debug-start button in the C/C++ Workspace title bar launches the already-built executable (or a DLL through its configured host `Program name`) directly under Microsoft C/C++ `cppdbg`/GDB. It does not rebuild first. **Build & Debug** remains available from Run Options, Home, Quick Actions and the command palette. If the selected build mode has no existing target, Run Debug offers to build it.
+CPM separates **Debug** from **Build & Debug**. The debug button in the C/C++ Workspace title bar launches the already-built executable (or a DLL through its configured host `Program name`) directly under Microsoft C/C++ `cppdbg`/GDB. It does not rebuild first. **Build & Debug** remains available from Run Options, Home, Quick Actions and the command palette. If the selected build mode has no existing target, Debug offers to switch to **Build & Debug**.
 
 The Build page also provides two opt-in acceleration mechanisms for large projects. **Precompiled Headers (PCH)** can be configured independently for C and C++. CPM writes generated wrapper headers and GCC-compatible `.gch` files inside the active object directory and uses the existing `.d` dependency engine to rebuild a PCH when its configured header or a nested include changes.
 
 **Unity Build** groups several original translation units into generated `cpm_unity_*.c/.cpp` files before compilation. The batch size is configurable from 2 to 128. Unity Build can substantially reduce front-end/compiler startup time, but can expose collisions between file-local macros, anonymous declarations or same-named `static` symbols that are harmless when files are separate translation units; it is therefore disabled by default. PCH and Unity Build can be enabled independently or together.
 
-## Build and debug
+## Build & Debug
 
 The generic build pipeline compiles each included C/C++ source into an object file, then links the configured target.
 
@@ -219,7 +219,7 @@ Generated and copied bundle headers now include Doxygen-style usage examples dir
 
 CPM 0.2.74 uses GCC/Clang dependency files for exact incremental rebuilds. Each object has an adjacent `.d` file produced with `-MMD -MP`; changing an included project header recompiles only the translation units that really depend on it. The Build page exposes **Parallel jobs** (`0` = automatic CPU count) and **GNU response files** for long linker command lines. On Windows, Clean/Rebuild uses an atomic rename-and-retry strategy before falling back to in-place deletion, which is more resilient to antivirus, IntelliSense, OneDrive and temporary file locks.
 
-DLL targets can now be launched in the same way as LabWindows/CVI projects. Open **Project Build Settings → Run & Debug** and set **Program name** to the `.exe` that loads or exercises the DLL. The same run configuration supplies command-line arguments, working directory and environment variables. Relative Program name and working-directory paths are resolved from the `.prj` directory. **Run** builds the DLL and starts the host; **Run without build** starts the host directly; **Debug with GDB/cppdbg** builds the DLL and starts that same host under the debugger. Static libraries remain intentionally non-runnable.
+DLL targets can now be launched in the same way as LabWindows/CVI projects. Open **Project Build Settings → Run & Debug** and set **Program name** to the `.exe` that loads or exercises the DLL. The same run configuration supplies command-line arguments, working directory and environment variables. Relative Program name and working-directory paths are resolved from the `.prj` directory. **Run** starts the existing host without building; **Debug** starts that existing host under GDB/cppdbg without building; **Build & Run** and **Build & Debug** remain available when a rebuild is required. Static libraries remain intentionally non-runnable.
 
 The Build Settings editor now also contains an **Autocompletion** page. CPM can participate in C/C++ completion with one of five profiles: **Hybrid** (project symbols + standard-library assist + Signature Help), **Native** (CPM withdraws and leaves the installed native provider alone), **Native + CPM Signature Help**, **Standard Library Assist**, or **Custom**. Custom mode exposes independent switches for CPM completion, active-project symbols, standard-library fallback entries and immediate Signature Help. The standard-library helper can continue to insert a missing `#include` when accepting a fallback item. These controls are also available through VS Code settings and the `C/C++ Project Manager: Select Autocompletion Profile` command.
 

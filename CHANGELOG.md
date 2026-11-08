@@ -1,3 +1,13 @@
+## 0.2.84
+
+- Unified the local execution UX: **Run** and **Debug** never build first; **Build & Run** and **Build & Debug** are explicit separate actions.
+- Renamed the visible `Run Debug` action to **Debug** across the workspace toolbar, Home, Quick Actions, Run Options and project context menus.
+- Project right-click **Run** now launches the existing target instead of invoking Build & Run.
+- Added a project-specific **Build & Run** context action and made project Run Options operate on the clicked project.
+- Normalized local labels to `Run`, `Debug`, `Build & Run`, and `Build & Debug`.
+- Added the `C/C++ Project Manager` command category to short command titles for cleaner Command Palette grouping.
+- Kept legacy command IDs such as `cpm.executeProject` and `cpm.runWithoutBuild` for compatibility while hiding redundant aliases from the Command Palette.
+
 ## 0.2.82
 
 - Unified the local **Run Debug** visual language with **Build & Debug**: the workspace toolbar, Run Options picker, Quick Actions and status-bar debug shortcut now use the same `debug-alt` codicon (run/debug bug icon) instead of `debug-start`.

@@ -2,7 +2,7 @@
     "name": "c-cpp-project-manager-and-build",
     "displayName": "C/C++ Project Manager and Build",
     "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-    "version": "0.2.83",
+    "version": "0.2.84",
     "publisher": "JerryCrozet-ElectronicEngineer",
     "license": "MIT",
     "engines": {
@@ -114,7 +114,8 @@
         "onCommand:cpm.remote.openReport",
         "onCommand:cpm.selectBuildBackend",
         "onCommand:cpm.cmake.configure",
-        "onCommand:cpm.cmake.openReport"
+        "onCommand:cpm.cmake.openReport",
+        "onCommand:cpm.buildAndRunProject"
     ],
     "main": "./out/extension.js",
     "scripts": {
@@ -124,7 +125,7 @@
         "package": "vsce package",
         "package:marketplace": "vsce package --allow-missing-repository",
         "publish:marketplace": "vsce publish --allow-missing-repository",
-        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.82.vsix",
+        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.84.vsix",
         "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
     },
     "contributes": {
@@ -194,257 +195,320 @@
             {
                 "command": "cpm.openHome",
                 "title": "Open Home",
-                "icon": "$(home)"
+                "icon": "$(home)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openWorkspace",
                 "title": "Open Workspace or Project",
-                "icon": "$(folder-opened)"
+                "icon": "$(folder-opened)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.createWorkspaceProject",
-                "title": "Create Workspace and Project"
+                "title": "Create Workspace and Project",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.refresh",
                 "title": "Refresh Workspace",
-                "icon": "$(refresh)"
+                "icon": "$(refresh)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.configureInstallation",
                 "title": "Detect / Select Toolchain",
-                "icon": "$(settings-gear)"
+                "icon": "$(settings-gear)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.installSupportedToolchains",
                 "title": "Install / Manage Supported Toolchains",
-                "icon": "$(cloud-download)"
+                "icon": "$(cloud-download)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.selectAutocompleteProfile",
                 "title": "Select Autocompletion Profile",
-                "icon": "$(settings-gear)"
+                "icon": "$(settings-gear)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.syncCppTools",
                 "title": "Synchronize C/C++ IntelliSense Configuration",
-                "icon": "$(symbol-namespace)"
+                "icon": "$(symbol-namespace)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.diagnoseCppTools",
                 "title": "Diagnose C/C++ IntelliSense Configuration",
-                "icon": "$(pulse)"
+                "icon": "$(pulse)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.repairCppToolsProvider",
                 "title": "Repair C/C++ IntelliSense Provider Selection",
-                "icon": "$(wrench)"
+                "icon": "$(wrench)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.enableAutomaticSuggestions",
                 "title": "Enable Automatic C/C++ Suggestions",
-                "icon": "$(sparkle)"
+                "icon": "$(sparkle)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.addWorkspaceFolderForIntelliSense",
-                "title": "Add Folder to VS Code Workspace for IntelliSense"
+                "title": "Add Folder to VS Code Workspace for IntelliSense",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.selectBuildMode",
                 "title": "Select Build Mode",
-                "icon": "$(symbol-enum)"
+                "icon": "$(symbol-enum)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.build",
                 "title": "Build Active Project",
-                "icon": "$(tools)"
+                "icon": "$(tools)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.rebuild",
-                "title": "Rebuild Active Project"
+                "title": "Rebuild Active Project",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.run",
-                "title": "Run Active Target",
-                "icon": "$(play)"
+                "title": "Run",
+                "icon": "$(play)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.buildAndRun",
-                "title": "Build & Run Active Target",
+                "title": "Build & Run",
                 "icon": "$(run-all)",
                 "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openWorkspaceFile",
                 "title": "Open Workspace File",
-                "icon": "$(link-external)"
+                "icon": "$(link-external)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.setActiveProject",
-                "title": "Set Active Project"
+                "title": "Set Active Project",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.buildProject",
-                "title": "Build"
+                "title": "Build",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.rebuildProject",
-                "title": "Rebuild"
+                "title": "Rebuild",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.executeProject",
-                "title": "Execute"
+                "title": "Run",
+                "icon": "$(play)",
+                "category": "C/C++ Project Manager"
+            },
+            {
+                "command": "cpm.buildAndRunProject",
+                "title": "Build & Run",
+                "category": "C/C++ Project Manager",
+                "icon": "$(run-all)"
             },
             {
                 "command": "cpm.editProjectFile",
-                "title": "Edit Project File..."
+                "title": "Edit Project File...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openProjectFile",
-                "title": "Browse Project File..."
+                "title": "Browse Project File...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.createProjectInWorkspace",
-                "title": "Create New Project in Workspace..."
+                "title": "Create New Project in Workspace...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.addExistingProject",
-                "title": "Add Existing Project to Workspace"
+                "title": "Add Existing Project to Workspace",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.removeProject",
-                "title": "Remove Project From Workspace"
+                "title": "Remove Project From Workspace",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.addFiles",
-                "title": "Add Existing File..."
+                "title": "Add Existing File...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.createNewFile",
-                "title": "Create New File or Starter..."
+                "title": "Create New File or Starter...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.addFolder",
-                "title": "Add Folder..."
+                "title": "Add Folder...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.renameFolder",
-                "title": "Rename Folder..."
+                "title": "Rename Folder...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.removeFolder",
-                "title": "Remove Folder"
+                "title": "Remove Folder",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.removeFile",
-                "title": "Remove File"
+                "title": "Remove File",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.excludeFile",
-                "title": "Exclude File from Build"
+                "title": "Exclude File from Build",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.includeFile",
-                "title": "Include File in Build"
+                "title": "Include File in Build",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.toggleObjOption",
-                "title": "Toggle .Obj Option"
+                "title": "Toggle .Obj Option",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.renameFile",
-                "title": "Rename File..."
+                "title": "Rename File...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.moveFileToFolder",
                 "title": "Move File To Folder...",
-                "icon": "$(move)"
+                "icon": "$(move)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.replaceFile",
-                "title": "Replace File in Project..."
+                "title": "Replace File in Project...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.compileFile",
-                "title": "Compile File"
+                "title": "Compile File",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.saveFile",
-                "title": "Save"
+                "title": "Save",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.saveAll",
-                "title": "Save All"
+                "title": "Save All",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openFile",
-                "title": "Open"
+                "title": "Open",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openPanelFile",
-                "title": "Open UI/Resource File"
+                "title": "Open UI/Resource File",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openFunctionPanel",
-                "title": "Open Function Panel"
+                "title": "Open Function Panel",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.revealProjectFile",
-                "title": "Reveal Project File in Explorer"
+                "title": "Reveal Project File in Explorer",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.revealFile",
-                "title": "Browse File..."
+                "title": "Browse File...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.copyFilePath",
-                "title": "Copy Path"
+                "title": "Copy Path",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.copyRelativeFilePath",
-                "title": "Copy Relative Path"
+                "title": "Copy Relative Path",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.exploreProjectDirectory",
-                "title": "Explore Directory..."
+                "title": "Explore Directory...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.exploreFolderDirectory",
-                "title": "Explore Directory..."
+                "title": "Explore Directory...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.exploreFileDirectory",
-                "title": "Explore Directory..."
+                "title": "Explore Directory...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.findProject",
-                "title": "Find..."
+                "title": "Find...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.findFolder",
-                "title": "Find..."
+                "title": "Find...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.findFile",
-                "title": "Find..."
+                "title": "Find...",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.expandAll",
-                "title": "Expand All"
+                "title": "Expand All",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.collapseAll",
-                "title": "Collapse All"
+                "title": "Collapse All",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.runDebug",
-                "title": "Run Debug",
+                "title": "Debug",
                 "category": "C/C++ Project Manager",
                 "icon": "$(debug-alt)"
             },
             {
                 "command": "cpm.runDebugProject",
-                "title": "Run Debug",
+                "title": "Debug",
                 "category": "C/C++ Project Manager",
                 "icon": "$(debug-alt)"
             },
@@ -457,7 +521,8 @@
             {
                 "command": "cpm.debugProjectWithGdb",
                 "title": "Build & Debug",
-                "category": "C/C++ Project Manager"
+                "category": "C/C++ Project Manager",
+                "icon": "$(debug-alt)"
             },
             {
                 "command": "cpm.library.refresh",
@@ -605,27 +670,33 @@
             },
             {
                 "command": "cpm.openDigitalFilterDesigner",
-                "title": "Open digital filter designer"
+                "title": "Open digital filter designer",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openTruthTableDesigner",
-                "title": "Open truth table / FSM designer"
+                "title": "Open truth table / FSM designer",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openNumberConverter",
-                "title": "Open number / bit converter"
+                "title": "Open number / bit converter",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.convertSelectedNumbersToText",
-                "title": "Convert selected numbers to text"
+                "title": "Convert selected numbers to text",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.convertSelectedTextToDecimalValues",
-                "title": "Convert selected text to decimal values"
+                "title": "Convert selected text to decimal values",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openCharacterTable",
-                "title": "Open character table / converter"
+                "title": "Open character table / converter",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.saveFileAsTemplate",
@@ -703,8 +774,9 @@
             },
             {
                 "command": "cpm.runWithoutBuild",
-                "title": "Run Active Target Without Build",
-                "category": "C/C++ Project Manager"
+                "title": "Run",
+                "category": "C/C++ Project Manager",
+                "icon": "$(play)"
             },
             {
                 "command": "cpm.selectBuildModeD32",
@@ -744,7 +816,8 @@
             {
                 "command": "cpm.prepareDllImportLibraryGeneration",
                 "title": "Prepare DLL Import Library Generation in editor...",
-                "icon": "$(library)"
+                "icon": "$(library)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.convertSelectedIntegerToDecimal",
@@ -764,17 +837,20 @@
             {
                 "command": "cpm.configureSdl",
                 "title": "Detect / Select SDL2 or SDL3 SDK",
-                "icon": "$(window)"
+                "icon": "$(window)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.createSdlWorkspaceProject",
                 "title": "Create SDL Workspace and Project",
-                "icon": "$(window)"
+                "icon": "$(window)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.createSdlProjectInWorkspace",
                 "title": "Create New SDL Project in Workspace...",
-                "icon": "$(window)"
+                "icon": "$(window)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.showBuildProblems",
@@ -831,112 +907,134 @@
             {
                 "command": "cpm.selectLinkageMode",
                 "title": "Select Linkage Mode",
-                "icon": "$(link)"
+                "icon": "$(link)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.inspectRuntimeDependencies",
                 "title": "Inspect Built Runtime DLL Dependencies",
-                "icon": "$(search)"
+                "icon": "$(search)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.refreshProjectHealth",
                 "title": "Refresh Project Health",
-                "icon": "$(refresh)"
+                "icon": "$(refresh)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openProjectHealthReport",
                 "title": "Open Project Health Report",
-                "icon": "$(report)"
+                "icon": "$(report)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.repairProjectHealth",
                 "title": "Repair Project Health...",
-                "icon": "$(wrench)"
+                "icon": "$(wrench)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.dependencies.configure",
                 "title": "Configure Dependency Managers",
-                "icon": "$(settings-gear)"
+                "icon": "$(settings-gear)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.dependencies.detectTools",
                 "title": "Detect Dependency Tools",
-                "icon": "$(search)"
+                "icon": "$(search)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.dependencies.generateManifests",
                 "title": "Generate Dependency Manifests",
-                "icon": "$(file-code)"
+                "icon": "$(file-code)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.dependencies.install",
                 "title": "Install / Synchronize Dependencies",
-                "icon": "$(cloud-download)"
+                "icon": "$(cloud-download)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.dependencies.openReport",
                 "title": "Open Dependency Report",
-                "icon": "$(preview)"
+                "icon": "$(preview)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.dependencies.revealOutput",
                 "title": "Reveal Dependency Output",
-                "icon": "$(folder-opened)"
+                "icon": "$(folder-opened)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.dependencies.clean",
                 "title": "Clean Dependency Output",
-                "icon": "$(trash)"
+                "icon": "$(trash)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.openSshDeviceManager",
                 "title": "OpenSSH Device Manager",
-                "icon": "$(remote-explorer)"
+                "icon": "$(remote-explorer)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.configure",
                 "title": "Configure Remote Linux / Raspberry Pi",
-                "icon": "$(settings-gear)"
+                "icon": "$(settings-gear)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.testConnection",
                 "title": "Test Remote SSH Connection",
-                "icon": "$(plug)"
+                "icon": "$(plug)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.sync",
                 "title": "Synchronize Project to Remote Linux",
-                "icon": "$(sync)"
+                "icon": "$(sync)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.build",
                 "title": "Build on Remote Linux",
-                "icon": "$(tools)"
+                "icon": "$(tools)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.run",
                 "title": "Run on Remote Linux",
-                "icon": "$(run)"
+                "icon": "$(run)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.buildRun",
                 "title": "Build and Run on Remote Linux",
-                "icon": "$(play)"
+                "icon": "$(play)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.debug",
                 "title": "Debug on Remote Linux with gdbserver",
-                "icon": "$(debug-alt)"
+                "icon": "$(debug-alt)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.openTerminal",
                 "title": "Open Remote SSH Terminal",
-                "icon": "$(terminal)"
+                "icon": "$(terminal)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.remote.openReport",
                 "title": "Open Remote Linux Report",
-                "icon": "$(preview)"
+                "icon": "$(preview)",
+                "category": "C/C++ Project Manager"
             },
             {
                 "command": "cpm.selectBuildBackend",
@@ -1182,29 +1280,9 @@
                     "group": "project@2"
                 },
                 {
-                    "command": "cpm.buildProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@1"
-                },
-                {
-                    "command": "cpm.rebuildProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@2"
-                },
-                {
                     "command": "cpm.editProjectFile",
                     "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
                     "group": "build@4"
-                },
-                {
-                    "command": "cpm.executeProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@5"
-                },
-                {
-                    "command": "cpm.chooseRunAction",
-                    "group": "build@5.5",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject"
                 },
                 {
                     "command": "cpm.removeProject",
@@ -1397,16 +1475,6 @@
                     "group": "navigation@5"
                 },
                 {
-                    "command": "cpm.runDebugProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@3.8"
-                },
-                {
-                    "command": "cpm.debugProjectWithGdb",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@4"
-                },
-                {
                     "command": "cpm.library.insertCall",
                     "when": "view == cpm.libraryExplorer && viewItem == cpmFunction",
                     "group": "inline@9"
@@ -1490,6 +1558,41 @@
                     "command": "cpm.remote.sync",
                     "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
                     "group": "remote@3"
+                },
+                {
+                    "command": "cpm.buildProject",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "build@1"
+                },
+                {
+                    "command": "cpm.rebuildProject",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "build@2"
+                },
+                {
+                    "command": "cpm.executeProject",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "run@1"
+                },
+                {
+                    "command": "cpm.runDebugProject",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "run@2"
+                },
+                {
+                    "command": "cpm.buildAndRunProject",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "run@3"
+                },
+                {
+                    "command": "cpm.debugProjectWithGdb",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "run@4"
+                },
+                {
+                    "command": "cpm.chooseRunAction",
+                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+                    "group": "run@5"
                 }
             ],
             "commandPalette": [
@@ -1671,6 +1774,18 @@
                 },
                 {
                     "command": "cpm.selectBuildBackend",
+                    "when": "false"
+                },
+                {
+                    "command": "cpm.runDebugProject",
+                    "when": "false"
+                },
+                {
+                    "command": "cpm.runWithoutBuild",
+                    "when": "false"
+                },
+                {
+                    "command": "cpm.buildAndRunProject",
                     "when": "false"
                 }
             ],

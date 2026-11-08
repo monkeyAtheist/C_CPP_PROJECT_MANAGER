@@ -381,7 +381,7 @@ export class CpmInstallationService {
     if (!installation.cCompilerExe && !installation.cppCompilerExe) {
       vscode.window.showWarningMessage('No C/C++ compiler executable is configured. Build commands will fail until gcc/g++/clang paths are configured.');
     } else if (!installation.debuggerExe) {
-      vscode.window.showWarningMessage('The selected toolchain does not expose gdb/lldb. Build and run will work, but debug may require setting cpm.debuggerPath manually.');
+      vscode.window.showWarningMessage('The selected toolchain does not expose gdb/lldb. Build & Run will work, but Debug may require setting cpm.debuggerPath manually.');
     } else {
       vscode.window.showInformationMessage(`C/C++ toolchain selected: ${toolchainKind(installation)}.`);
     }
