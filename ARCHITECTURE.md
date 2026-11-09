@@ -29,10 +29,12 @@ For multi-architecture SDL SDKs, include directory resolution now returns the pr
 - `src/services/cpmImportLibraryService.ts`: header/DLL Windows import-library generation, multi-DLL batch editor, `.def` emission and `lib.exe`/`dlltool` generator orchestration.
 - `src/services/cpmDllAnalyzerService.ts`: read-only PE/DLL inspection for architecture, VERSIONINFO, imports/exports, sections/resources, certificate/CLR presence and PDB metadata.
 - `src/services/cpmLibraryAnalyzerService.ts`: read-only GNU/COFF archive inspection for `.a`, `.dll.a` and `.lib` files; classifies static/import/mixed archives and reports members, linker symbols, architectures, import objects and runtime-DLL references.
+- `src/services/cpmInstrumentService.ts`: external-instrument discovery and diagnostic transport layer. It enumerates Windows COM/USB devices, optionally discovers VISA resources, sends serial/VISA frames and owns SCPI preset definitions without coupling the feature to a project build.
 - `src/providers/cpmTreeProvider.ts`: native VS Code tree views for workspaces, actions, file symbols and libraries. The workspace tree also owns the internal file drag-and-drop controller for logical folder moves.
 - `src/jcLibEmbedded.ts`: embedded library explorer and structured prototype/snippet UI.
 - `src/views/homePanel.ts`: global workspace and toolchain dashboard.
 - `src/views/buildSettingsPanel.ts`: generic CPM build-settings editor.
+- `src/views/instrumentDiagnosticsPanel.ts`: standalone COM/VISA/USB diagnostic webview with communication settings, SCPI presets and a TX/RX console.
 
 The public command and configuration namespace is `cpm.*`. A small compatibility migration shim reads old settings only once and rewrites them to the CPM namespace.
 

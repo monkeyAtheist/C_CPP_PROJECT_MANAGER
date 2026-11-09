@@ -1,76 +1,28 @@
-/**
- * @file cpm_i2c.h
- * @brief CPM C Linux I2C device-file communication API.
- *
- * @details
- * This bundle is intended to be readable immediately after insertion into a
- * CPM project. The comments below summarize what the module provides, when it
- * is useful and how to start using the public API.
- *
- * @par Main features
- * - opens an I2C bus device such as "/dev/i2c-1";
- * - selects the slave address for the active transaction;
- * - reads and writes raw buffers;
- * - provides register read/write helpers for 8-bit register maps.
- *
- * @par Typical applications
- * - Raspberry Pi or Linux SBC communication with sensors, EEPROMs and expanders;
- * - quick validation of I2C peripherals from C;
- * - test benches that need deterministic low-level I2C access.
- *
- * @par Usage notes
- * - The bundled implementation targets Linux i2c-dev.
- * - Enable I2C and configure permissions before running the executable.
- * - For 16-bit registers or special protocols, build a small wrapper above the raw read/write calls.
- *
- * @par Example of use
- * @code{.c}
- * #include "cpm_i2c.h"
- * 
- * CpmI2cBus bus;
- * uint8_t value = 0;
- * CpmI2c_Init(&bus);
- * if (CpmI2c_Open(&bus, "/dev/i2c-1") == 0)
- * {
- *     CpmI2c_SetAddress(&bus, 0x48);
- *     CpmI2c_ReadRegister8(&bus, 0x00, &value);
- *     CpmI2c_Close(&bus);
- * }
- * @endcode
- */
 #ifndef CPM_I2C_H
 #define CPM_I2C_H
-
+#include <stddef.h>
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stddef.h>
-#include <stdint.h>
+typedef enum CpmI2cByteOrder { CPM_I2C_MSB_FIRST = 0, CPM_I2C_LSB_FIRST = 1 } CpmI2cByteOrder;
+typedef struct CpmI2c { int handle; uint16_t address; } CpmI2c;
 
-typedef struct CpmI2cBus
-{
-    int handle;
-    int currentAddress;
-} CpmI2cBus;
-
-void CpmI2c_Init(CpmI2cBus *bus);
-int CpmI2c_Open(CpmI2cBus *bus, const char *devicePath);
-void CpmI2c_Close(CpmI2cBus *bus);
-int CpmI2c_SetAddress(CpmI2cBus *bus, uint8_t address);
-int CpmI2c_Write(CpmI2cBus *bus, const uint8_t *data, size_t size);
-int CpmI2c_Read(CpmI2cBus *bus, uint8_t *data, size_t size);
-int CpmI2c_WriteRead(CpmI2cBus *bus,
-                     const uint8_t *txData,
-                     size_t txSize,
-                     uint8_t *rxData,
-                     size_t rxSize);
-int CpmI2c_WriteRegister8(CpmI2cBus *bus, uint8_t registerAddress, uint8_t value);
-int CpmI2c_ReadRegister8(CpmI2cBus *bus, uint8_t registerAddress, uint8_t *value);
-int CpmI2c_ReadRegisters(CpmI2cBus *bus, uint8_t startRegister, uint8_t *data, size_t size);
+void CpmI2c_Init(CpmI2c *bus);
+int CpmI2c_Open(CpmI2c *bus, const char *devicePath, uint16_t address);
+void CpmI2c_Close(CpmI2c *bus);
+int CpmI2c_SetAddress(CpmI2c *bus, uint16_t address);
+int CpmI2c_Write(CpmI2c *bus, const void *data, size_t size);
+int CpmI2c_Read(CpmI2c *bus, void *data, size_t size);
+int CpmI2c_WriteRead(CpmI2c *bus, const void *writeData, size_t writeSize, void *readData, size_t readSize);
+int CpmI2c_WriteRegister8(CpmI2c *bus, uint8_t reg, uint8_t value);
+int CpmI2c_ReadRegister8(CpmI2c *bus, uint8_t reg, uint8_t *value);
+int CpmI2c_ReadRegisters(CpmI2c *bus, uint8_t startReg, void *data, size_t size);
+int CpmI2c_WriteRegister16(CpmI2c *bus, uint16_t reg, const void *data, size_t size, CpmI2cByteOrder order);
+int CpmI2c_ReadRegister16(CpmI2c *bus, uint16_t reg, void *data, size_t size, CpmI2cByteOrder order);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* CPM_I2C_H */
+#endif

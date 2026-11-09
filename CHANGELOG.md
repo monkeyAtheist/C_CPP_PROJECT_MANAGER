@@ -1,3 +1,228 @@
+# 0.2.105
+
+- Reworked the right-click snippet picker into a hierarchical browser: C/C++ -> category -> optional sub-category -> snippet, with a dedicated global search and saved-snippet collection.
+- Expanded the built-in catalog from 38 to 107 maintained snippets.
+- Added C variadic-function patterns (`va_list`, `VFoo/Foo`, `va_copy`) and variadic/preprocessor patterns (`__VA_ARGS__`, `__VA_OPT__`, GNU optional arguments, arity dispatch, argument counting, stringify, token paste, safe multi-statement macros, X-macros, array count and `_Generic`).
+- Added C callback/function-pointer, formatting, files, process, CSV, containers, logging and maintained communication examples.
+- Added C++17 parameter-pack/fold/perfect-forwarding patterns, callbacks/lambdas, optional/default parameters, RAII/smart pointers, variant visitation, compile-time branching, concurrency and maintained utility/communication examples.
+- Added per-snippet language/category/sub-category metadata and catalog auditing for duplicate IDs, missing metadata, empty bodies, encoding errors and obsolete IPC API names.
+- Saved personal snippets now record an inferred language and category for clearer presentation.
+- Fixed obsolete IPC framed-message names and the CAN open signature in embedded examples.
+- Added strict C11/GNU11/C2x and C++17 compile validation for the new variadic/macro/template patterns.
+
+# 0.2.104
+
+- Added a complete maintained C++17 general-utility bundle catalog: INI, File/Path, String, Time/Timers, Thread/Synchronization, Process, JSON, CSV, Byte Buffer/Endian, Containers, Checksum/CRC and Logging.
+- Added a General C++ utility stack mirroring the maintained C utility stack.
+- Added C++ snippets for typed INI access, periodic timers, JSON access, ring buffers and process capture.
+- Reclassified the old C Core utilities and C++ CPM_Utility monolith as Legacy & compatibility while keeping them available for existing projects.
+- Fixed strict POSIX feature declarations in the File/Path, Process and Logging C backends used by the utility bundles.
+- Added strict GCC/Clang and integrated C++ utility validation.
+
+## 0.2.103
+
+- Added TLS transport bundle (OpenSSL-backed, peer verification enabled by default).
+- Added generic USB/libusb dynamic runtime bundle for control/bulk/interrupt transfers.
+- Added native Windows BLE GATT project bundle for services/characteristics read/write.
+- Added ready-to-use stacks: SCPI over TCP/VISA, Modbus RTU over RS-485, MQTT automatic reconnect/resubscription.
+- Added C++17 RAII wrappers and snippets for the new communication modules.
+- Hardened POSIX sockets against SIGPIPE on peer disconnects.
+- Fixed composed Modbus/RS-485 response framing and write-response CRC validation.
+
+# Changelog
+
+## 0.2.102
+
+- Expanded maintained C/C++ communication bundles with RS-485, LIN and USB HID transports.
+- Added transport-independent retry/reconnect/backoff helpers.
+- Added HTTP/REST, MQTT 3.1.1 and RFC 6455 WebSocket clients over the maintained socket backend.
+- Added C++17 RAII wrappers for the new communication modules.
+- Added communication snippets for RS-485, HTTP, MQTT, WebSocket and USB HID.
+- Kept TLS boundaries explicit: HTTPS/MQTTS/WSS are not emulated without a genuine TLS transport.
+
+
+## 0.2.101
+
+### Expanded C/C++ communication bundles
+
+- Reworked the maintained **C communication layer** instead of growing the monolithic utility bundle: UART, IPC, TCP/UDP, Wi-Fi IP transport, Bluetooth RFCOMM, CAN, I²C and SPI now expose richer timeout/configuration/diagnostic helpers.
+- Expanded **UART** with a configuration structure, parity/flow-control options, DTR/RTS, purge/flush, break generation, send-all and exact/delimited reads.
+- Expanded **TCP/UDP** with TCP server/accept timeouts, exact/line reads, endpoint inspection, keepalive/TCP_NODELAY/buffer controls, connected UDP, broadcast and IPv4 multicast helpers.
+- Expanded **IPC** with reconnectable server sessions, exact I/O and 32-bit big-endian length-prefixed messages. Client connect timeouts are supported on both platforms; POSIX server accept can time out while the compact synchronous Windows named-pipe accept remains blocking.
+- Expanded **CAN / I²C / SPI / Bluetooth** with filter arrays/error masks, repeated-start/register I²C helpers, multi-segment SPI transfers and richer RFCOMM stream helpers.
+- Added a dependency-free **binary framing** bundle with COBS, SLIP, 16/32-bit length prefixes and delimiter search.
+- Added a transport-independent **SCPI / IEEE-488.2** bundle with typed queries, terminators, partial-read-safe definite-length binary blocks and common commands.
+- Added a dependency-free **Modbus RTU/TCP** codec with CRC-16, RTU validation, read/write register request builders, MBAP framing, exceptions and register-response parsing.
+- Added a compact **VISA** bundle that dynamically loads a Windows VISA runtime (`visa64.dll` / `visa32.dll`) without requiring vendor VISA headers/import libraries at compile time, including discovery, session I/O, query and timeout/termination control.
+- Replaced the obsolete/missing legacy C++ communication payloads with maintained **C++17 RAII bundles** for UART, IPC, TCP/UDP, Wi-Fi, Bluetooth RFCOMM, CAN, I²C, SPI and VISA. Each wrapper embeds the corresponding maintained C backend rather than duplicating the transport implementation.
+- Added C++17 protocol wrappers for **Framing, SCPI and Modbus**, plus selectable **Communication protocol stack** and **Full communication stack** bundles in both C and C++.
+- Removed obsolete bundle choices whose historical payload was no longer distributed, so the Create menu no longer advertises entries that fail after selection.
+- Validation covers strict GCC/Clang C11 compilation, strict GCC/Clang C++17 wrapper checks, partial-read SCPI binary blocks, IPC framed messages, protocol reference vectors and real loopback TCP/C++ RAII exchanges.
+
+## 0.2.100
+
+### Expanded general-purpose C bundle library
+
+- Added focused **File & Path** helpers for whole-file text/binary I/O, recursive directory creation, path join/dirname/basename/extension, separator normalization and executable-path discovery.
+- Added **String utilities** with bounded copy/append, trim/case/search/replace/split helpers and a growable `CpmStringBuilder`.
+- Added **Time & periodic timers** with monotonic ns/us/ms clocks, Unix epoch milliseconds, Windows/POSIX sleeps, stopwatch support and a drift-resistant periodic timer.
+- Added **Threads & synchronization** using Win32 primitives on Windows and pthreads on POSIX, including mutexes, condition variables and timed waits.
+- Added **Process & environment** helpers for command execution, captured stdout, detached commands, PID and environment variables.
+- Added a dependency-free **JSON tokenizer/writer**, **CSV reader/writer**, **Byte buffer/endian/HEX** helpers and generic **Vector/Ring Buffer** containers.
+- Added **Checksums & CRC** helpers (XOR8, Sum8, Fletcher-16, Adler-32, CRC-8, CRC-16/CCITT-FALSE, CRC-16/MODBUS and CRC-32) plus a lightweight leveled **Logging** bundle.
+- Added **General C utility stack** to install INI + System + Data + Diagnostics modules in one operation while keeping every module independently selectable.
+- Expanded C bundle categories to **Configuration & utilities**, **System**, **Data & serialization**, **Integrity & diagnostics**, **Communication**, and **Interoperability & UI**.
+- Release validation now compiles every new C module with strict C11 warnings and runs integrated tests covering files, strings, time, threads, process capture, JSON, CSV, binary buffers, containers and standard CRC vectors.
+
+## 0.2.99
+
+### C bundle organization and INI configuration bundle
+
+- Reorganized **Create New File or Starter** so bundles live under their language instead of a separate root `Module bundles` category: `C > Bundles`, `C++ > Bundles`, and `Scripts and text > Bundles`.
+- Added second-level bundle categories such as **Configuration & utilities**, **Communication**, and **Interoperability & UI**.
+- Added a dependency-free **C INI configuration** bundle with section-aware parsing, typed string/int/int64/double/bool accessors, defaults, editing, removal, enumeration, save and one-shot read/write helpers.
+- Added INI snippets for typed loading, one-shot reads and update/save workflows.
+- Kept `CpmUtil_ReadIniValue` as a lightweight compatibility helper and corrected its README example; the dedicated INI bundle is now the recommended configuration API.
+- Restored the missing C communication bundle payloads in the packaged extension: UART, IPC, Ethernet TCP/UDP, Wi-Fi IP transport, Bluetooth RFCOMM, CAN, I2C and SPI.
+- Added strict C11 compile validation for all restored C bundle sources plus runtime checks for the INI parser, local IPC and TCP client/server paths.
+- Added bundle-source availability filtering so legacy C++/demo choices whose historical payload is not present are hidden instead of failing after selection. Maintained C++ core/error/Python/Lua/Web UI generators remain available.
+
+## 0.2.98
+
+- Added continuous Wi-Fi/BLE scanning with Last seen tracking and short stale-entry retention.
+- Added a BLE GATT Inspector with service/characteristic enumeration, Read, Write and bounded Notify/Indicate monitoring on Windows.
+- Added a multi-client TCP listener/server with asynchronous RX and broadcast TX through the existing terminal frame controls.
+- Added mDNS/Bonjour and SSDP/UPnP local-service discovery.
+- Added unified-device Diagnose / Diagnose all checks across COM, VISA, TCP, UDP and SSH endpoints.
+- Fixed a duplicate wireless-scan invocation inherited from 0.2.97.
+- Added regression coverage for TCP client, UDP, TCP server, mDNS and SSDP data paths.
+
+## 0.2.97
+
+### Unified CPM Device Manager
+
+- Added a project-independent **Unified CPM Device Manager** inside Network & Wireless Diagnostics.
+- A single equipment profile can now group **COM**, **VISA**, **TCP**, **UDP** and **SSH** endpoints instead of maintaining unrelated communication profiles for the same physical device.
+- Added device metadata (name, description and tags), endpoint-level removal, device deletion and JSON import/export.
+- Instrument Diagnostics can save the current COM/VISA endpoint to a CPM device and promote an existing saved instrument profile directly.
+- The TCP/UDP terminal can save its current endpoint to a CPM device; configured SSH aliases can be attached from the SSH Devices page.
+- Device cards can reopen the correct diagnostic tool with the saved endpoint preloaded. Opening a saved TCP/UDP endpoint first closes any current socket session to prevent UI/session mismatch.
+- Added **Open CPM Device Manager** to the Command Palette, Home, Quick Actions, Settings & Tools and the project Tools page.
+- Existing Instrument profiles, network settings and `~/.ssh/config` remain compatible and continue to be stored in their original locations. Unified devices reference/copy endpoint settings rather than replacing those workflows.
+- Added registry regression tests plus generated Instrument/Network webview JavaScript syntax validation.
+
+## 0.2.96
+
+### Tool navigation, Windows diagnostics robustness and wireless cleanup
+
+- Added the familiar **Filter sections** and **Jump to a section** navigation controls inside Instrument Diagnostics and Network & Wireless Diagnostics. Network navigation follows the currently selected Network / TCP-UDP / Wireless / SSH page.
+- Moved the external **SCPI reference** action to the far right of the Instrument Diagnostics toolbar and added a globe/external-link indicator so it is clearly distinguished from internal CPM navigation.
+- Normalized warning typography and forced the PowerShell diagnostic bridge to UTF-8 to prevent corrupted accented characters in Windows error messages.
+- Simplified the no-VISA-runtime warning shown in the UI; low-level `visa64.dll` / `visa32.dll` probe errors are kept in the CPM output channel instead of flooding the page.
+- Made COM discovery more resilient by seeding the list from `System.IO.Ports.SerialPort.GetPortNames()` before enriching it with CIM/PnP metadata.
+- Reworked Windows network-adapter discovery around `Win32_NetworkAdapter` / `Win32_NetworkAdapterConfiguration`, avoiding the fragile `Get-NetIPConfiguration` → `Get-NetIPInterface` dependency observed on some Windows installations.
+- Added `arp.exe -a` fallback when `Get-NetNeighbor` is unavailable.
+- Fixed the BLE watcher output bug: the WinRT `EventRegistrationToken` is now retained and removed correctly instead of leaking into the JSON diagnostic stream.
+- BLE scans now explain that an empty result can be normal when no nearby device is currently advertising and default to a slightly longer 5 s scan for new configurations.
+- Bluetooth inventory now filters common Generic Attribute service pseudo-devices, de-duplicates devices where possible, extracts a physical address when available and displays **RSSI** when the same device is observed in the BLE advertisement scan.
+- Long Bluetooth/PnP identifiers and warning text now wrap instead of forcing layout overflow.
+- Revalidated TypeScript compilation, generated webview JavaScript syntax, TCP/UDP echo sessions and the published VSIX contents.
+
+## 0.2.95
+
+### Always-visible CPM Tools
+
+- Fixed a discoverability regression introduced by the project-independent Settings & Tools hub: when a project was active, the full Project Settings page replaced the global hub and hid Instrument/Network/SSH tools from the settings navigation.
+- Added a permanent **Tools** page to Project Settings. It is visible alongside Overview, Project, Build, Libraries, Remote Linux, etc.
+- The Tools page exposes **Instrument Diagnostics**, **Network & Wireless Diagnostics**, **SSH Devices**, **Libraries & Analyzers**, **Extension Settings** and **Toolchains**.
+- Added **Open CPM Tools** to the Command Palette and Quick Actions.
+- Split the Home shortcuts into explicit **Settings** and **Tools** actions and added a dedicated SSH Device Manager card.
+- Added a **Communication tools** shortcut from the Overview control center.
+- The no-project Settings & Tools hub now also exposes the SSH Device Manager directly.
+- Existing direct commands remain available: `Open Instrument Diagnostics`, `Open Network & Wireless Diagnostics` and `OpenSSH Device Manager`.
+
+## 0.2.94
+
+- Integrated the OpenSSH Device Manager from JC Lib directly into `Network & Wireless Diagnostics` as a new `SSH Devices` page.
+- `cpm.openSshDeviceManager` now opens the integrated SSH page instead of a separate webview.
+- Reuses the current user `~/.ssh/config` as the source of truth; CPM still does not store private-key material.
+- Added SSH alias create/edit/delete, identity selection, Ed25519 key generation and public-key installation workflows.
+- Added per-device actions for Connect, `ssh -G`, BatchMode key test, Ping, TCP/SSH-port test and reuse in general host diagnostics.
+- Added discovered ARP/ND neighbours and local hosts aliases to the SSH page with `Add SSH device` actions.
+- Added `Remote Linux target` integration: a configured SSH alias can populate the active project's Remote Linux host/user/port settings.
+- Wildcard and multi-host OpenSSH blocks are now shown as read-only configuration blocks and are no longer offered invalid device actions.
+- Added SSH alias count to the network diagnostics summary and retained project-independent access to the whole network/SSH toolset.
+- Audited the generated webview JavaScript with a real syntax check and validated SSH config parse/save/delete against an isolated HOME directory.
+
+## 0.2.93
+
+### Network & Wireless Diagnostics
+
+- Added a standalone **Network & Wireless Diagnostics** page that remains available without an active CPM project.
+- Added local network-interface inventory with adapter status, MAC address, link speed, IPv4/IPv6 addresses, default gateways and DNS servers, plus the existing ARP/ND neighbor cache without actively sweeping the subnet.
+- Added single-target **Ping**, **DNS lookup** and **TCP connection** diagnostics with configurable timeout and detailed results.
+- Added a persistent **TCP client terminal** and **UDP terminal** with asynchronous RX, text/HEX frames, ASCII/UTF-8/Latin-1 decoding, configurable TX line ending, remote endpoint and UDP local-port selection.
+- Added Windows **Wi-Fi scanning** for visible SSID/BSSID entries with signal quality, channel, authentication, encryption and radio type.
+- Added Windows **BLE advertisement scanning** with address, local name, RSSI, connectability metadata and timestamp, plus a Windows Bluetooth device inventory.
+- Wireless discovery is intentionally diagnostic-only: CPM does not capture third-party payload traffic, credentials, protected handshakes or encrypted Wi-Fi/Bluetooth frames.
+- Added cross-links between Instrument Diagnostics and Network & Wireless Diagnostics, and exposed the new page from Home, Quick Actions, Settings & Tools and the Command Palette.
+- Added real TCP/UDP echo-session regression tests during development and validated the generated webview JavaScript separately from TypeScript compilation.
+
+## 0.2.92
+
+### Compact status bar and project-independent Settings & Tools
+
+- Simplified the persistent CPM status bar to exactly six actions: **Home**, **Open Workspace**, **Build / Rebuild / Clean**, **Run active target**, **Debug active target** and **Settings**.
+- Removed the persistent **Run options**, build-mode (`DBG/D64/...`), target-type (`EXE/DLL/LIB`) and linkage (`DYN/STA/...`) items from the status bar; the same controls remain available from the normal CPM menus/settings.
+- Changed **Settings** so it can be opened with no active workspace/project instead of showing an error.
+- Added a project-independent **CPM Settings & Tools** hub for the no-project state. Project build controls are clearly disabled while global tools remain available.
+- Exposed **Instrument Diagnostics**, **DLL Analyzer**, **.lib/.a/.dll.a Analyzer**, CPM extension settings, toolchain setup and workspace opening from the global hub.
+- Made DLL/archive analyzers work without an active CPM project, including browse, analysis and Markdown report export.
+- Analyzer report locations now fall back to the current workspace folder or user home when no project is loaded.
+- Added **Settings & Tools** shortcuts to Home and Quick Actions in the no-project state.
+
+## 0.2.91
+
+### Diagnostic sequences and consolidated library tools
+
+- Added reusable **Diagnostic sequences** to Instrument Diagnostics. A sequence can chain text or HEX frames over the currently connected COM/VISA session.
+- Each sequence step stores its own label, frame format, encoding, response expectation, response timeout and post-step delay.
+- Added response validation modes **Any response**, **Contains**, **Equals** and **Regular expression**, with per-step PASS/FAIL results and captured response text.
+- Added **Stop on first failure**, manual sequence cancellation, saved sequence definitions and ordered step editing/reordering.
+- Sequence execution reuses the persistent asynchronous RX stream and restores the terminal framing after completion or cancellation.
+- Consolidated the former **DLL Analyzer** and **.a / .lib Analyzer** top-level settings tabs into **Project Build Settings → Libraries**.
+- The Libraries page now contains distinct **DLL Analyzer** and **.lib / .a / .dll.a Analyzer** sections below the import-library generation tools.
+- Existing context-menu / command-palette analyzer actions now open the common Libraries page directly.
+- Reworked **Debug / PDB** metadata in DLL Analyzer into a vertical layout and added aggressive wrapping for long paths/GUIDs to prevent overlap.
+
+## 0.2.90
+
+### Persistent Instrument Terminal, profiles and command history
+
+- Upgraded **Instrument Diagnostics** from one-shot transactions to persistent COM and VISA sessions with explicit **Connect / Disconnect** controls.
+- Serial sessions keep `System.IO.Ports.SerialPort` open and stream incoming bytes asynchronously to the TX/RX console, including unsolicited instrument frames.
+- VISA sessions keep the resource open and poll reads in the background through the installed 64-bit or 32-bit VISA runtime while preserving the existing fallback behavior.
+- Communication-resource settings are locked while connected so the visible COM/VISA target cannot silently diverge from the resource that is actually open. Text/RX encoding and TX line termination remain adjustable during a session.
+- Added reusable **instrument profiles** that persist transport and communication settings globally. Loading a profile closes an active session before applying the new target/configuration.
+- Added **saved commands** with name, text/HEX mode, encoding and query metadata, plus a persistent recent-command history (up to 100 sends) that can recall previous frames.
+- Kept the built-in IEEE 488.2 / SCPI presets and added `Ctrl+Enter` as a terminal send shortcut.
+- Closing the Instrument Diagnostics page now closes the active resource cleanly so COM ports and VISA sessions are not left locked in the background.
+- Preserved the 0.2.89 one-shot exchange helpers internally for compatibility while routing the UI through the new persistent-session backend.
+
+## 0.2.89
+
+### Instrument Diagnostics — COM, USB/PnP and SCPI/VISA
+
+- Added a standalone **Instrument Diagnostics** page that can be opened even when no CPM workspace/project is loaded.
+- Added Windows COM-port discovery with device name, manufacturer, PnP identifier and status.
+- Added complete serial framing controls: baud rate, 5/6/7/8 data bits, parity, 1/1.5/2 stop bits, handshake, DTR/RTS, read/write timeouts, text encoding and configurable `None`/`LF`/`CR`/`CRLF` termination.
+- Added manual text and raw HEX frame transmission plus a timestamped TX/RX diagnostic console that displays both decoded text and response bytes.
+- Added predefined IEEE 488.2 / SCPI diagnostic frames including `*IDN?`, `*CLS`, `*RST`, `*OPC?`, `*TST?`, `SYST:ERR?`, `SYST:VERS?`, `*ESR?` and `*STB?`.
+- Added Windows USB/PnP inventory with VID/PID extraction when available. USB enumeration is deliberately distinct from communication: a generic USB device is not treated as directly writable unless it exposes a serial port or VISA resource.
+- Added optional VISA discovery and communication through the installed VISA C runtime, supporting resources such as USBTMC `USB...::INSTR` without adding a native Node dependency to CPM. CPM tries the 64-bit VISA runtime first and can fall back to the 32-bit runtime through Windows PowerShell x86.
+- Added the diagnostics entry to Home, Quick Actions and the Command Palette. Communication preferences are retained globally between sessions.
+- Added webview-script syntax validation during development and kept the module independent from the build engine/project settings.
+
 ## 0.2.88
 
 ### Explicit DLL output formats

@@ -10,6 +10,50 @@ Accepted package aliases in build settings include `ttf`, `image`, `mixer` and `
 
 # Templates and snippets guide
 
+## 0.2.105 hierarchical snippet catalog
+
+The editor command **CPM > Snippets > CPM: Insert snippet** is no longer a single flat list. It now follows the same language-first principle as the file-creation workflow:
+
+- `C` -> category -> optional sub-category -> snippet
+- `C++` -> category -> optional sub-category -> snippet
+- `Search all built-in snippets` for direct cross-language search
+- `Saved snippets` for user snippets
+
+The current editor language is placed first in the language picker. Built-in snippets carry explicit language/category metadata, so shared preprocessor patterns can appear in both C and C++ without duplicating their implementation.
+
+The embedded catalog contains 107 snippets in 0.2.105. Important new groups include:
+
+- **Preprocessor & macros**: variadic macros, `__VA_ARGS__`, standard `__VA_OPT__` (C23/C++20), GNU `##__VA_ARGS__`, arity dispatch, argument counting, stringify, token-paste, safe `do { } while (0)` macros, X-macros and array-count helpers.
+- **Functions & callbacks**: `va_list`, paired `Foo(...)` / `VFoo(..., va_list)`, `va_copy`, callback+context patterns, function-pointer dispatch tables and `qsort` comparators.
+- **C++ templates & generic programming**: parameter packs, fold expressions, perfect forwarding, generic variadic lambdas, specialization, `static_assert` and `if constexpr`.
+- **Ownership / modern C++**: `std::optional`, callbacks with `std::function`, capturing lambdas, scope guards, `unique_ptr`, `shared_ptr`/`weak_ptr`, `std::variant`, structured bindings and concurrency helpers.
+- **Maintained CPM bundle examples**: INI, File/Path, StringBuilder, Process, CSV, buffers, CRC/logging, UART, TCP/UDP, IPC, VISA, SCPI, CAN, I2C, SPI, RS-485, Modbus, HTTP, MQTT, WebSocket, TLS and USB.
+
+`__VA_OPT__` is intentionally labelled as a C23/C++20 mechanism. For older GCC/Clang C toolchains the catalog also includes the common GNU `, ##__VA_ARGS__` compatibility form and a portable macro-dispatch-by-arity pattern.
+
+## 0.2.99 creation hierarchy and C INI bundle
+
+The creation wizard now starts with the language. Bundles no longer appear as an independent root category:
+
+- `C > Bundles...`
+  - `Configuration & utilities` — Core utilities, INI configuration, Error management
+  - `Communication` — UART, IPC, Ethernet, Wi-Fi, Bluetooth RFCOMM, CAN, I2C, SPI, full stack
+  - `Interoperability & UI` — Python, Lua and Web UI bridges
+- `C++ > Bundles...` — maintained self-contained C++/C-ABI bundles available in the current extension build
+- `Scripts and text > Bundles...` — worker and frontend starters
+
+### C INI configuration bundle
+
+`C > Bundles... > Configuration & utilities > INI configuration` creates:
+
+- `cpm_ini.c` / `cpm_ini.h`
+- `example.ini`
+- `README.md`
+
+The API supports sections, root keys, case-insensitive lookup by default, UTF-8 BOM input, typed `string`, `int`, `int64`, `double` and `bool` getters, default values, mutation, section/key removal, enumeration, normalized save and one-shot file helpers. `CpmIni_Save` intentionally normalizes the file and does not preserve comments/whitespace layout.
+
+For repeated reads, load once into `CpmIniDocument`. For isolated values, use helpers such as `CpmIni_ReadString` / `CpmIni_ReadInt`.
+
 ## Creation wizard
 
 Open a C/C++ project, right-click the project or a logical folder, then run **Create New File or Starter...**.

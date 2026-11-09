@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
  * configuration exists. The manager edits only the current user's ~/.ssh/config
  * and never stores private-key material in CPM global storage.
  */
-interface SshAliasRecord {
+export interface SshAliasRecord {
   blockIndex: number;
   host: string;
   hostName: string;
@@ -23,32 +23,21 @@ interface SshAliasRecord {
   editable: boolean;
 }
 
-interface SshNeighborRecord {
+export interface SshNeighborRecord {
   address: string;
   name?: string;
   mac?: string;
   source: string;
 }
 
-interface SshDeviceManagerData {
+export interface SshDeviceManagerData {
   configPath: string;
   aliases: SshAliasRecord[];
   hosts: SshNeighborRecord[];
   neighbors: SshNeighborRecord[];
 }
 
-let cpmSshDeviceManagerPanel: vscode.WebviewPanel | undefined;
-
-function escapeHtml(text: string): string {
-  return String(text || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function sshConfigPath(): string {
+export function sshConfigPath(): string {
   return path.join(os.homedir(), '.ssh', 'config');
 }
 
@@ -106,14 +95,6 @@ function parseSshAliasRecords(text: string): SshAliasRecord[] {
   });
 }
 
-function parseSshConfigDocument(text: string): { blockIndex: number; alias: string; hostName: string; user: string; port: string; identityFile: string; identitiesOnly: string; proxyJump: string; editable: boolean }[] {
-  return parseSshAliasRecords(text).map((entry) => ({ ...entry, alias: entry.host }));
-}
-
-function listSshAliases(): ReturnType<typeof parseSshConfigDocument> {
-  return parseSshConfigDocument(readTextFileIfPresent(sshConfigPath()));
-}
-
 function normalizeSshForm(rawForm: any): { host: string; hostName: string; user: string; port: string; identityFile: string; identitiesOnly: string; proxyJump: string } {
   const value = (name: string) => String(rawForm?.[name] ?? '').trim();
   const host = String(rawForm?.host ?? rawForm?.alias ?? '').trim();
@@ -152,7 +133,7 @@ function renderSshAliasBlock(form: ReturnType<typeof normalizeSshForm>): string[
   return lines;
 }
 
-function saveSshAlias(rawForm: any, requestedBlockIndex: number): void {
+export function saveSshAlias(rawForm: any, requestedBlockIndex: number): void {
   const form = normalizeSshForm(rawForm);
   const filePath = ensureUserSshConfigFile();
   const original = readTextFileIfPresent(filePath).replace(/\r\n/g, '\n');
@@ -183,7 +164,7 @@ function saveSshAlias(rawForm: any, requestedBlockIndex: number): void {
   fs.writeFileSync(filePath, output, 'utf8');
 }
 
-function deleteSshAlias(blockIndex: number): void {
+export function deleteSshAlias(blockIndex: number): void {
   const filePath = sshConfigPath();
   const original = readTextFileIfPresent(filePath).replace(/\r\n/g, '\n');
   const lines = original.split('\n');
@@ -256,7 +237,11 @@ function readLocalHostsRecords(): SshNeighborRecord[] {
   return out;
 }
 
-async function loadSshDeviceManagerData(): Promise<SshDeviceManagerData> {
+export function listEditableSshAliases(): SshAliasRecord[] {
+  return parseSshAliasRecords(readTextFileIfPresent(sshConfigPath())).filter((entry) => entry.editable);
+}
+
+export async function loadSshDeviceManagerData(): Promise<SshDeviceManagerData> {
   const configPath = sshConfigPath();
   const [neighbors] = await Promise.all([scanLocalSshNeighbors()]);
   return {
@@ -267,98 +252,11 @@ async function loadSshDeviceManagerData(): Promise<SshDeviceManagerData> {
   };
 }
 
-function renderSshDeviceManagerHtml(data: SshDeviceManagerData): string {
-  const payload = JSON.stringify(data).replace(/</g, '\\u003c');
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<style>
-  body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 18px; }
-  h1,h2 { margin-top: 0; }
-  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
-  button { border:1px solid var(--vscode-button-border, transparent); background:var(--vscode-button-background); color:var(--vscode-button-foreground); border-radius:5px; padding:7px 11px; cursor:pointer; }
-  button.secondary { background:var(--vscode-button-secondaryBackground); color:var(--vscode-button-secondaryForeground); }
-  button.danger { background:var(--vscode-inputValidation-errorBackground, #5a1d1d); }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:12px; }
-  .card { border:1px solid var(--vscode-panel-border); border-radius:8px; padding:12px; background:var(--vscode-sideBar-background); }
-  .meta { opacity:.78; font-size:12px; overflow-wrap:anywhere; }
-  .actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:9px; }
-  label { display:block; margin-top:8px; font-size:12px; opacity:.9; }
-  input,select { box-sizing:border-box; width:100%; background:var(--vscode-input-background); color:var(--vscode-input-foreground); border:1px solid var(--vscode-input-border, var(--vscode-panel-border)); padding:7px; border-radius:4px; }
-  details { border:1px solid var(--vscode-panel-border); border-radius:8px; padding:10px; margin:14px 0; }
-  summary { cursor:pointer; font-weight:600; }
-  .readonly { opacity:.7; }
-  code { font-family:var(--vscode-editor-font-family); }
-</style>
-</head>
-<body>
-<h1>OpenSSH Device Manager</h1>
-<div class="meta">Config: <code>${escapeHtml(data.configPath)}</code></div>
-<div class="toolbar">
-  <button id="refresh">Refresh</button>
-  <button id="newAlias">New alias</button>
-  <button id="generateKey" class="secondary">Generate Ed25519 key</button>
-  <button id="enrollKey" class="secondary">Install public key</button>
-</div>
-
-<details id="editor">
-  <summary>Alias editor</summary>
-  <input id="blockIndex" type="hidden" value="-1" />
-  <div class="grid">
-    <div><label>Host alias</label><input id="host" placeholder="lab-pc" /></div>
-    <div><label>HostName / IP</label><input id="hostName" placeholder="192.168.1.50" /></div>
-    <div><label>User</label><input id="user" placeholder="operator" /></div>
-    <div><label>Port</label><input id="port" placeholder="22" /></div>
-    <div><label>IdentityFile</label><input id="identityFile" placeholder="~/.ssh/id_ed25519" /><button id="pickIdentity" class="secondary" style="margin-top:5px">Browse…</button></div>
-    <div><label>IdentitiesOnly</label><select id="identitiesOnly"><option value=""></option><option value="yes">yes</option><option value="no">no</option></select></div>
-    <div><label>ProxyJump</label><input id="proxyJump" placeholder="jump-host" /></div>
-  </div>
-  <div class="actions"><button id="saveAlias">Save alias</button><button id="clearEditor" class="secondary">Clear</button></div>
-</details>
-
-<h2>OpenSSH aliases</h2>
-<div class="grid" id="aliases"></div>
-
-<h2 style="margin-top:18px">Local resolver aliases</h2>
-<div class="grid" id="hosts"></div>
-
-<h2 style="margin-top:18px">Known local neighbours</h2>
-<div class="grid" id="neighbors"></div>
-
-<script>
-const vscode = acquireVsCodeApi();
-const data = ${payload};
-const byId = id => document.getElementById(id);
-function formValue(){ return {host:byId('host').value,hostName:byId('hostName').value,user:byId('user').value,port:byId('port').value,identityFile:byId('identityFile').value,identitiesOnly:byId('identitiesOnly').value,proxyJump:byId('proxyJump').value}; }
-function clearEditor(){ byId('blockIndex').value='-1'; ['host','hostName','user','port','identityFile','proxyJump'].forEach(id=>byId(id).value=''); byId('identitiesOnly').value=''; byId('editor').open=true; }
-function editAlias(a){ byId('blockIndex').value=String(a.blockIndex); ['host','hostName','user','port','identityFile','identitiesOnly','proxyJump'].forEach(id=>byId(id).value=a[id]||''); byId('editor').open=true; byId('host').focus(); }
-function card(title,lines,actions){ const d=document.createElement('div'); d.className='card'; const h=document.createElement('strong'); h.textContent=title; d.appendChild(h); lines.forEach(line=>{const m=document.createElement('div');m.className='meta';m.textContent=line;d.appendChild(m);}); if(actions?.length){const a=document.createElement('div');a.className='actions';actions.forEach(spec=>{const b=document.createElement('button');b.textContent=spec[0];b.className=spec[2]||'secondary';b.onclick=spec[1];a.appendChild(b);});d.appendChild(a);} return d; }
-for(const a of data.aliases){ const actions=[[ 'Connect',()=>vscode.postMessage({type:'connect',target:a.host}) ],['Inspect',()=>vscode.postMessage({type:'inspect',target:a.host})],['Test key',()=>vscode.postMessage({type:'testKey',target:a.host})]]; if(a.editable){actions.push(['Edit',()=>editAlias(a),'secondary']);actions.push(['Delete',()=>vscode.postMessage({type:'deleteAlias',blockIndex:a.blockIndex,host:a.host}),'danger']);} byId('aliases').appendChild(card(a.host,[a.hostName||'(HostName inherited)',a.user?('User '+a.user):'',a.port?('Port '+a.port):'',a.identityFile?('Identity '+a.identityFile):'',a.editable?'':'Wildcard/multi-host block: read only'].filter(Boolean),actions)); }
-if(!data.aliases.length) byId('aliases').appendChild(card('No explicit aliases',['Use New alias to create ~/.ssh/config entries.'],[]));
-for(const h of data.hosts){ byId('hosts').appendChild(card(h.name||h.address,[h.address,h.source],[[ 'Connect',()=>vscode.postMessage({type:'connect',target:h.name||h.address}) ]])); }
-if(!data.hosts.length) byId('hosts').appendChild(card('No custom hosts entries',['No non-localhost aliases found.'],[]));
-for(const n of data.neighbors){ byId('neighbors').appendChild(card(n.address,[n.mac||'',n.source].filter(Boolean),[[ 'Connect',()=>vscode.postMessage({type:'connect',target:n.address}) ]])); }
-if(!data.neighbors.length) byId('neighbors').appendChild(card('No neighbours discovered',['ARP/neighbour cache is currently empty or unavailable.'],[]));
-byId('refresh').onclick=()=>vscode.postMessage({type:'refresh'});
-byId('newAlias').onclick=clearEditor;
-byId('clearEditor').onclick=clearEditor;
-byId('saveAlias').onclick=()=>vscode.postMessage({type:'saveAlias',form:formValue(),blockIndex:Number(byId('blockIndex').value)});
-byId('pickIdentity').onclick=()=>vscode.postMessage({type:'pickIdentity'});
-byId('generateKey').onclick=()=>vscode.postMessage({type:'generateKey'});
-byId('enrollKey').onclick=()=>vscode.postMessage({type:'enrollKey'});
-window.addEventListener('message',event=>{ if(event.data?.type==='identitySelected') byId('identityFile').value=event.data.path||''; });
-</script>
-</body>
-</html>`;
-}
-
-function quoteTerminalArg(value: string): string {
+export function quoteTerminalArg(value: string): string {
   return `"${String(value).replace(/"/g, '\\"')}"`;
 }
 
-function validateSshTerminalTarget(target: string): string {
+export function validateSshTerminalTarget(target: string): string {
   const value = String(target || '').trim();
   if (!value || !/^[A-Za-z0-9._:@%+\-\[\]]+$/.test(value)) {
     throw new Error('Unsafe or invalid SSH target.');
@@ -366,87 +264,9 @@ function validateSshTerminalTarget(target: string): string {
   return value;
 }
 
-function sendSshTerminalCommand(command: string): void {
+export function sendSshTerminalCommand(command: string): void {
   let terminal = vscode.window.terminals.find((entry) => entry.name === 'CPM SSH');
   if (!terminal) terminal = vscode.window.createTerminal({ name: 'CPM SSH' });
   terminal.show(true);
   terminal.sendText(command, true);
 }
-
-export async function openSshDeviceManager(context: vscode.ExtensionContext): Promise<void> {
-  if (cpmSshDeviceManagerPanel) {
-    cpmSshDeviceManagerPanel.reveal(vscode.ViewColumn.Active, false);
-  } else {
-    cpmSshDeviceManagerPanel = vscode.window.createWebviewPanel('cpmSshDeviceManager', 'CPM: OpenSSH Device Manager', vscode.ViewColumn.Active, { enableScripts: true, retainContextWhenHidden: true });
-    cpmSshDeviceManagerPanel.onDidDispose(() => { cpmSshDeviceManagerPanel = undefined; }, null, context.subscriptions);
-    cpmSshDeviceManagerPanel.webview.onDidReceiveMessage(async (message) => {
-      if (!cpmSshDeviceManagerPanel) return;
-      try {
-        if (message?.type === 'refresh') {
-          cpmSshDeviceManagerPanel.webview.html = renderSshDeviceManagerHtml(await loadSshDeviceManagerData());
-          return;
-        }
-        if (message?.type === 'saveAlias') {
-          saveSshAlias(message.form, Number(message.blockIndex));
-          void vscode.window.showInformationMessage(`SSH alias ${String(message.form?.host || '')} saved.`);
-          cpmSshDeviceManagerPanel.webview.html = renderSshDeviceManagerHtml(await loadSshDeviceManagerData());
-          return;
-        }
-        if (message?.type === 'deleteAlias') {
-          const host = String(message.host || 'alias');
-          const answer = await vscode.window.showWarningMessage(`Delete SSH alias ${host}?`, { modal: true }, 'Delete');
-          if (answer === 'Delete') {
-            deleteSshAlias(Number(message.blockIndex));
-            cpmSshDeviceManagerPanel.webview.html = renderSshDeviceManagerHtml(await loadSshDeviceManagerData());
-          }
-          return;
-        }
-        if (message?.type === 'connect') {
-          const target = validateSshTerminalTarget(message.target);
-          sendSshTerminalCommand(`ssh ${target}`);
-          return;
-        }
-        if (message?.type === 'inspect') {
-          const target = validateSshTerminalTarget(message.target);
-          sendSshTerminalCommand(`ssh -G ${target}`);
-          return;
-        }
-        if (message?.type === 'testKey') {
-          const target = validateSshTerminalTarget(message.target);
-          sendSshTerminalCommand(`ssh -o BatchMode=yes -o ConnectTimeout=5 ${target} exit`);
-          return;
-        }
-        if (message?.type === 'pickIdentity') {
-          const selected = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, openLabel: 'Use identity file', defaultUri: vscode.Uri.file(path.join(os.homedir(), '.ssh')) });
-          if (selected?.[0]) void cpmSshDeviceManagerPanel.webview.postMessage({ type: 'identitySelected', path: selected[0].fsPath });
-          return;
-        }
-        if (message?.type === 'generateKey') {
-          const uri = await vscode.window.showSaveDialog({ title: 'Choose private-key path', defaultUri: vscode.Uri.file(path.join(os.homedir(), '.ssh', 'id_ed25519')), saveLabel: 'Generate here' });
-          if (uri) sendSshTerminalCommand(`ssh-keygen -t ed25519 -f ${quoteTerminalArg(uri.fsPath)}`);
-          return;
-        }
-        if (message?.type === 'enrollKey') {
-          const aliases = parseSshAliasRecords(readTextFileIfPresent(sshConfigPath())).filter((entry) => entry.editable);
-          const target = await vscode.window.showQuickPick(aliases.map((entry) => ({ label: entry.host, description: entry.hostName })), { title: 'Install public key on which SSH alias?' });
-          if (!target) return;
-          const selected = await vscode.window.showOpenDialog({ title: 'Select the public key to install', canSelectFiles: true, canSelectFolders: false, canSelectMany: false, filters: { 'OpenSSH public keys': ['pub'], 'All files': ['*'] }, defaultUri: vscode.Uri.file(path.join(os.homedir(), '.ssh')) });
-          if (!selected?.[0]) return;
-          const alias = validateSshTerminalTarget(target.label);
-          const publicKeyPath = quoteTerminalArg(selected[0].fsPath);
-          const remote = 'umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; cat >> ~/.ssh/authorized_keys';
-          const command = process.platform === 'win32'
-            ? `type ${publicKeyPath} | ssh ${alias} ${quoteTerminalArg(remote)}`
-            : `cat ${publicKeyPath} | ssh ${alias} ${quoteTerminalArg(remote)}`;
-          const answer = await vscode.window.showWarningMessage(`Append ${path.basename(selected[0].fsPath)} to ${alias}:~/.ssh/authorized_keys? Only the public key will be sent.`, { modal: true }, 'Install key');
-          if (answer === 'Install key') sendSshTerminalCommand(command);
-          return;
-        }
-      } catch (error) {
-        void vscode.window.showErrorMessage(`CPM SSH Device Manager: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }, undefined, context.subscriptions);
-  }
-  if (cpmSshDeviceManagerPanel) cpmSshDeviceManagerPanel.webview.html = renderSshDeviceManagerHtml(await loadSshDeviceManagerData());
-}
-

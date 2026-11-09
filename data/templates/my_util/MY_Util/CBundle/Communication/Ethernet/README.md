@@ -1,12 +1,13 @@
-# CPM C Ethernet TCP/UDP communication
+# CPM Ethernet TCP/UDP bundle
 
-Cross-platform C socket wrapper for TCP client/server and UDP helpers.
+Portable socket wrapper for Windows Winsock and POSIX sockets.
 
-## Files
+Features:
+- TCP connect/listen/accept with timeouts;
+- send-all, receive, receive-exact, receive-until and line helpers;
+- TCP keep-alive, TCP_NODELAY, buffer sizing and endpoint inspection;
+- UDP connected or connectionless operation;
+- broadcast and IPv4 multicast join/leave, TTL and loopback;
+- hostname resolution and local/peer endpoint helpers.
 
-- `cpm_socket.c`
-- `cpm_socket.h`
-
-## Windows link dependency
-
-On Windows, this module requires `ws2_32`. CPM automatically adds `ws2_32` to the workspace linker libraries when this bundle is added.
+Call `CpmSocket_Startup()` once before socket use on Windows and `CpmSocket_Cleanup()` at shutdown.

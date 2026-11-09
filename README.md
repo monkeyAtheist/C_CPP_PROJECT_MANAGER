@@ -11,6 +11,15 @@ Use `cpm.buildLogDetail` to select the main report density:
 Parsed diagnostics are also sent to VS Code Problems with source `CPM Build`. The commands `C/C++ Project Manager: Show Build Problems` and `C/C++ Project Manager: Show Full Build Trace` are available from the Command Palette.
 
 
+## File creation and reusable C bundles (0.2.100)
+
+The creation workflow remains language-first: **C**, **C++**, or **Scripts and text**. Reusable modules are selected inside that language through **Bundles...** rather than through a separate root bundle menu. C bundles are now grouped into **Configuration & utilities**, **System**, **Data & serialization**, **Integrity & diagnostics**, **Communication**, and **Interoperability & UI**.
+
+In addition to the dedicated section-aware **INI configuration** bundle and the packaged communication modules, CPM now ships focused C bundles for **File & Path**, **Strings/StringBuilder**, **Time & periodic timers**, **Threads & synchronization**, **Processes/environment**, **JSON**, **CSV**, **Byte buffers/endian**, **Vector/ring-buffer containers**, **Checksums/CRC**, and **Logging**. A **General C utility stack** can install the maintained configuration/system/data/diagnostics set in one operation. Each module is also independently selectable so projects do not need to copy a monolithic helper library.
+
+The utility payloads are included physically in the VSIX and are compiled during release validation with strict C11 warnings. Legacy bundle entries whose backing files are absent remain hidden instead of failing after selection.
+
+
 ## 0.2.47 embedded library manager update
 
 The embedded C/C++ library manager now includes the JC Lib 0.8.9 SDL2 / SDL3 pack update. SDL can be added as a combined SDL2 / SDL3 pack or as SDL2-only / SDL3-only packs. Enum-backed multi-select pickers also support combined flag expressions and refresh the generated-call preview correctly.
@@ -43,6 +52,7 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Generate richer C/C++ utility and error-management bundles with executable-path helpers, filesystem helpers and structured error logs with preserved C/C++ escape sequences.
 - Select executable, dynamic-library or static-library targets.
 - Build, rebuild, clean, run and debug the active project.
+- Diagnose external instruments from a standalone COM / USB-PnP / VISA page, send manual text or HEX frames, and use common SCPI commands such as `*IDN?`.
 - Detect C/C++ toolchains from `PATH`, common MinGW/MSYS2/Clang locations and manually configured folders.
 - Store explicit compiler paths for `gcc`, `g++`, `ar` and `gdb` or compatible alternatives.
 - Synchronize a managed `.vscode/c_cpp_properties.json` entry for Microsoft C/C++ IntelliSense.
@@ -52,7 +62,64 @@ The extension is derived from the former C/C++ Project Manager project-manager a
 - Inspect C/C++ File Symbols without local-call/constructor false positives, copy or export the list, and generate `.h/.hpp` or `.c/.cpp` skeletons.
 - Insert color values from the editor context menu in C/C++ friendly formats, including SDL and Qt initializers.
 - Use editor context-menu utilities for character/encoding conversion, number/bit conversion, truth table / FSM generation and digital-filter coefficient design.
-- Generate C and C++ utility module bundles, including pure C Python, Lua, Web UI, UART, IPC and TCP/UDP communication bridges, plus separate companion script/frontend bundles.
+- Generate structured C and C++ utility/module bundles, including maintained communication transports and protocol layers.
+
+
+## Maintained C/C++ communication bundles
+
+CPM 0.2.101 provides the communication library as independent **C** modules plus matching **C++17 RAII** wrappers. The C++ bundles deliberately embed and wrap the maintained C backend instead of carrying a second transport implementation.
+
+Available transports include **UART/serial**, local **IPC** (Windows named pipes / POSIX Unix-domain sockets), **TCP client/server**, **UDP**, application-level **Wi-Fi IP**, **Bluetooth Classic RFCOMM**, **CAN/CAN-FD** (SocketCAN), **I²C**, **SPI** and a compact dynamically-loaded Windows **VISA** backend. Higher-level protocol bundles provide **COBS/SLIP/length-prefix framing**, **SCPI/IEEE-488.2** and **Modbus RTU/TCP**.
+
+The VISA bundle does not require vendor VISA headers or import libraries at compile time; on Windows it loads an installed `visa64.dll` / `visa32.dll` runtime dynamically. SCPI is transport-independent and can therefore be wired to UART, TCP, IPC, RFCOMM or VISA callbacks. Platform-specific hardware transports such as SocketCAN, Linux I²C/spidev and Windows RFCOMM return an explicit unsupported result on other platforms instead of silently emulating unavailable hardware.
+
+
+## Settings & Tools without a project
+
+CPM 0.2.98 keeps its global utilities accessible even when no C/C++ workspace/project is loaded. The persistent status bar is reduced to **Home**, **Open Workspace**, **Build / Rebuild / Clean**, **Run**, **Debug** and **Settings**. Build mode, target type, linkage mode and advanced run options remain available in CPM menus/settings instead of occupying permanent status-bar space.
+
+Opening **Settings** with no active project now displays **CPM Settings & Tools** rather than an error. Project-specific build controls are shown as unavailable, while **Instrument Diagnostics**, **Network & Wireless Diagnostics**, **Unified CPM Device Manager**, **DLL Analyzer**, **.lib/.a/.dll.a Analyzer**, CPM extension settings, toolchain setup and workspace opening remain available. When a project is active, the same Settings command opens the complete project build-settings page.
+
+
+## Instrument Diagnostics
+
+CPM 0.2.93 provides a standalone **Instrument Diagnostics** page. It does not require a C/C++ workspace to be open and is available from the Home page, Quick Actions or **C/C++ Project Manager: Open Instrument Diagnostics**.
+
+For **Serial / COM** devices on Windows, CPM enumerates the available ports and exposes the communication parameters normally required by laboratory equipment: baud rate, data bits, parity, stop bits, handshake, DTR/RTS and independent read/write timeouts. Frames can be entered as text (`ASCII`, `UTF-8` or `Latin-1`) or as raw hexadecimal bytes. `None`, `LF`, `CR` and `CRLF` termination can be selected explicitly.
+
+The page now uses a persistent terminal model: **Connect** opens the COM/VISA resource and keeps it open until **Disconnect** or the diagnostics page is closed. Incoming bytes are monitored asynchronously, so SCPI replies and unsolicited serial/VISA frames appear in the TX/RX log without reopening the resource for every command. The console records decoded text and HEX bytes. `Ctrl+Enter` sends the current frame.
+
+Common IEEE 488.2 / SCPI presets remain available, including `*IDN?`, `*CLS`, `*RST`, `*OPC?`, `*TST?`, `SYST:ERR?`, `SYST:VERS?`, `*ESR?` and `*STB?`. Commands such as `*RST` can change instrument state, so no preset is transmitted automatically. CPM can also persist named **instrument profiles**, reusable **saved commands**, and a recent command history for fast diagnostic sessions.
+
+The page also supports reusable **diagnostic sequences**. Each ordered step can send text or HEX data, select its decoding format, declare whether a response is expected, define a timeout and post-step delay, and validate decoded RX data with **Any response**, **Contains**, **Equals** or **Regular expression**. Runs report PASS/FAIL per step, can stop on the first failure or continue, and can be cancelled manually. Saved sequences are stored globally with the other instrument-diagnostics data.
+
+CPM also enumerates Windows USB/PnP devices and extracts USB VID/PID values when possible. This inventory is intentionally informational: a USB device cannot be treated as a generic byte stream merely because Windows can enumerate it. Communication is enabled when the instrument exposes a COM endpoint or an installed VISA runtime exposes a resource such as `USB0::...::INSTR`.
+
+For **VISA / USBTMC**, CPM uses the system VISA C API through PowerShell/.NET interop rather than bundling a native Node module. It tries a 64-bit VISA runtime first and can fall back to the 32-bit runtime through Windows PowerShell x86. NI-VISA, Keysight VISA or another compatible runtime can therefore provide the USBTMC/VISA transport; if no runtime is present, COM diagnostics and USB/PnP inventory remain available.
+
+
+## Network & Wireless Diagnostics
+
+CPM 0.2.98 provides a project-independent **Network & Wireless Diagnostics** page for Ethernet, Wi-Fi and socket-level troubleshooting. It is available from Home, Quick Actions, **Settings & Tools**, the Command Palette and directly from Instrument Diagnostics.
+
+The **Network** view inventories local interfaces with status, MAC address, link speed, IPv4/IPv6 addresses, gateways and DNS servers. It also displays the operating system's existing ARP/ND neighbor cache without performing an active subnet sweep. Single-target tools provide ICMP Ping, DNS resolution and a TCP connection test with configurable timeout. A local-service discovery section sends mDNS/Bonjour and SSDP/UPnP discovery requests and lists the records/devices that answer.
+
+The **TCP / UDP terminal** keeps a TCP client connection or UDP socket open while the page is active. Frames can be entered as text or raw HEX, decoded as ASCII/UTF-8/Latin-1 and terminated with None/LF/CR/CRLF. Incoming TCP bytes and UDP datagrams are displayed asynchronously with decoded text and HEX bytes. UDP supports an explicit local port or port `0` for automatic allocation and enables broadcast transmission for controlled diagnostic use. CPM 0.2.98 also adds a **TCP listener/server** that can accept several incoming clients and broadcast the current terminal frame to every connected client.
+
+The **Wi-Fi / BLE / Bluetooth** view is currently implemented on Windows. Wi-Fi discovery lists visible SSID/BSSID entries with signal quality, channel, authentication, encryption and radio type. BLE uses the Windows advertisement watcher and reports address, advertised local name, RSSI and connectability metadata when available. Scanning can run once or continuously; continuous mode keeps recently observed entries for a short period and exposes a **Last seen** age. Bluetooth Classic/known-device inventory is read from the Windows Bluetooth PnP device list. CPM 0.2.98 adds a **BLE GATT Inspector** for a selected BLE address: it enumerates services and characteristics, exposes one-shot Read/Write operations when supported and can monitor Notify/Indicate values for a bounded five-second diagnostic window.
+
+These tools are limited to discovery and explicit diagnostics against endpoints selected by the user. They do **not** passively capture third-party payload traffic, credentials, protected Wi-Fi handshakes or decrypted frames. The GATT Inspector can directly read/write characteristics on a selected BLE device when Windows and that device allow it; writes can change device state.
+
+
+## Unified CPM Device Manager
+
+CPM 0.2.98 includes a project-independent **Device Manager** to the communication toolset. It is available from Home, Quick Actions, **Settings & Tools**, the Command Palette (`C/C++ Project Manager: Open CPM Device Manager`) and the **Devices** tab of Network & Wireless Diagnostics.
+
+A device represents one physical or logical piece of equipment and can contain several communication endpoints at the same time: **COM**, **VISA**, **TCP**, **UDP** and **SSH**. For example, one `Raspberry Pi bench #2` profile can retain its TCP service and OpenSSH alias, while a laboratory instrument can retain both a serial fallback and a VISA/USBTMC endpoint.
+
+Instrument Diagnostics exposes **Add endpoint to CPM device** and saved instrument profiles can be promoted directly. The TCP/UDP terminal provides the same action for its current socket settings, and configured OpenSSH aliases can be attached from **SSH Devices**. Device cards then reopen the appropriate diagnostic tool with the stored endpoint already selected.
+
+Device metadata includes a name, description and tags. The registry is stored globally in VS Code extension state and can be exported/imported as JSON for backup or transfer between workstations. CPM 0.2.98 adds **Diagnose** and **Diagnose all** actions: COM/VISA endpoints are checked against current enumeration, TCP/SSH endpoints are tested for reachability, and UDP endpoints are resolved with an explicit warning that UDP has no connection handshake. Existing instrument profiles, network settings and `~/.ssh/config` are not removed or rewritten by this feature.
 
 
 ## External dependencies — vcpkg, Conan 2 and pkg-config
@@ -372,13 +439,13 @@ Supported generators are Microsoft `lib.exe`, LLVM `llvm-lib`, LLVM `llvm-dlltoo
 
 ## DLL Analyzer
 
-CPM 0.2.86 adds **Analyze DLL...** to DLL context menus and a dedicated **Project Build Settings → DLL Analyzer** page. The analyzer works directly on Windows PE files and displays: architecture and PE32/PE32+ format, image base/entry point/subsystem, link timestamp, file size and SHA-256, fixed/string VERSIONINFO fields (including FileVersion/ProductVersion and revision), named/ordinal exports, imported DLLs and functions, sections, resource types, PE/DLL flags, Authenticode certificate-table presence, CLR/.NET header presence and CodeView/PDB information when present. The analysis can be exported as Markdown.
+CPM 0.2.86 added **Analyze DLL...** to DLL context menus. In CPM 0.2.92 the analyzer is hosted under **Libraries → DLL Analyzer** when project settings are open, and is also available from the project-independent **Settings & Tools → Libraries & Analyzers** hub when no project is loaded. The analyzer works directly on Windows PE files and displays: architecture and PE32/PE32+ format, image base/entry point/subsystem, link timestamp, file size and SHA-256, fixed/string VERSIONINFO fields (including FileVersion/ProductVersion and revision), named/ordinal exports, imported DLLs and functions, sections, resource types, PE/DLL flags, Authenticode certificate-table presence, CLR/.NET header presence and CodeView/PDB information when present. The analysis can be exported as Markdown. Long CodeView/PDB fields are displayed vertically and wrapped to avoid layout overlap.
 
 The analyzer is structural and read-only: certificate-table presence does not by itself validate trust/signature status, and a PE export table does not reliably distinguish exported data from exported functions. Those limits are reported rather than guessed.
 
 ## .a / .lib Library Analyzer and library output formats
 
-CPM 0.2.87 adds **Analyze .a / .lib Library...** to `.a` and `.lib` project-file context menus and a dedicated **Project Build Settings → .a / .lib Analyzer** page. The analyzer reads the archive itself rather than trusting the extension. It reports archive members, linker symbols, detected COFF/ELF/LLVM object members, architectures, short COFF import objects and referenced runtime DLL names. It classifies an archive as a **static library**, **import library**, **mixed archive**, or **unknown**.
+CPM 0.2.87 added **Analyze .a / .lib Library...** to `.a` and `.lib` project-file context menus. In CPM 0.2.92 this analyzer is grouped under **Libraries → .lib / .a / .dll.a Analyzer** and is also available without an active project from **Settings & Tools → Libraries & Analyzers**. The analyzer reads the archive itself rather than trusting the extension. It reports archive members, linker symbols, detected COFF/ELF/LLVM object members, architectures, short COFF import objects and referenced runtime DLL names. It classifies an archive as a **static library**, **import library**, **mixed archive**, or **unknown**.
 
 A `.lib` extension is not a separate semantic target type: a `.lib` can contain real static COFF object code or act as a Windows DLL import library. Likewise, MinGW commonly uses `.dll.a` for import libraries. CPM therefore keeps the target types **Static Library** and **Dynamic Link Library** and exposes the format separately.
 

@@ -108,21 +108,18 @@ export class BuildSettingsPanel implements vscode.Disposable {
   ) {}
 
   show(projectRef?: CpmWorkspaceProjectRef, page?: string): void {
-    const ref = projectRef ?? this.workspaces.activeProjectRef;
-    if (!ref?.exists) {
-      vscode.window.showErrorMessage('No existing C/C++ project is selected.');
-      return;
-    }
+    const candidate = projectRef ?? this.workspaces.activeProjectRef;
+    const ref = candidate?.exists ? candidate : undefined;
     this.projectRef = ref;
     if (page) this.selectedPage = page;
     if (!this.panel) {
       this.selectedScope = this.buildMode;
-      this.panel = vscode.window.createWebviewPanel('cpm.buildSettings', 'C/C++ Project Build Settings', vscode.ViewColumn.Active, { enableScripts: true, retainContextWhenHidden: true });
+      this.panel = vscode.window.createWebviewPanel('cpm.buildSettings', 'C/C++ Project Manager — Settings & Tools', vscode.ViewColumn.Active, { enableScripts: true, retainContextWhenHidden: true });
       this.panel.onDidDispose(() => { this.panel = undefined; this.projectRef = undefined; this.selectedPage = ''; });
       this.panel.webview.onDidReceiveMessage((message) => void this.handleMessage(message));
     }
-    this.panel.title = `C/C++ Build Settings — ${ref.name}`;
-    this.panel.webview.html = this.render(ref);
+    this.panel.title = ref ? `C/C++ Build Settings — ${ref.name}` : 'C/C++ Project Manager — Settings & Tools';
+    this.panel.webview.html = ref ? this.render(ref) : this.renderGlobalSettings();
     this.panel.reveal(vscode.ViewColumn.Active);
   }
 
@@ -136,7 +133,7 @@ export class BuildSettingsPanel implements vscode.Disposable {
         vscode.window.showErrorMessage(`Unable to analyze DLL: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-    this.show(ref, 'dllAnalyzer');
+    this.show(ref, 'libraries');
   }
 
   showLibraryAnalyzer(projectRef?: CpmWorkspaceProjectRef, libraryPath?: string): void {
@@ -149,13 +146,14 @@ export class BuildSettingsPanel implements vscode.Disposable {
         vscode.window.showErrorMessage(`Unable to analyze library: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-    this.show(ref, 'libraryAnalyzer');
+    this.show(ref, 'libraries');
   }
 
   update(): void {
-    if (this.panel && this.projectRef?.exists) {
-      this.panel.webview.html = this.render(this.projectRef);
-    }
+    if (!this.panel) return;
+    const ref = this.projectRef?.exists ? this.projectRef : undefined;
+    this.panel.title = ref ? `C/C++ Build Settings — ${ref.name}` : 'C/C++ Project Manager — Settings & Tools';
+    this.panel.webview.html = ref ? this.render(ref) : this.renderGlobalSettings();
   }
 
   /**
@@ -404,12 +402,99 @@ export class BuildSettingsPanel implements vscode.Disposable {
   }
 
   private async handleMessage(message: any): Promise<void> {
-    if (!this.projectRef) {
-      return;
-    }
     if (message?.type === 'pageChanged') {
       const page = String(message.page ?? '');
       if (page) this.selectedPage = page;
+      return;
+    }
+    if (message?.type === 'browseDllAnalyzer') {
+      const chosen = await vscode.window.showOpenDialog({
+        title: 'Select DLL to analyze', canSelectFiles: true, canSelectFolders: false, canSelectMany: false,
+        defaultUri: vscode.Uri.file(this.dllAnalyzerPath && fs.existsSync(this.dllAnalyzerPath) ? this.dllAnalyzerPath : this.analyzerBaseDirectory()),
+        filters: { 'Windows DLL': ['dll'], 'All files': ['*'] }
+      });
+      if (chosen?.[0]) {
+        this.dllAnalyzerPath = chosen[0].fsPath;
+        try { this.dllAnalysis = analyzeDllFile(this.dllAnalyzerPath); }
+        catch (error) { this.dllAnalysis = undefined; vscode.window.showErrorMessage(`Unable to analyze DLL: ${error instanceof Error ? error.message : String(error)}`); }
+        this.selectedPage = 'libraries';
+        this.update();
+      }
+      return;
+    }
+    if (message?.type === 'analyzeDll') {
+      const requested = String(message.path ?? this.dllAnalyzerPath ?? '').trim();
+      if (!requested) { await this.handleMessage({ type: 'browseDllAnalyzer' }); return; }
+      this.dllAnalyzerPath = requested;
+      try { this.dllAnalysis = analyzeDllFile(requested); }
+      catch (error) { this.dllAnalysis = undefined; vscode.window.showErrorMessage(`Unable to analyze DLL: ${error instanceof Error ? error.message : String(error)}`); }
+      this.selectedPage = 'libraries';
+      this.update();
+      return;
+    }
+    if (message?.type === 'exportDllAnalysis') {
+      if (!this.dllAnalysis) { vscode.window.showInformationMessage('Analyze a DLL first.'); return; }
+      const base = path.parse(this.dllAnalysis.fileName).name;
+      const target = await vscode.window.showSaveDialog({
+        title: 'Export DLL analysis report',
+        defaultUri: vscode.Uri.file(path.join(this.analyzerBaseDirectory(), '.cpm', 'dll-analyzer', `${base}-analysis.md`)),
+        filters: { Markdown: ['md'], 'Text files': ['txt'] }
+      });
+      if (target) {
+        fs.mkdirSync(path.dirname(target.fsPath), { recursive: true });
+        fs.writeFileSync(target.fsPath, renderDllAnalysisMarkdown(this.dllAnalysis), 'utf8');
+        vscode.window.showInformationMessage(`DLL analysis exported to ${target.fsPath}`);
+      }
+      return;
+    }
+    if (message?.type === 'browseLibraryAnalyzer') {
+      const chosen = await vscode.window.showOpenDialog({
+        title: 'Select .a, .lib or .dll.a library to analyze', canSelectFiles: true, canSelectFolders: false, canSelectMany: false,
+        defaultUri: vscode.Uri.file(this.libraryAnalyzerPath && fs.existsSync(this.libraryAnalyzerPath) ? this.libraryAnalyzerPath : this.analyzerBaseDirectory()),
+        filters: { 'Static/import libraries': ['a', 'lib'], 'All files': ['*'] }
+      });
+      if (chosen?.[0]) {
+        this.libraryAnalyzerPath = chosen[0].fsPath;
+        try { this.libraryAnalysis = analyzeLibraryFile(this.libraryAnalyzerPath); }
+        catch (error) { this.libraryAnalysis = undefined; vscode.window.showErrorMessage(`Unable to analyze library: ${error instanceof Error ? error.message : String(error)}`); }
+        this.selectedPage = 'libraries';
+        this.update();
+      }
+      return;
+    }
+    if (message?.type === 'analyzeLibrary') {
+      const requested = String(message.path ?? this.libraryAnalyzerPath ?? '').trim();
+      if (!requested) { await this.handleMessage({ type: 'browseLibraryAnalyzer' }); return; }
+      this.libraryAnalyzerPath = requested;
+      try { this.libraryAnalysis = analyzeLibraryFile(requested); }
+      catch (error) { this.libraryAnalysis = undefined; vscode.window.showErrorMessage(`Unable to analyze library: ${error instanceof Error ? error.message : String(error)}`); }
+      this.selectedPage = 'libraries';
+      this.update();
+      return;
+    }
+    if (message?.type === 'exportLibraryAnalysis') {
+      if (!this.libraryAnalysis) { vscode.window.showInformationMessage('Analyze a .a/.lib/.dll.a library first.'); return; }
+      const base = path.parse(this.libraryAnalysis.fileName).name;
+      const target = await vscode.window.showSaveDialog({
+        title: 'Export library analysis report',
+        defaultUri: vscode.Uri.file(path.join(this.analyzerBaseDirectory(), '.cpm', 'library-analyzer', `${base}-analysis.md`)),
+        filters: { Markdown: ['md'], 'Text files': ['txt'] }
+      });
+      if (target) {
+        fs.mkdirSync(path.dirname(target.fsPath), { recursive: true });
+        fs.writeFileSync(target.fsPath, renderLibraryAnalysisMarkdown(this.libraryAnalysis), 'utf8');
+        vscode.window.showInformationMessage(`Library analysis exported to ${target.fsPath}`);
+      }
+      return;
+    }
+    if (message?.type === 'command') {
+      const command = String(message.command ?? '');
+      if (command) await vscode.commands.executeCommand(command);
+      return;
+    }
+
+    if (!this.projectRef) {
+      vscode.window.showInformationMessage('This setting requires an active C/C++ project. Global tools remain available from Settings & Tools.');
       return;
     }
     if (message?.type === 'changeScope') {
@@ -427,93 +512,6 @@ export class BuildSettingsPanel implements vscode.Disposable {
     }
     if (message?.type === 'promptForcedModuleName') {
       await this.promptForForcedModuleName();
-      return;
-    }
-    if (message?.type === 'browseDllAnalyzer') {
-      const chosen = await vscode.window.showOpenDialog({
-        title: 'Select DLL to analyze', canSelectFiles: true, canSelectFolders: false, canSelectMany: false,
-        defaultUri: vscode.Uri.file(this.dllAnalyzerPath && fs.existsSync(this.dllAnalyzerPath) ? this.dllAnalyzerPath : path.dirname(this.projectRef.absolutePath)),
-        filters: { 'Windows DLL': ['dll'], 'All files': ['*'] }
-      });
-      if (chosen?.[0]) {
-        this.dllAnalyzerPath = chosen[0].fsPath;
-        try { this.dllAnalysis = analyzeDllFile(this.dllAnalyzerPath); }
-        catch (error) { this.dllAnalysis = undefined; vscode.window.showErrorMessage(`Unable to analyze DLL: ${error instanceof Error ? error.message : String(error)}`); }
-        this.selectedPage = 'dllAnalyzer';
-        this.update();
-      }
-      return;
-    }
-    if (message?.type === 'analyzeDll') {
-      const requested = String(message.path ?? this.dllAnalyzerPath ?? '').trim();
-      if (!requested) { await this.handleMessage({ type: 'browseDllAnalyzer' }); return; }
-      this.dllAnalyzerPath = requested;
-      try { this.dllAnalysis = analyzeDllFile(requested); }
-      catch (error) { this.dllAnalysis = undefined; vscode.window.showErrorMessage(`Unable to analyze DLL: ${error instanceof Error ? error.message : String(error)}`); }
-      this.selectedPage = 'dllAnalyzer';
-      this.update();
-      return;
-    }
-    if (message?.type === 'exportDllAnalysis') {
-      if (!this.dllAnalysis) { vscode.window.showInformationMessage('Analyze a DLL first.'); return; }
-      const base = path.parse(this.dllAnalysis.fileName).name;
-      const target = await vscode.window.showSaveDialog({
-        title: 'Export DLL analysis report',
-        defaultUri: vscode.Uri.file(path.join(path.dirname(this.projectRef.absolutePath), '.cpm', 'dll-analyzer', `${base}-analysis.md`)),
-        filters: { Markdown: ['md'], 'Text files': ['txt'] }
-      });
-      if (target) {
-        fs.mkdirSync(path.dirname(target.fsPath), { recursive: true });
-        fs.writeFileSync(target.fsPath, renderDllAnalysisMarkdown(this.dllAnalysis), 'utf8');
-        vscode.window.showInformationMessage(`DLL analysis exported to ${target.fsPath}`);
-      }
-      return;
-    }
-    if (message?.type === 'browseLibraryAnalyzer') {
-      const chosen = await vscode.window.showOpenDialog({
-        title: 'Select .a or .lib library to analyze', canSelectFiles: true, canSelectFolders: false, canSelectMany: false,
-        defaultUri: vscode.Uri.file(this.libraryAnalyzerPath && fs.existsSync(this.libraryAnalyzerPath) ? this.libraryAnalyzerPath : path.dirname(this.projectRef.absolutePath)),
-        filters: { 'Static/import libraries': ['a', 'lib'], 'All files': ['*'] }
-      });
-      if (chosen?.[0]) {
-        this.libraryAnalyzerPath = chosen[0].fsPath;
-        try { this.libraryAnalysis = analyzeLibraryFile(this.libraryAnalyzerPath); }
-        catch (error) { this.libraryAnalysis = undefined; vscode.window.showErrorMessage(`Unable to analyze library: ${error instanceof Error ? error.message : String(error)}`); }
-        this.selectedPage = 'libraryAnalyzer';
-        this.update();
-      }
-      return;
-    }
-    if (message?.type === 'analyzeLibrary') {
-      const requested = String(message.path ?? this.libraryAnalyzerPath ?? '').trim();
-      if (!requested) { await this.handleMessage({ type: 'browseLibraryAnalyzer' }); return; }
-      this.libraryAnalyzerPath = requested;
-      try { this.libraryAnalysis = analyzeLibraryFile(requested); }
-      catch (error) { this.libraryAnalysis = undefined; vscode.window.showErrorMessage(`Unable to analyze library: ${error instanceof Error ? error.message : String(error)}`); }
-      this.selectedPage = 'libraryAnalyzer';
-      this.update();
-      return;
-    }
-    if (message?.type === 'exportLibraryAnalysis') {
-      if (!this.libraryAnalysis) { vscode.window.showInformationMessage('Analyze a .a/.lib library first.'); return; }
-      const base = path.parse(this.libraryAnalysis.fileName).name;
-      const target = await vscode.window.showSaveDialog({
-        title: 'Export library analysis report',
-        defaultUri: vscode.Uri.file(path.join(path.dirname(this.projectRef.absolutePath), '.cpm', 'library-analyzer', `${base}-analysis.md`)),
-        filters: { Markdown: ['md'], 'Text files': ['txt'] }
-      });
-      if (target) {
-        fs.mkdirSync(path.dirname(target.fsPath), { recursive: true });
-        fs.writeFileSync(target.fsPath, renderLibraryAnalysisMarkdown(this.libraryAnalysis), 'utf8');
-        vscode.window.showInformationMessage(`Library analysis exported to ${target.fsPath}`);
-      }
-      return;
-    }
-    if (message?.type === 'command') {
-      const command = String(message.command ?? '');
-      if (command) {
-        await vscode.commands.executeCommand(command);
-      }
       return;
     }
     if (message?.type === 'save') {
@@ -858,6 +856,58 @@ export class BuildSettingsPanel implements vscode.Disposable {
     }
   }
 
+  private analyzerBaseDirectory(): string {
+    if (this.projectRef?.exists) return path.dirname(this.projectRef.absolutePath);
+    const workspace = this.workspaces.currentWorkspace;
+    if (workspace?.path) return path.dirname(workspace.path);
+    const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (folder) return folder;
+    return process.env.USERPROFILE || process.env.HOME || process.cwd();
+  }
+
+  private renderGlobalSettings(): string {
+    const page = this.selectedPage === 'libraries' ? 'libraries' : 'features';
+    const dllAnalyzerHtml = renderDllAnalyzerHtml(this.dllAnalyzerPath, this.dllAnalysis);
+    const libraryAnalyzerHtml = renderLibraryAnalyzerHtml(this.libraryAnalyzerPath, this.libraryAnalysis);
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>CPM Settings & Tools</title>
+<style>
+:root{color-scheme:light dark}*{box-sizing:border-box}body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:24px;max-width:1320px;margin:auto}h1{margin:0 0 5px;font-size:26px}h2{font-size:18px;margin:0 0 12px}h3{font-size:14px;margin:18px 0 9px}.muted,.subtitle{color:var(--vscode-descriptionForeground);line-height:1.5}code{font-family:var(--vscode-editor-font-family)}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.toolbar button{background:transparent;color:var(--vscode-foreground);border:1px solid var(--vscode-panel-border);padding:8px 13px;border-radius:5px}.toolbar button.active{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border-color:var(--vscode-button-background)}.page{display:none}.page.active{display:block}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:13px}.card{border:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background);padding:17px;border-radius:8px;min-width:0}.card.disabled{opacity:.52}.card strong{display:block;margin-bottom:7px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:4px;padding:7px 11px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);cursor:pointer}button:hover:not(:disabled){background:var(--vscode-button-hoverBackground)}button.secondary{background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}button:disabled{opacity:.48;cursor:not-allowed}.notice{margin:14px 0;padding:11px 13px;border:1px solid var(--vscode-panel-border);background:var(--vscode-textBlockQuote-background);border-radius:6px}.analyzer-section{margin-top:14px}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:11px}.field{display:flex;flex-direction:column;gap:6px;min-width:0}.field.wide{grid-column:1/-1}.field input,.field textarea,.field select{width:100%;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border);padding:7px 8px;border-radius:3px}.path-control{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}.analysis-empty{margin-top:12px;padding:12px;border:1px dashed var(--vscode-panel-border);color:var(--vscode-descriptionForeground)}.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:12px}.analysis-kv{min-width:0;border:1px solid var(--vscode-panel-border);padding:9px;border-radius:5px;display:flex;flex-direction:column;gap:4px}.analysis-kv span{overflow-wrap:anywhere;word-break:break-word}.analysis-stack{display:flex;flex-direction:column;gap:8px}.analysis-scroll{overflow:auto;max-height:420px;border:1px solid var(--vscode-panel-border);border-radius:5px}.analysis-table{width:100%;border-collapse:collapse;font-size:12px}.analysis-table th,.analysis-table td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--vscode-panel-border);vertical-align:top}.analysis-table code{overflow-wrap:anywhere;word-break:break-word}.analysis-badges{display:flex;gap:6px;flex-wrap:wrap}.analysis-badge{display:inline-block;border:1px solid var(--vscode-panel-border);padding:4px 7px;border-radius:999px;font-size:12px}.section-title{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.project-required{display:inline-block;font-size:11px;padding:3px 7px;border:1px solid var(--vscode-panel-border);border-radius:999px;color:var(--vscode-descriptionForeground)}
+</style></head><body>
+<h1>CPM Settings &amp; Tools</h1><div class="subtitle">Global utilities stay available even when no C/C++ project is loaded.</div>
+<div class="notice"><strong>No active project.</strong> Project-specific build, run, compiler and dependency settings are intentionally disabled. Open a workspace/project to edit them; analyzers and communication diagnostics remain fully available.</div>
+<div class="toolbar"><button type="button" class="${page==='features'?'active':''}" data-page="features">Features</button><button type="button" class="${page==='libraries'?'active':''}" data-page="libraries">Libraries &amp; Analyzers</button></div>
+<section class="page ${page==='features'?'active':''}" id="page-features"><div class="grid">
+  <article class="card disabled"><strong>Project Build Settings</strong><div class="muted">Target, compiler, linker, build, run/debug, package and remote-project settings require an active project.</div><div class="actions"><button disabled>Project required</button></div></article>
+  <article class="card"><strong>Instrument Diagnostics</strong><div class="muted">COM, USB/PnP, VISA/USBTMC, SCPI terminal, profiles and diagnostic sequences.</div><div class="actions"><button data-command="cpm.openInstrumentDiagnostics">Open Instrument Diagnostics</button></div></article>
+  <article class="card"><strong>Network &amp; Wireless Diagnostics</strong><div class="muted">Ethernet/Wi-Fi interfaces, TCP/UDP terminal, Ping/DNS/TCP checks, Wi-Fi scan, BLE advertisements and Bluetooth inventory.</div><div class="actions"><button data-command="cpm.openNetworkDiagnostics">Open Network &amp; Wireless Diagnostics</button></div></article>
+  <article class="card"><strong>Unified CPM Devices</strong><div class="muted">Group COM, VISA, TCP, UDP and SSH endpoints under one reusable equipment profile.</div><div class="actions"><button data-command="cpm.openDeviceManager">Open Device Manager</button></div></article>
+  <article class="card"><strong>SSH Device Manager</strong><div class="muted">OpenSSH aliases, keys, discovered devices and Remote Linux integration.</div><div class="actions"><button data-command="cpm.openSshDeviceManager">Open SSH Devices</button></div></article>
+  <article class="card"><strong>Libraries &amp; Analyzers</strong><div class="muted">Inspect DLL, .lib, .a and .dll.a files without loading a C/C++ project.</div><div class="actions"><button data-open-page="libraries">Open analyzers</button></div></article>
+  <article class="card"><strong>Extension Settings</strong><div class="muted">Open global/workspace CPM configuration in the native VS Code Settings editor.</div><div class="actions"><button data-command="cpm.openExtensionSettings">Open CPM settings</button></div></article>
+  <article class="card"><strong>Workspace</strong><div class="muted">Open an existing CPM workspace/project. Once a project is active, this same Settings command opens the complete project settings page.</div><div class="actions"><button data-command="cpm.openWorkspace">Open workspace or project…</button><button class="secondary" data-command="cpm.openHome">Home</button></div></article>
+  <article class="card"><strong>Toolchains</strong><div class="muted">Toolchain detection and installation are global and can be prepared before creating a project.</div><div class="actions"><button data-command="cpm.configureInstallation">Select toolchain</button><button class="secondary" data-command="cpm.installSupportedToolchains">Install toolchains</button></div></article>
+</div></section>
+<section class="page ${page==='libraries'?'active':''}" id="page-libraries">
+  <div class="section-title"><div><h2>Libraries &amp; Analyzers</h2><div class="muted">These analyzers do not depend on the active CPM project.</div></div><span class="project-required">Project independent</span></div>
+  <article class="card analyzer-section"><h2>DLL Analyzer</h2>${dllAnalyzerHtml}</article>
+  <article class="card analyzer-section"><h2>.lib / .a / .dll.a Analyzer</h2>${libraryAnalyzerHtml}</article>
+</section>
+<script>
+const vscode=acquireVsCodeApi();
+const showPage=(id)=>{document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+id));document.querySelectorAll('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));vscode.postMessage({type:'pageChanged',page:id});};
+document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+document.querySelectorAll('[data-open-page]').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.openPage)));
+document.querySelectorAll('[data-command]').forEach(b=>b.addEventListener('click',()=>vscode.postMessage({type:'command',command:b.dataset.command})));
+document.getElementById('dllAnalyzerBrowse')?.addEventListener('click',()=>vscode.postMessage({type:'browseDllAnalyzer'}));
+document.getElementById('dllAnalyzerRun')?.addEventListener('click',()=>vscode.postMessage({type:'analyzeDll',path:document.getElementById('dllAnalyzerPath')?.value||''}));
+document.getElementById('dllAnalyzerExport')?.addEventListener('click',()=>vscode.postMessage({type:'exportDllAnalysis'}));
+document.getElementById('libraryAnalyzerBrowse')?.addEventListener('click',()=>vscode.postMessage({type:'browseLibraryAnalyzer'}));
+document.getElementById('libraryAnalyzerRun')?.addEventListener('click',()=>vscode.postMessage({type:'analyzeLibrary',path:document.getElementById('libraryAnalyzerPath')?.value||''}));
+document.getElementById('libraryAnalyzerExport')?.addEventListener('click',()=>vscode.postMessage({type:'exportLibraryAnalysis'}));
+</script></body></html>`;
+  }
+
   private render(ref: CpmWorkspaceProjectRef): string {
     const representativeMode = this.representativeMode(this.selectedScope);
     const project = this.workspaces.getProject(ref);
@@ -984,9 +1034,8 @@ export class BuildSettingsPanel implements vscode.Disposable {
       { id: 'run', label: 'Run & Debug', description: 'Command-line execution, working directory and DLL host program.' },
       { id: 'autocomplete', label: 'Autocompletion', description: 'CPM completion profiles, project symbols, standard-library assist and Signature Help.' },
       { id: 'sdl', label: 'SDL', description: 'SDL2 / SDL3 SDK, packages, subsystem and runtime deployment.' },
-      { id: 'libraries', label: 'Libraries', description: 'Generate Windows import libraries (.lib) from headers or DLL exports.' },
-      { id: 'dllAnalyzer', label: 'DLL Analyzer', description: 'Inspect PE metadata, versions, exports, imports, resources and debug information.' },
-      { id: 'libraryAnalyzer', label: '.a / .lib Analyzer', description: 'Inspect archive members, symbols, architectures and import-library metadata.' },
+      { id: 'libraries', label: 'Libraries', description: 'Generate and inspect DLL, .lib, .a and .dll.a libraries.' },
+      { id: 'tools', label: 'Tools', description: 'Project-independent communication, network, wireless, SSH and extension utilities.' },
       { id: 'packages', label: 'Packages', description: 'vcpkg, Conan 2, pkg-config and normalized build integration.' },
       { id: 'remote', label: 'Remote Linux', description: 'SSH synchronization, Raspberry Pi/Linux build, run and gdbserver debug.' },
       { id: 'dependencies', label: 'Project Graph', description: 'Project-to-project dependencies and build order.' },
@@ -1004,7 +1053,7 @@ export class BuildSettingsPanel implements vscode.Disposable {
 *{box-sizing:border-box}
 body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:20px;max-width:1440px;margin:auto}
 h1{margin:0 0 4px;font-size:26px}h2{font-size:17px;margin:0 0 13px;display:flex;align-items:center;gap:7px}h3{font-size:14px;margin:0 0 10px}.muted,.subtitle{color:var(--vscode-descriptionForeground);line-height:1.45}.path{font-family:var(--vscode-editor-font-family);font-size:12px;overflow-wrap:anywhere;margin-top:4px;color:var(--vscode-descriptionForeground)}code{font-family:var(--vscode-editor-font-family)}
-.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}.analysis-kv{border:1px solid var(--vscode-panel-border);border-radius:4px;padding:8px}.analysis-kv strong{display:block;font-size:12px;color:var(--vscode-descriptionForeground);margin-bottom:3px}.analysis-table{width:100%;border-collapse:collapse;font-size:12px}.analysis-table th,.analysis-table td{border-bottom:1px solid var(--vscode-panel-border);padding:5px 7px;text-align:left;vertical-align:top}.analysis-table th{position:sticky;top:0;background:var(--vscode-editorWidget-background)}.analysis-scroll{max-height:360px;overflow:auto;border:1px solid var(--vscode-panel-border);border-radius:4px}.analysis-badges{display:flex;gap:6px;flex-wrap:wrap}.analysis-badge{border:1px solid var(--vscode-panel-border);border-radius:10px;padding:2px 7px;font-size:11px}.analysis-empty{padding:18px;border:1px dashed var(--vscode-panel-border);color:var(--vscode-descriptionForeground)}
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}.analysis-stack{display:grid;grid-template-columns:1fr;gap:8px}.analysis-kv{border:1px solid var(--vscode-panel-border);border-radius:4px;padding:8px;min-width:0}.analysis-kv strong{display:block;font-size:12px;color:var(--vscode-descriptionForeground);margin-bottom:3px}.analysis-kv span{display:block;overflow-wrap:anywhere;word-break:break-word}.analysis-table{width:100%;border-collapse:collapse;font-size:12px}.analysis-table th,.analysis-table td{border-bottom:1px solid var(--vscode-panel-border);padding:5px 7px;text-align:left;vertical-align:top}.analysis-table th{position:sticky;top:0;background:var(--vscode-editorWidget-background)}.analysis-scroll{max-height:360px;overflow:auto;border:1px solid var(--vscode-panel-border);border-radius:4px}.analysis-badges{display:flex;gap:6px;flex-wrap:wrap}.analysis-badge{border:1px solid var(--vscode-panel-border);border-radius:10px;padding:2px 7px;font-size:11px}.analysis-empty{padding:18px;border:1px dashed var(--vscode-panel-border);color:var(--vscode-descriptionForeground)}
 .settings-sticky-header{position:sticky;top:0;z-index:8;background:var(--vscode-editor-background);isolation:isolate;margin-bottom:14px;border-bottom:1px solid var(--vscode-panel-border);box-shadow:0 5px 12px rgba(0,0,0,.08)}
 .toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:10px 0;background:var(--vscode-editor-background)}.toolbar .actions,.actions{display:flex;gap:8px;flex-wrap:wrap}.toolbar .field{min-width:230px}.actions.bottom{justify-content:flex-end;margin-top:16px}
 .page-nav{display:flex;gap:4px;overflow-x:auto;overflow-y:hidden;padding:6px 0 8px;scrollbar-width:thin;background:var(--vscode-editor-background)}.page-tab{flex:0 0 auto;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--vscode-descriptionForeground);padding:8px 11px;border-radius:4px 4px 0 0;font-weight:600}.page-tab:hover{background:var(--vscode-toolbar-hoverBackground);color:var(--vscode-foreground)}.page-tab.active{border-bottom-color:var(--vscode-textLink-foreground);background:var(--vscode-list-activeSelectionBackground);color:var(--vscode-list-activeSelectionForeground)}
@@ -1026,7 +1075,7 @@ body:not(.settings-js-ready) [data-settings-section]:not([data-settings-page="ov
   <div id="settingsNavigation" class="settings-nav"><input id="settingsFilter" type="search" placeholder="Filter settings on this page…" aria-label="Filter current settings page"><select id="sectionNav" aria-label="Jump to a section"><option value="">Jump to a section…</option></select><div class="page-context"><strong id="pageTitle">Overview</strong><span id="pageDescription">Project status and common CPM actions.</span><span id="dirtyState" class="dirty">Saved state</span></div></div>
 </div>
 <div class="grid">
-<section id="section-control" data-settings-section data-settings-page="overview" data-settings-title="Control center" class="card wide"><h2>Project control center</h2><div class="control-grid"><div class="control-group"><h3>Build and run</h3><div class="actions"><button data-command="cpm.build">Build</button><button data-command="cpm.rebuild">Rebuild</button><button data-command="cpm.clean">Clean</button><button data-command="cpm.run">Run</button></div></div><div class="control-group"><h3>Toolchain and IntelliSense</h3><div class="actions"><button data-command="cpm.configureInstallation">Toolchain</button><button data-command="cpm.installSupportedToolchains">Install toolchains</button><button data-command="cpm.syncCppTools">IntelliSense</button><button data-command="cpm.diagnoseCppTools">Diagnose</button></div></div><div class="control-group"><h3>SDL</h3><div class="actions"><button data-command="cpm.configureSdl">Detect / select SDK</button><button data-settings-page-target="sdl">SDL settings</button></div></div><div class="control-group"><h3>Import libraries</h3><div class="actions"><button data-command="cpm.generateImportLibraryFromHeaders">Header(s) → .lib</button><button data-command="cpm.generateImportLibraryFromDll">DLL → .lib</button><button data-settings-page-target="libraries">Library tools</button></div></div><div class="control-group"><h3>DLL Analyzer</h3><div class="actions"><button data-settings-page-target="dllAnalyzer">Open analyzer</button><button data-command="cpm.analyzeDll">Analyze DLL…</button></div></div><div class="control-group"><h3>.a / .lib Analyzer</h3><div class="actions"><button data-settings-page-target="libraryAnalyzer">Open analyzer</button><button data-command="cpm.analyzeLibrary">Analyze library…</button></div></div><div class="control-group"><h3>External dependencies</h3><div class="actions"><button data-command="cpm.dependencies.detectTools">Detect tools</button><button data-command="cpm.dependencies.install">Synchronize</button><button data-settings-page-target="packages">Package settings</button></div></div><div class="control-group"><h3>Remote Linux / Raspberry Pi</h3><div class="actions"><button data-command="cpm.remote.testConnection">Test SSH</button><button data-command="cpm.remote.buildRun">Build & Run remote</button><button data-command="cpm.openSshDeviceManager">SSH devices</button><button data-settings-page-target="remote">Remote settings</button></div></div><div class="control-group"><h3>Diagnostics</h3><div class="actions"><button data-command="cpm.showBuildProblems">Problems</button><button data-command="cpm.showFullBuildTrace">Build Trace</button></div></div></div><div class="notice">This editor is now organized by thematic pages. Use the page bar for broad areas and <code>Jump to a section...</code> for local navigation.</div></section>
+<section id="section-control" data-settings-section data-settings-page="overview" data-settings-title="Control center" class="card wide"><h2>Project control center</h2><div class="control-grid"><div class="control-group"><h3>Build and run</h3><div class="actions"><button data-command="cpm.build">Build</button><button data-command="cpm.rebuild">Rebuild</button><button data-command="cpm.clean">Clean</button><button data-command="cpm.run">Run</button></div></div><div class="control-group"><h3>Toolchain and IntelliSense</h3><div class="actions"><button data-command="cpm.configureInstallation">Toolchain</button><button data-command="cpm.installSupportedToolchains">Install toolchains</button><button data-command="cpm.syncCppTools">IntelliSense</button><button data-command="cpm.diagnoseCppTools">Diagnose</button></div></div><div class="control-group"><h3>SDL</h3><div class="actions"><button data-command="cpm.configureSdl">Detect / select SDK</button><button data-settings-page-target="sdl">SDL settings</button></div></div><div class="control-group"><h3>Import libraries</h3><div class="actions"><button data-command="cpm.generateImportLibraryFromHeaders">Header(s) → .lib</button><button data-command="cpm.generateImportLibraryFromDll">DLL → .lib</button><button data-settings-page-target="libraries">Library tools</button></div></div><div class="control-group"><h3>Library analyzers</h3><div class="actions"><button data-settings-page-target="libraries">Open library tools</button><button data-command="cpm.analyzeDll">Analyze DLL…</button><button data-command="cpm.analyzeLibrary">Analyze .a/.lib/.dll.a…</button></div></div><div class="control-group"><h3>External dependencies</h3><div class="actions"><button data-command="cpm.dependencies.detectTools">Detect tools</button><button data-command="cpm.dependencies.install">Synchronize</button><button data-settings-page-target="packages">Package settings</button></div></div><div class="control-group"><h3>Remote Linux / Raspberry Pi</h3><div class="actions"><button data-command="cpm.remote.testConnection">Test SSH</button><button data-command="cpm.remote.buildRun">Build & Run remote</button><button data-command="cpm.openSshDeviceManager">SSH devices</button><button data-settings-page-target="remote">Remote settings</button></div></div><div class="control-group"><h3>Diagnostics &amp; tools</h3><div class="actions"><button data-settings-page-target="tools">Communication tools</button><button data-command="cpm.showBuildProblems">Problems</button><button data-command="cpm.showFullBuildTrace">Build Trace</button></div></div></div><div class="notice">This editor is now organized by thematic pages. Use the page bar for broad areas and <code>Jump to a section...</code> for local navigation.</div></section>
 <section id="section-target" data-settings-section data-settings-page="project" data-settings-title="Target and output" class="card wide"><h2>Target and output</h2><div class="fields"><label class="field">Target type<select id="targetType"><option ${target.targetType === 'Executable' ? 'selected' : ''}>Executable</option><option ${target.targetType === 'Dynamic Link Library' ? 'selected' : ''}>Dynamic Link Library</option><option ${target.targetType === 'Static Library' ? 'selected' : ''}>Static Library</option></select></label>${pathField('Output file', 'outputPath', target.outputPath)}<div class="target-static-only">${selectField('Static library format','staticLibraryFormat',settings.staticLibraryFormat,[['auto','Automatic — follow selected archiver'],['gnu-a','GNU/LLVM archive (.a)'],['windows-lib','Windows COFF library (.lib)']])}</div><div class="target-dll">${selectField('DLL import-library outputs','dllImportLibraryFormat',settings.dllImportLibraryFormat,[['auto','Automatic — match active toolchain'],['gnu-dll-a','GNU/MinGW import library (.dll.a)'],['gnu-a','GNU/MinGW import library (.a) — legacy name'],['windows-lib','Windows import library (.lib)'],['gnu-both','Generate both GNU names (.dll.a + .a)'],['both','Generate .dll.a + .lib'],['gnu-a-windows-lib','Generate .a + .lib'],['all','Generate all (.dll.a + .a + .lib)'],['none','Do not generate an import library']])}</div></div><p class="muted">For direct builds, CPM keeps the semantic target types <strong>Executable</strong>, <strong>Dynamic Link Library</strong> and <strong>Static Library</strong>. The archive/import-library format is selected separately so <code>.a</code> and <code>.lib</code> are not confused with different target semantics.</p><div class="target-note target-exe-only">Executable target: compiler/linker settings, libraries and run/debug command-line options are active.</div><div class="target-note target-dll">DLL target: CPM always builds the <code>.dll</code> and can additionally emit GNU import libraries as <code>.dll.a</code> and/or <code>.a</code>, a Windows <code>.lib</code>, any useful combination, or no import library.</div><div class="target-note target-static-only">Static library target: sources are compiled to object files then archived. <code>.a</code> uses GNU/LLVM <code>ar</code>; a real Windows <code>.lib</code> requires Microsoft <code>lib.exe</code> or LLVM <code>llvm-lib</code>.</div></section>
 <section id="section-icons" data-settings-section data-settings-page="project" data-settings-title="Application icons" class="card wide target-nonstatic-only"><h2>Application icons</h2><div class="fields">${pathField('Executable icon (Windows .ico)', 'iconFile', target.iconFile)}${pathField('SDL window / application icon image', 'windowIconFile', target.windowIconFile)}<label class="check wide"><input id="applyWindowIconAutomatically" type="checkbox" ${checked(target.applyWindowIconAutomatically)}> Apply SDL window icon automatically when SDL_CreateWindow is used</label></div><p class="muted">The executable icon is embedded into Windows <code>.exe</code> targets through a generated resource object when a MinGW-compatible <code>windres</code> tool is available. The SDL window icon is copied beside the executable; when automatic application is enabled, CPM generates a small SDL wrapper and force-includes it during compilation. BMP works with SDL alone; PNG/JPG/WebP require the SDL_image package for the selected SDL version.</p></section>
 <section id="section-storage" data-settings-section data-settings-page="project" data-settings-title="Settings storage" class="card wide"><h2>Settings storage</h2><p class="muted">Run options, build actions, project dependencies and external package-manager configuration are stored in <code>.vscode/cpm-build.json</code>. Legacy <code>.vscode/labwindows-cpm-build.json</code> files are still read for migration. If no VS Code workspace folder is open, CPM writes settings next to the loaded <code>.cws</code>/<code>.prj</code> through the detached-workspace fallback.</p><div class="pill-row"><span class="pill">Project: ${escapeHtml(ref.name)}</span><span class="pill">Scope: ${escapeHtml(scopeLabel(mode))}</span><span class="pill">Target: ${escapeHtml(target.targetType)}</span></div></section>
@@ -1043,9 +1092,10 @@ body:not(.settings-js-ready) [data-settings-section]:not([data-settings-page="ov
 <section id="section-autocomplete-custom" data-settings-section data-settings-page="autocomplete" data-settings-title="Custom autocompletion components" class="card wide"><h2>Custom components</h2><p class="muted">These switches are used only when the profile is <strong>Custom</strong>.</p><div id="autocompleteCustomOptions" class="control-grid"><label class="control-group check"><input id="autocompleteCompletionEnabled" type="checkbox" ${checked(autocompleteCustom.completionEnabled)}> <strong>CPM completion provider</strong><div class="muted">Master switch for CPM completion items.</div></label><label class="control-group check"><input id="autocompleteProjectSymbols" type="checkbox" ${checked(autocompleteCustom.includeProjectCompletion)}> <strong>Project symbols</strong><div class="muted">Functions discovered in the active CPM project headers and sources.</div></label><label class="control-group check"><input id="autocompleteStandardLibrary" type="checkbox" ${checked(autocompleteCustom.includeStandardCompletion)}> <strong>Standard-library assist</strong><div class="muted">Fallback completion for common C/C++ symbols when the matching standard header is not already included.</div></label><label class="control-group check"><input id="autocompleteSignatureHelp" type="checkbox" ${checked(autocompleteCustom.signatureHelpEnabled)}> <strong>Immediate Signature Help</strong><div class="muted">Show prototypes and active parameters immediately after <code>(</code> and <code>,</code>.</div></label></div><div class="notice">Recommended when Microsoft C/C++ already indexes the project correctly: <strong>Native + CPM Signature Help</strong>. It avoids duplicate project completion entries while retaining immediate parameter hints.</div></section>
 <section id="section-sdl" data-settings-section data-settings-page="sdl" data-settings-title="SDL integration" class="card wide target-linkable-only"><h2>SDL integration</h2><div class="section-body two">${selectField('SDL integration', 'sdlEnabled', compiler.sdlEnabled, sdlEnabledOptions)}${selectField('SDL version', 'sdlVersion', compiler.sdlVersion, sdlVersionOptions)}${pathField('SDL SDK root', 'sdlRootPath', compiler.sdlRootPath)}${textAreaField('SDL packages', 'sdlPackages', compiler.sdlPackages)}${selectField('SDL runtime handling', 'sdlRuntimeMode', compiler.sdlRuntimeMode, sdlRuntimeOptions)}${selectField('SDL Windows subsystem', 'sdlSubsystem', compiler.sdlSubsystem, sdlSubsystemOptions)}<label class="check"><input id="sdlCopyAllRuntimeDlls" type="checkbox" ${checked(compiler.sdlCopyAllRuntimeDlls)}> Copy every DLL from SDL bin directory</label></div><p class="muted">Use packages such as SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, SDL2_net, SDL2_gfx, SDL3, SDL3_image, SDL3_ttf, SDL3_mixer or SDL3_net, one per line. Short aliases such as image, mixer, ttf or net are accepted. During build, CPM also auto-adds installed SDL add-on packages when it detects calls such as IMG_*, Mix_* or TTF_* in the project sources.</p></section>
 <section id="section-import-libraries" data-settings-section data-settings-page="libraries" data-settings-title="Windows import-library generation" class="card wide"><h2>Windows import-library generation</h2><div class="fields">${selectField('Generator','importLibraryGenerator',settings.importLibraries.generator,[['auto','Automatic — match the active toolchain'],['gnu-dlltool','GNU dlltool — MinGW/GCC'],['llvm-dlltool','LLVM llvm-dlltool'],['msvc-lib','Microsoft lib.exe'],['llvm-lib','LLVM llvm-lib']])}${pathField('Generator executable override','importLibraryGeneratorPath',settings.importLibraries.generatorPath)}${selectField('Header target architecture','importLibraryArchitecture',settings.importLibraries.architecture,[['auto','Automatic — derive from active build mode/toolchain'],['x86','x86 / 32-bit'],['x64','x64 / 64-bit'],['arm64','ARM64']])}${textField('Default output directory','importLibraryOutputDirectory',settings.importLibraries.outputDirectory,'lib')}<label class="check wide"><input id="importLibraryKeepDefinitionFile" type="checkbox" ${checked(settings.importLibraries.keepDefinitionFile)}> Keep the generated <code>.def</code> file beside the <code>.lib</code></label></div><div class="actions"><button data-command="cpm.generateImportLibraryFromHeaders">Generate .lib from Header(s)...</button><button data-command="cpm.generateImportLibraryFromDll">Generate .lib from DLL(s)...</button><button data-command="cpm.extractDllDefinitionFile" class="secondary">Extract DLL exports (.def)...</button><button data-command="cpm.openImportLibraryReport" class="secondary">Open last report</button></div><div class="notice"><strong>Header(s) → .lib</strong> creates a Windows <em>import library</em>; it does not create the implementation of a static library, so the matching DLL is still required at runtime. Header-based symbol names are exact-name best effort and are most reliable for C / <code>extern &quot;C&quot;</code> APIs. <strong>DLL → .lib</strong> reads the real PE export table and therefore preserves exported/decorated names much more reliably.</div><p class="muted">Generator priority in Automatic mode follows the active toolchain: MinGW/GCC prefers <code>dlltool</code>; MSVC prefers <code>lib.exe</code>; LLVM prefers <code>llvm-dlltool</code>/<code>llvm-lib</code>. The generated import library uses the <code>.lib</code> extension requested here, even when GNU dlltool is used.</p></section>
-<section id="section-dll-analyzer" data-settings-section data-settings-page="dllAnalyzer" data-settings-title="DLL Analyzer" class="card wide"><h2>DLL Analyzer</h2>${dllAnalyzerHtml}</section>
-<section id="section-library-analyzer" data-settings-section data-settings-page="libraryAnalyzer" data-settings-title=".a / .lib archive analyzer" class="card wide"><h2>.a / .lib Analyzer</h2>${libraryAnalyzerHtml}</section>
+<section id="section-dll-analyzer" data-settings-section data-settings-page="libraries" data-settings-title="DLL Analyzer" class="card wide"><h2>DLL Analyzer</h2><p class="muted">Inspect Windows PE/DLL metadata, versions, exports, imports, resources and debug/PDB information.</p>${dllAnalyzerHtml}</section>
+<section id="section-library-analyzer" data-settings-section data-settings-page="libraries" data-settings-title=".lib / .a / .dll.a Analyzer" class="card wide"><h2>.lib / .a / .dll.a Analyzer</h2><p class="muted">Inspect static archives and import libraries, including members, architectures, symbols and referenced runtime DLLs.</p>${libraryAnalyzerHtml}</section>
 <section id="section-package-general" data-settings-section data-settings-page="packages" data-settings-title="External dependency management" class="card wide"><h2>External dependency management</h2><div class="fields"><label class="check"><input id="externalDependenciesEnabled" type="checkbox" ${checked(settings.externalDependencies.enabled)}> Enable project-scoped dependency management</label><label class="check"><input id="externalDependenciesAutoInstall" type="checkbox" ${checked(settings.externalDependencies.autoInstallBeforeBuild)}> Synchronize enabled managers automatically before each build</label>${textField('Generated integration directory','externalDependenciesOutputDirectory',settings.externalDependencies.outputDirectory)}</div><p class="muted">CPM normalizes package-manager output into <code>.cpm/dependencies/integration.json</code>. The direct GCC/Clang build consumes its include directories, library directories, libraries and compiler/linker flags automatically.</p><div class="actions"><button data-command="cpm.dependencies.detectTools">Detect tools</button><button data-command="cpm.dependencies.generateManifests">Generate manifests</button><button data-command="cpm.dependencies.install">Install / synchronize</button><button data-command="cpm.dependencies.openReport">Open report</button><button data-command="cpm.dependencies.revealOutput">Reveal output</button><button data-command="cpm.dependencies.clean">Clean generated dependency output</button></div></section>
+<section id="section-global-tools" data-settings-section data-settings-page="tools" data-settings-title="Communication and device tools" class="card wide"><h2>Communication and device tools</h2><div class="control-grid"><div class="control-group"><h3>Instrument Diagnostics</h3><div class="muted">COM, USB/PnP, VISA/USBTMC, SCPI console, saved instrument profiles and diagnostic sequences.</div><div class="actions"><button data-command="cpm.openInstrumentDiagnostics">Open Instrument Diagnostics</button></div></div><div class="control-group"><h3>Network &amp; Wireless Diagnostics</h3><div class="muted">Ethernet/Wi-Fi interfaces, TCP/UDP terminal, Ping/DNS/TCP tests, Wi-Fi scan, BLE advertisements and Bluetooth inventory.</div><div class="actions"><button data-command="cpm.openNetworkDiagnostics">Open Network &amp; Wireless Diagnostics</button></div></div><div class="control-group"><h3>Unified Device Manager</h3><div class="muted">Group COM, VISA, TCP, UDP and SSH endpoints under one reusable equipment profile.</div><div class="actions"><button data-command="cpm.openDeviceManager">Open Device Manager</button></div></div><div class="control-group"><h3>SSH Devices</h3><div class="muted">Manage OpenSSH aliases, keys and discovered devices. The manager opens directly on the SSH Devices tab of Network &amp; Wireless Diagnostics.</div><div class="actions"><button data-command="cpm.openSshDeviceManager">Open SSH Device Manager</button><button data-settings-page-target="remote" class="secondary">Remote Linux settings</button></div></div><div class="control-group"><h3>Libraries &amp; Analyzers</h3><div class="muted">Generate import libraries and inspect DLL, .lib, .a and .dll.a files.</div><div class="actions"><button data-settings-page-target="libraries">Open Libraries</button><button data-command="cpm.analyzeDll" class="secondary">Analyze DLL…</button><button data-command="cpm.analyzeLibrary" class="secondary">Analyze library…</button></div></div><div class="control-group"><h3>Extension Settings</h3><div class="muted">Open CPM global/workspace configuration in the native VS Code Settings editor.</div><div class="actions"><button data-command="cpm.openExtensionSettings">Open CPM extension settings</button></div></div><div class="control-group"><h3>Toolchains</h3><div class="muted">Detect, select or install supported C/C++ toolchains independently of the current project.</div><div class="actions"><button data-command="cpm.configureInstallation">Select toolchain</button><button data-command="cpm.installSupportedToolchains" class="secondary">Install toolchains</button></div></div></div><div class="notice"><strong>Project-independent tools.</strong> These utilities remain available regardless of the active project. The dedicated communication panels open as separate editor tabs so they can stay visible beside your source code.</div></section>
 <section id="section-package-manual" data-settings-section data-settings-page="packages" data-settings-title="Manual build integration" class="card wide"><h2>Manual build integration</h2><div class="fields">${textAreaField('Additional include directories','externalDependenciesIncludeDirectories',settings.externalDependencies.additionalIncludeDirectories)}${textAreaField('Additional library directories','externalDependenciesLibraryDirectories',settings.externalDependencies.additionalLibraryDirectories)}${textAreaField('Additional libraries','externalDependenciesLibraries',settings.externalDependencies.additionalLibraries)}${textAreaField('Additional compiler flags','externalDependenciesCompilerFlags',settings.externalDependencies.additionalCompilerFlags)}${textAreaField('Additional linker flags','externalDependenciesLinkerFlags',settings.externalDependencies.additionalLinkerFlags)}</div><p class="muted">Use these fields for package managers or SDKs whose metadata cannot be fully resolved automatically. Paths are resolved relative to the project when they are not absolute.</p></section>
 <section id="section-package-vcpkg" data-settings-section data-settings-page="packages" data-settings-title="vcpkg manifest mode" class="card wide"><h2>vcpkg</h2><label class="check"><input id="externalDependenciesVcpkgEnabled" type="checkbox" ${checked(settings.externalDependencies.vcpkg.enabled)}> Enable vcpkg manifest mode</label><div class="fields">${textField('vcpkg executable','externalDependenciesVcpkgExecutable',settings.externalDependencies.vcpkg.executable,'auto-detect on PATH')}${textField('VCPKG_ROOT','externalDependenciesVcpkgRoot',settings.externalDependencies.vcpkg.root,'optional')}${textField('Manifest file','externalDependenciesVcpkgManifestFile',settings.externalDependencies.vcpkg.manifestFile)}${textField('Installed tree','externalDependenciesVcpkgInstallRoot',settings.externalDependencies.vcpkg.installRoot)}${textField('Target triplet','externalDependenciesVcpkgTriplet',settings.externalDependencies.vcpkg.triplet,'auto: x86/x64-windows[-static] from build mode')}${textField('Host triplet','externalDependenciesVcpkgHostTriplet',settings.externalDependencies.vcpkg.hostTriplet,'optional')}${textField('Builtin baseline','externalDependenciesVcpkgBaseline',settings.externalDependencies.vcpkg.baseline,'optional')}${textAreaField('Dependencies (one per line; features: fmt[core])','externalDependenciesVcpkgPackages',settings.externalDependencies.vcpkg.dependencies)}${textAreaField('Overlay ports','externalDependenciesVcpkgOverlayPorts',settings.externalDependencies.vcpkg.overlayPorts)}${textAreaField('Overlay triplets','externalDependenciesVcpkgOverlayTriplets',settings.externalDependencies.vcpkg.overlayTriplets)}${textAreaField('Additional vcpkg arguments','externalDependenciesVcpkgArguments',settings.externalDependencies.vcpkg.additionalArguments)}</div><p class="muted">When the triplet is empty CPM infers it from the active Debug/Release 32/64-bit mode. Fully-static Windows linkage selects the corresponding <code>-static</code> triplet by default.</p></section>
 <section id="section-package-conan" data-settings-section data-settings-page="packages" data-settings-title="Conan 2" class="card wide"><h2>Conan 2</h2><label class="check"><input id="externalDependenciesConanEnabled" type="checkbox" ${checked(settings.externalDependencies.conan.enabled)}> Enable Conan 2</label><div class="fields">${textField('Conan executable','externalDependenciesConanExecutable',settings.externalDependencies.conan.executable,'auto-detect on PATH')}${textField('Manifest file','externalDependenciesConanManifestFile',settings.externalDependencies.conan.manifestFile)}${textField('Output directory','externalDependenciesConanOutputDirectory',settings.externalDependencies.conan.outputDirectory)}${textField('Host profile','externalDependenciesConanProfileHost',settings.externalDependencies.conan.profileHost)}${textField('Build profile','externalDependenciesConanProfileBuild',settings.externalDependencies.conan.profileBuild)}${textField('Lockfile','externalDependenciesConanLockfile',settings.externalDependencies.conan.lockfile,'optional')}${textAreaField('Requires','externalDependenciesConanRequires',settings.externalDependencies.conan.requires)}${textAreaField('Tool requires','externalDependenciesConanToolRequires',settings.externalDependencies.conan.toolRequires)}${textAreaField('Options','externalDependenciesConanOptions',settings.externalDependencies.conan.options)}${textAreaField('Additional Conan arguments','externalDependenciesConanArguments',settings.externalDependencies.conan.additionalArguments)}</div><label class="check"><input id="externalDependenciesConanBuildMissing" type="checkbox" ${checked(settings.externalDependencies.conan.buildMissing)}> Build missing Conan packages</label><p class="muted">CPM generates <code>PkgConfigDeps</code>, <code>CMakeDeps</code> and <code>CMakeToolchain</code>. For the direct CPM build, enable pkg-config and list the generated package names below when you want Conan-generated <code>.pc</code> metadata to feed compiler/linker flags automatically.</p></section>
@@ -1105,12 +1155,12 @@ function renderDllAnalyzerHtml(filePath: string, analysis?: CpmDllAnalysis): str
   const sectionsHtml = `<h3>Sections</h3><div class="analysis-scroll"><table class="analysis-table"><thead><tr><th>Name</th><th>RVA</th><th>Virtual size</th><th>Raw size</th><th>Characteristics</th></tr></thead><tbody>${analysis.sections.map(x=>`<tr><td><code>${escapeHtml(x.name)}</code></td><td>0x${x.virtualAddress.toString(16).toUpperCase()}</td><td>${x.virtualSize}</td><td>${x.rawSize}</td><td>0x${x.characteristics.toString(16).toUpperCase()}</td></tr>`).join('')}</tbody></table></div>`;
   const resourcesHtml = `<h3>Resources</h3><div class="analysis-badges">${analysis.resources.length?analysis.resources.map(x=>`<span class="analysis-badge">${escapeHtml(x.name ?? `type ${x.id ?? '?'}`)}${x.id!==undefined?` (${x.id})`:''}: ${x.count}</span>`).join(''):'<span class="muted">No resources.</span>'}</div>`;
   const flagsHtml = `<h3>PE flags</h3><div class="analysis-badges">${[...analysis.fileCharacteristics,...analysis.dllCharacteristics].map(x=>`<span class="analysis-badge">${escapeHtml(x)}</span>`).join('') || '<span class="muted">No decoded flags.</span>'}</div>`;
-  const debugHtml = analysis.debug.pdbPath || analysis.debug.pdbGuid ? `<h3>Debug / PDB</h3><div class="analysis-grid">${analysis.debug.pdbPath?`<div class="analysis-kv"><strong>PDB path</strong><span>${escapeHtml(analysis.debug.pdbPath)}</span></div>`:''}${analysis.debug.pdbGuid?`<div class="analysis-kv"><strong>PDB GUID</strong><span>${escapeHtml(analysis.debug.pdbGuid)}</span></div>`:''}${analysis.debug.pdbAge!==undefined?`<div class="analysis-kv"><strong>PDB age</strong><span>${analysis.debug.pdbAge}</span></div>`:''}</div>` : '';
+  const debugHtml = analysis.debug.pdbPath || analysis.debug.pdbGuid ? `<h3>Debug / PDB</h3><div class="analysis-stack">${analysis.debug.pdbPath?`<div class="analysis-kv"><strong>PDB path</strong><span>${escapeHtml(analysis.debug.pdbPath)}</span></div>`:''}${analysis.debug.pdbGuid?`<div class="analysis-kv"><strong>PDB GUID</strong><span>${escapeHtml(analysis.debug.pdbGuid)}</span></div>`:''}${analysis.debug.pdbAge!==undefined?`<div class="analysis-kv"><strong>PDB age</strong><span>${analysis.debug.pdbAge}</span></div>`:''}</div>` : '';
   return controls + metaHtml + versionHtml + exportsHtml + importsHtml + sectionsHtml + resourcesHtml + flagsHtml + debugHtml;
 }
 
 function renderLibraryAnalyzerHtml(filePath: string, analysis?: CpmLibraryAnalysis): string {
-  const controls = `<div class="fields"><label class="field wide">Library file<span class="path-control"><input id="libraryAnalyzerPath" value="${escapeHtml(filePath)}" placeholder="Select a .a or .lib archive…"><button id="libraryAnalyzerBrowse" class="browse" type="button" title="Browse .a/.lib…">Browse…</button></span></label></div><div class="actions"><button id="libraryAnalyzerRun" type="button">Analyze library</button><button id="libraryAnalyzerExport" class="secondary" type="button" ${analysis ? '' : 'disabled'}>Export report…</button></div>`;
+  const controls = `<div class="fields"><label class="field wide">Library file<span class="path-control"><input id="libraryAnalyzerPath" value="${escapeHtml(filePath)}" placeholder="Select a .a, .lib or .dll.a archive…"><button id="libraryAnalyzerBrowse" class="browse" type="button" title="Browse .a/.lib/.dll.a…">Browse…</button></span></label></div><div class="actions"><button id="libraryAnalyzerRun" type="button">Analyze library</button><button id="libraryAnalyzerExport" class="secondary" type="button" ${analysis ? '' : 'disabled'}>Export report…</button></div>`;
   if (!analysis) return controls + `<div class="analysis-empty">Select a GNU <code>.a</code>, MinGW <code>.dll.a</code> or Windows/LLVM <code>.lib</code> archive to inspect members, target architectures, linker symbols and import-library metadata.</div>`;
   const meta: Array<[string,string]> = [
     ['File', analysis.fileName], ['Extension', analysis.extension], ['Classification', `${analysis.libraryKind} library`], ['Archive format', analysis.archiveFormat],

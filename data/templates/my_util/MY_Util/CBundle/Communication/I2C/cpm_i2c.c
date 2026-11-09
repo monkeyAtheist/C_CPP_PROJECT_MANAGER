@@ -1,232 +1,189 @@
-/**
- * @file cpm_i2c.c
- * @brief Implementation of the cpm_i2c C bundle.
- *
- * Generated bundle implementation. Public API semantics are documented in the matching header file.
- */
 #include "cpm_i2c.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #if defined(__linux__)
-#include <errno.h>
 #include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#if defined(__has_include)
-#  if __has_include(<linux/i2c-dev.h>)
-#    include <linux/i2c-dev.h>
-#  else
-#    define I2C_SLAVE 0x0703
-#  endif
-#else
-#  include <linux/i2c-dev.h>
-#endif
 #endif
 
-/**
- * @brief Implements the CpmI2c_Init operation.
- * @param bus See the matching header for semantic details.
- */
-void CpmI2c_Init(CpmI2cBus *bus)
+void CpmI2c_Init(CpmI2c *bus)
 {
-    if (bus != NULL)
+    if (bus)
     {
         bus->handle = -1;
-        bus->currentAddress = -1;
+        bus->address = 0;
     }
 }
 
-/**
- * @brief Implements the CpmI2c_Open operation.
- * @param bus See the matching header for semantic details.
- * @param devicePath See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmI2c_Open(CpmI2cBus *bus, const char *devicePath)
+int CpmI2c_SetAddress(CpmI2c *bus, uint16_t address)
 {
 #if defined(__linux__)
-    if (bus == NULL || devicePath == NULL)
-    {
-        return -1;
-    }
+    if (!bus || bus->handle < 0) return -1;
+    if (ioctl(bus->handle, I2C_SLAVE, address) != 0) return -2;
+    bus->address = address;
+    return 0;
+#else
+    (void)bus; (void)address;
+    return -2;
+#endif
+}
+
+int CpmI2c_Open(CpmI2c *bus, const char *devicePath, uint16_t address)
+{
+#if defined(__linux__)
+    int fd;
+    if (!bus || !devicePath) return -1;
     CpmI2c_Close(bus);
-    bus->handle = open(devicePath, O_RDWR);
-    bus->currentAddress = -1;
-    return bus->handle >= 0 ? 0 : -1;
-#else
-    (void)bus;
-    (void)devicePath;
-    return -2;
-#endif
-}
-
-/**
- * @brief Implements the CpmI2c_Close operation.
- * @param bus See the matching header for semantic details.
- */
-void CpmI2c_Close(CpmI2cBus *bus)
-{
-    if (bus == NULL)
+    fd = open(devicePath, O_RDWR);
+    if (fd < 0) return -2;
+    bus->handle = fd;
+    if (CpmI2c_SetAddress(bus, address) != 0)
     {
-        return;
-    }
-#if defined(__linux__)
-    if (bus->handle >= 0)
-    {
-        close(bus->handle);
-    }
-#endif
-    bus->handle = -1;
-    bus->currentAddress = -1;
-}
-
-/**
- * @brief Implements the CpmI2c_SetAddress operation.
- * @param bus See the matching header for semantic details.
- * @param address See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmI2c_SetAddress(CpmI2cBus *bus, uint8_t address)
-{
-#if defined(__linux__)
-    if (bus == NULL || bus->handle < 0)
-    {
-        return -1;
-    }
-    if (bus->currentAddress == (int)address)
-    {
-        return 0;
-    }
-    if (ioctl(bus->handle, I2C_SLAVE, address) < 0)
-    {
-        return -1;
-    }
-    bus->currentAddress = (int)address;
-    return 0;
-#else
-    (void)bus;
-    (void)address;
-    return -2;
-#endif
-}
-
-/**
- * @brief Implements the CpmI2c_Write operation.
- * @param bus See the matching header for semantic details.
- * @param data See the matching header for semantic details.
- * @param size See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmI2c_Write(CpmI2cBus *bus, const uint8_t *data, size_t size)
-{
-#if defined(__linux__)
-    ssize_t written;
-    if (bus == NULL || bus->handle < 0 || data == NULL)
-    {
-        return -1;
-    }
-    written = write(bus->handle, data, size);
-    return written == (ssize_t)size ? 0 : -1;
-#else
-    (void)bus;
-    (void)data;
-    (void)size;
-    return -2;
-#endif
-}
-
-/**
- * @brief Implements the CpmI2c_Read operation.
- * @param bus See the matching header for semantic details.
- * @param data See the matching header for semantic details.
- * @param size See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmI2c_Read(CpmI2cBus *bus, uint8_t *data, size_t size)
-{
-#if defined(__linux__)
-    ssize_t received;
-    if (bus == NULL || bus->handle < 0 || data == NULL)
-    {
-        return -1;
-    }
-    received = read(bus->handle, data, size);
-    return received == (ssize_t)size ? 0 : -1;
-#else
-    (void)bus;
-    (void)data;
-    (void)size;
-    return -2;
-#endif
-}
-
-/**
- * @brief Implements the CpmI2c_WriteRead operation.
- * @param bus See the matching header for semantic details.
- * @param txData See the matching header for semantic details.
- * @param txSize See the matching header for semantic details.
- * @param rxData See the matching header for semantic details.
- * @param rxSize See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmI2c_WriteRead(CpmI2cBus *bus,
-                     const uint8_t *txData,
-                     size_t txSize,
-                     uint8_t *rxData,
-                     size_t rxSize)
-{
-    if (txSize > 0 && CpmI2c_Write(bus, txData, txSize) < 0)
-    {
-        return -1;
-    }
-    if (rxSize > 0 && CpmI2c_Read(bus, rxData, rxSize) < 0)
-    {
-        return -1;
+        close(fd);
+        CpmI2c_Init(bus);
+        return -3;
     }
     return 0;
+#else
+    (void)bus; (void)devicePath; (void)address;
+    return -2;
+#endif
 }
 
-/**
- * @brief Implements the CpmI2c_WriteRegister8 operation.
- * @param bus See the matching header for semantic details.
- * @param registerAddress See the matching header for semantic details.
- * @param value See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmI2c_WriteRegister8(CpmI2cBus *bus, uint8_t registerAddress, uint8_t value)
+void CpmI2c_Close(CpmI2c *bus)
 {
-    uint8_t frame[2];
-    frame[0] = registerAddress;
-    frame[1] = value;
-    return CpmI2c_Write(bus, frame, sizeof(frame));
+    if (!bus) return;
+#if defined(__linux__)
+    if (bus->handle >= 0) close(bus->handle);
+#endif
+    CpmI2c_Init(bus);
 }
 
-/**
- * @brief Implements the CpmI2c_ReadRegister8 operation.
- * @param bus See the matching header for semantic details.
- * @param registerAddress See the matching header for semantic details.
- * @param value See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmI2c_ReadRegister8(CpmI2cBus *bus, uint8_t registerAddress, uint8_t *value)
+int CpmI2c_Write(CpmI2c *bus, const void *data, size_t size)
 {
-    if (value == NULL)
+#if defined(__linux__)
+    ssize_t n;
+    if (!bus || bus->handle < 0 || (!data && size)) return -1;
+    n = write(bus->handle, data, size);
+    return n < 0 ? -2 : (int)n;
+#else
+    (void)bus; (void)data; (void)size;
+    return -2;
+#endif
+}
+
+int CpmI2c_Read(CpmI2c *bus, void *data, size_t size)
+{
+#if defined(__linux__)
+    ssize_t n;
+    if (!bus || bus->handle < 0 || (!data && size)) return -1;
+    n = read(bus->handle, data, size);
+    return n < 0 ? -2 : (int)n;
+#else
+    (void)bus; (void)data; (void)size;
+    return -2;
+#endif
+}
+
+int CpmI2c_WriteRead(CpmI2c *bus, const void *writeData, size_t writeSize, void *readData, size_t readSize)
+{
+#if defined(__linux__)
+    struct i2c_msg msgs[2];
+    struct i2c_rdwr_ioctl_data tx;
+    unsigned count = 0;
+    if (!bus || bus->handle < 0 || (!writeData && writeSize) || (!readData && readSize)) return -1;
+    if (writeSize > 65535u || readSize > 65535u) return -2;
+    memset(msgs, 0, sizeof(msgs));
+    if (writeSize)
     {
-        return -1;
+        msgs[count].addr = bus->address;
+        msgs[count].flags = 0;
+        msgs[count].len = (uint16_t)writeSize;
+        msgs[count].buf = (uint8_t *)writeData;
+        count++;
     }
-    return CpmI2c_WriteRead(bus, &registerAddress, 1, value, 1);
+    if (readSize)
+    {
+        msgs[count].addr = bus->address;
+        msgs[count].flags = I2C_M_RD;
+        msgs[count].len = (uint16_t)readSize;
+        msgs[count].buf = (uint8_t *)readData;
+        count++;
+    }
+    if (count == 0) return 0;
+    tx.msgs = msgs;
+    tx.nmsgs = count;
+    return ioctl(bus->handle, I2C_RDWR, &tx) == (int)count ? 0 : -3;
+#else
+    (void)bus; (void)writeData; (void)writeSize; (void)readData; (void)readSize;
+    return -2;
+#endif
 }
 
-/**
- * @brief Implements the CpmI2c_ReadRegisters operation.
- * @param bus See the matching header for semantic details.
- * @param startRegister See the matching header for semantic details.
- * @param data See the matching header for semantic details.
- * @param size See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmI2c_ReadRegisters(CpmI2cBus *bus, uint8_t startRegister, uint8_t *data, size_t size)
+int CpmI2c_WriteRegister8(CpmI2c *bus, uint8_t reg, uint8_t value)
 {
-    return CpmI2c_WriteRead(bus, &startRegister, 1, data, size);
+    uint8_t bytes[2] = { reg, value };
+    return CpmI2c_Write(bus, bytes, sizeof(bytes)) == (int)sizeof(bytes) ? 0 : -1;
+}
+
+int CpmI2c_ReadRegister8(CpmI2c *bus, uint8_t reg, uint8_t *value)
+{
+    if (!value) return -1;
+    return CpmI2c_WriteRead(bus, &reg, 1, value, 1);
+}
+
+int CpmI2c_ReadRegisters(CpmI2c *bus, uint8_t startReg, void *data, size_t size)
+{
+    if (!data && size) return -1;
+    return CpmI2c_WriteRead(bus, &startReg, 1, data, size);
+}
+
+int CpmI2c_WriteRegister16(CpmI2c *bus, uint16_t reg, const void *data, size_t size, CpmI2cByteOrder order)
+{
+    unsigned char stack[258];
+    unsigned char *buffer = stack;
+    size_t total = size + 2;
+    int result;
+    if ((!data && size) || size > 65533u) return -1;
+    if (total > sizeof(stack))
+    {
+        buffer = (unsigned char *)malloc(total);
+        if (!buffer) return -2;
+    }
+    if (order == CPM_I2C_LSB_FIRST)
+    {
+        buffer[0] = (unsigned char)reg;
+        buffer[1] = (unsigned char)(reg >> 8);
+    }
+    else
+    {
+        buffer[0] = (unsigned char)(reg >> 8);
+        buffer[1] = (unsigned char)reg;
+    }
+    if (size) memcpy(buffer + 2, data, size);
+    result = CpmI2c_Write(bus, buffer, total) == (int)total ? 0 : -3;
+    if (buffer != stack) free(buffer);
+    return result;
+}
+
+int CpmI2c_ReadRegister16(CpmI2c *bus, uint16_t reg, void *data, size_t size, CpmI2cByteOrder order)
+{
+    unsigned char bytes[2];
+    if (!data && size) return -1;
+    if (order == CPM_I2C_LSB_FIRST)
+    {
+        bytes[0] = (unsigned char)reg;
+        bytes[1] = (unsigned char)(reg >> 8);
+    }
+    else
+    {
+        bytes[0] = (unsigned char)(reg >> 8);
+        bytes[1] = (unsigned char)reg;
+    }
+    return CpmI2c_WriteRead(bus, bytes, sizeof(bytes), data, size);
 }

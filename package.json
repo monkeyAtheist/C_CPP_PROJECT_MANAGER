@@ -1,2519 +1,2546 @@
 {
-    "name": "c-cpp-project-manager-and-build",
-    "displayName": "C/C++ Project Manager and Build",
-    "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-    "version": "0.2.88",
-    "publisher": "JerryCrozet-ElectronicEngineer",
-    "license": "MIT",
-    "engines": {
-        "vscode": "^1.90.0"
+  "name": "c-cpp-project-manager-and-build",
+  "displayName": "C/C++ Project Manager and Build",
+  "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
+  "version": "0.2.105",
+  "publisher": "JerryCrozet-ElectronicEngineer",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "C",
+    "C++",
+    "MinGW",
+    "GCC",
+    "GDB",
+    "Project Manager",
+    "Workspace"
+  ],
+  "activationEvents": [
+    "onCommand:cpm.selectAutocompleteProfile",
+    "onView:cpm.quickActions",
+    "onView:cpm.workspaceExplorer",
+    "onCommand:cpm.openHome",
+    "onCommand:cpm.createProjectInWorkspace",
+    "onView:cpm.libraryExplorer",
+    "onCommand:cpm.debugWithGdb",
+    "onCommand:cpm.library.findFunction",
+    "onCommand:cpm.library.managePacks",
+    "onCommand:cpm.library.reloadPacks",
+    "onCommand:cpm.insertSnippet",
+    "onCommand:cpm.saveSelectionAsSnippet",
+    "onCommand:cpm.manageSnippets",
+    "onCommand:cpm.saveFileAsTemplate",
+    "onCommand:cpm.importFileTemplate",
+    "onCommand:cpm.manageFileTemplates",
+    "onCommand:cpm.diagnoseCppTools",
+    "onCommand:cpm.addWorkspaceFolderForIntelliSense",
+    "onCommand:cpm.repairCppToolsProvider",
+    "onCommand:cpm.enableAutomaticSuggestions",
+    "onCommand:cpm.chooseBuildAction",
+    "onCommand:cpm.clean",
+    "onCommand:cpm.cleanProject",
+    "onCommand:cpm.selectTargetType",
+    "onCommand:cpm.editBuildSettings",
+    "onCommand:cpm.openTools",
+    "onCommand:cpm.editBuildSettingsSafeMode",
+    "onCommand:cpm.generatePrototypes",
+    "onView:cpm.fileSymbols",
+    "onCommand:cpm.refreshFileSymbols",
+    "onCommand:cpm.revealFileSymbol",
+    "onCommand:cpm.chooseRunAction",
+    "onCommand:cpm.buildAndRun",
+    "onCommand:cpm.runWithoutBuild",
+    "onCommand:cpm.selectBuildModeD32",
+    "onCommand:cpm.selectBuildModeR32",
+    "onCommand:cpm.selectBuildModeD64",
+    "onCommand:cpm.selectBuildModeR64",
+    "onCommand:cpm.selectTargetTypeEXE",
+    "onCommand:cpm.selectTargetTypeDLL",
+    "onCommand:cpm.selectTargetTypeLIB",
+    "onCommand:cpm.prepareDllImportLibraryGeneration",
+    "onCommand:cpm.copyFilePath",
+    "onCommand:cpm.copyRelativeFilePath",
+    "onCommand:cpm.convertSelectedIntegerToDecimal",
+    "onCommand:cpm.convertSelectedIntegerToHexadecimal",
+    "onCommand:cpm.convertSelectedIntegerToBinary",
+    "onCommand:cpm.openFunctionPanel",
+    "onCommand:cpm.insertFileHeader",
+    "onCommand:cpm.insertHeaderChangeEntry",
+    "onCommand:cpm.insertCommentSection",
+    "onCommand:cpm.insertSpecialCharacterText",
+    "onCommand:cpm.insertColorValue",
+    "onCommand:cpm.configureSdl",
+    "onCommand:cpm.createSdlWorkspaceProject",
+    "onCommand:cpm.createSdlProjectInWorkspace",
+    "onCommand:cpm.moveFileToFolder",
+    "onCommand:cpm.library.createPack",
+    "onCommand:cpm.library.importPack",
+    "onCommand:cpm.copyFileSymbol",
+    "onCommand:cpm.copyFileSymbolDeclaration",
+    "onCommand:cpm.copyFileSymbols",
+    "onCommand:cpm.copyFileSymbolDeclarations",
+    "onCommand:cpm.exportFileSymbols",
+    "onCommand:cpm.generateFileSymbolsHeader",
+    "onCommand:cpm.generateFileSymbolsSource",
+    "onCommand:cpm.selectLinkageMode",
+    "onCommand:cpm.inspectRuntimeDependencies",
+    "onView:cpm.projectHealth",
+    "onCommand:cpm.refreshProjectHealth",
+    "onCommand:cpm.openProjectHealthReport",
+    "onCommand:cpm.repairProjectHealth",
+    "onView:cpm.dependencies",
+    "onCommand:cpm.dependencies.configure",
+    "onCommand:cpm.dependencies.detectTools",
+    "onCommand:cpm.dependencies.generateManifests",
+    "onCommand:cpm.dependencies.install",
+    "onCommand:cpm.dependencies.openReport",
+    "onCommand:cpm.dependencies.revealOutput",
+    "onCommand:cpm.dependencies.clean",
+    "onView:cpm.remoteLinux",
+    "onCommand:cpm.openSshDeviceManager",
+    "onCommand:cpm.remote.configure",
+    "onCommand:cpm.remote.testConnection",
+    "onCommand:cpm.remote.sync",
+    "onCommand:cpm.remote.build",
+    "onCommand:cpm.remote.run",
+    "onCommand:cpm.remote.buildRun",
+    "onCommand:cpm.remote.debug",
+    "onCommand:cpm.remote.openTerminal",
+    "onCommand:cpm.remote.openReport",
+    "onCommand:cpm.selectBuildBackend",
+    "onCommand:cpm.cmake.configure",
+    "onCommand:cpm.cmake.openReport",
+    "onCommand:cpm.buildAndRunProject",
+    "onCommand:cpm.generateImportLibraryFromHeaders",
+    "onCommand:cpm.generateImportLibraryFromDll",
+    "onCommand:cpm.extractDllDefinitionFile",
+    "onCommand:cpm.openImportLibraryReport",
+    "onCommand:cpm.analyzeDll",
+    "onCommand:cpm.analyzeLibrary",
+    "onCommand:cpm.openInstrumentDiagnostics",
+    "onCommand:cpm.openNetworkDiagnostics"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "npm run clean:out && tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "package:marketplace": "vsce package --allow-missing-repository",
+    "publish:marketplace": "vsce publish --allow-missing-repository",
+    "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.105.vsix",
+    "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cpm",
+          "title": "PM",
+          "icon": "media/cpm.svg"
+        }
+      ]
     },
-    "categories": [
-        "Other",
-        "Programming Languages"
+    "views": {
+      "cpm": [
+        {
+          "id": "cpm.workspaceExplorer",
+          "name": "C/C++ Workspace",
+          "contextualTitle": "C/C++ Workspace",
+          "showCollapseAll": true
+        },
+        {
+          "id": "cpm.quickActions",
+          "name": "C/C++ Actions",
+          "contextualTitle": "C/C++ Actions",
+          "visibility": "visible",
+          "showCollapseAll": false
+        },
+        {
+          "id": "cpm.dependencies",
+          "name": "C/C++ Dependencies",
+          "contextualTitle": "C/C++ Dependencies",
+          "showCollapseAll": false
+        },
+        {
+          "id": "cpm.remoteLinux",
+          "name": "C/C++ Remote Linux",
+          "contextualTitle": "C/C++ Remote Linux",
+          "showCollapseAll": false
+        },
+        {
+          "id": "cpm.projectHealth",
+          "name": "C/C++ Project Health",
+          "contextualTitle": "C/C++ Project Health",
+          "showCollapseAll": false
+        },
+        {
+          "id": "cpm.fileSymbols",
+          "name": "C/C++ File Symbols",
+          "contextualTitle": "C/C++ File Symbols",
+          "showCollapseAll": false
+        },
+        {
+          "id": "cpm.libraryExplorer",
+          "name": "C/C++ Libraries",
+          "contextualTitle": "C/C++ Libraries",
+          "showCollapseAll": true
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "cpm.workspaceExplorer",
+        "contents": "No C/C++ workspace is currently loaded.\n[Open a workspace](command:cpm.openWorkspace)\n[Create a workspace and project](command:cpm.createWorkspaceProject)\n[Open the home page](command:cpm.openHome)\n[Create SDL workspace and project](command:cpm.createSdlWorkspaceProject)"
+      }
     ],
-    "keywords": [
-        "C",
-        "C++",
-        "MinGW",
-        "GCC",
-        "GDB",
-        "Project Manager",
-        "Workspace"
+    "commands": [
+      {
+        "command": "cpm.openHome",
+        "title": "Open Home",
+        "icon": "$(home)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openWorkspace",
+        "title": "Open Workspace or Project",
+        "icon": "$(folder-opened)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.createWorkspaceProject",
+        "title": "Create Workspace and Project",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.refresh",
+        "title": "Refresh Workspace",
+        "icon": "$(refresh)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.configureInstallation",
+        "title": "Detect / Select Toolchain",
+        "icon": "$(settings-gear)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.installSupportedToolchains",
+        "title": "Install / Manage Supported Toolchains",
+        "icon": "$(cloud-download)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectAutocompleteProfile",
+        "title": "Select Autocompletion Profile",
+        "icon": "$(settings-gear)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.syncCppTools",
+        "title": "Synchronize C/C++ IntelliSense Configuration",
+        "icon": "$(symbol-namespace)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.diagnoseCppTools",
+        "title": "Diagnose C/C++ IntelliSense Configuration",
+        "icon": "$(pulse)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.repairCppToolsProvider",
+        "title": "Repair C/C++ IntelliSense Provider Selection",
+        "icon": "$(wrench)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.enableAutomaticSuggestions",
+        "title": "Enable Automatic C/C++ Suggestions",
+        "icon": "$(sparkle)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.addWorkspaceFolderForIntelliSense",
+        "title": "Add Folder to VS Code Workspace for IntelliSense",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectBuildMode",
+        "title": "Select Build Mode",
+        "icon": "$(symbol-enum)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.build",
+        "title": "Build Active Project",
+        "icon": "$(tools)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.rebuild",
+        "title": "Rebuild Active Project",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.run",
+        "title": "Run",
+        "icon": "$(play)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.buildAndRun",
+        "title": "Build & Run",
+        "icon": "$(run-all)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openWorkspaceFile",
+        "title": "Open Workspace File",
+        "icon": "$(link-external)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.setActiveProject",
+        "title": "Set Active Project",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.buildProject",
+        "title": "Build",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.rebuildProject",
+        "title": "Rebuild",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.executeProject",
+        "title": "Run",
+        "icon": "$(play)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.buildAndRunProject",
+        "title": "Build & Run",
+        "category": "C/C++ Project Manager",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "cpm.editProjectFile",
+        "title": "Edit Project File...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openProjectFile",
+        "title": "Browse Project File...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.createProjectInWorkspace",
+        "title": "Create New Project in Workspace...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.addExistingProject",
+        "title": "Add Existing Project to Workspace",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.removeProject",
+        "title": "Remove Project From Workspace",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.addFiles",
+        "title": "Add Existing File...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.createNewFile",
+        "title": "Create New File or Starter...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.addFolder",
+        "title": "Add Folder...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.renameFolder",
+        "title": "Rename Folder...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.removeFolder",
+        "title": "Remove Folder",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.removeFile",
+        "title": "Remove File",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.excludeFile",
+        "title": "Exclude File from Build",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.includeFile",
+        "title": "Include File in Build",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.toggleObjOption",
+        "title": "Toggle .Obj Option",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.renameFile",
+        "title": "Rename File...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.moveFileToFolder",
+        "title": "Move File To Folder...",
+        "icon": "$(move)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.replaceFile",
+        "title": "Replace File in Project...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.compileFile",
+        "title": "Compile File",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.saveFile",
+        "title": "Save",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.saveAll",
+        "title": "Save All",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openFile",
+        "title": "Open",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openPanelFile",
+        "title": "Open UI/Resource File",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openFunctionPanel",
+        "title": "Open Function Panel",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.revealProjectFile",
+        "title": "Reveal Project File in Explorer",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.revealFile",
+        "title": "Browse File...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.copyFilePath",
+        "title": "Copy Path",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.copyRelativeFilePath",
+        "title": "Copy Relative Path",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.exploreProjectDirectory",
+        "title": "Explore Directory...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.exploreFolderDirectory",
+        "title": "Explore Directory...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.exploreFileDirectory",
+        "title": "Explore Directory...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.findProject",
+        "title": "Find...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.findFolder",
+        "title": "Find...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.findFile",
+        "title": "Find...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.expandAll",
+        "title": "Expand All",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.collapseAll",
+        "title": "Collapse All",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.runDebug",
+        "title": "Debug",
+        "category": "C/C++ Project Manager",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "cpm.runDebugProject",
+        "title": "Debug",
+        "category": "C/C++ Project Manager",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "cpm.debugWithGdb",
+        "title": "Build & Debug",
+        "category": "C/C++ Project Manager",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "cpm.debugProjectWithGdb",
+        "title": "Build & Debug",
+        "category": "C/C++ Project Manager",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "cpm.library.refresh",
+        "title": "Refresh Libraries",
+        "category": "C/C++ Project Manager",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cpm.library.showFunctionDetails",
+        "title": "Show Symbol Details",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.insertCall",
+        "title": "Insert Symbol Call",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.findFunction",
+        "title": "Find Symbol",
+        "category": "C/C++ Project Manager",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cpm.library.clearFind",
+        "title": "Clear Filter",
+        "category": "C/C++ Project Manager",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "cpm.library.reloadPacks",
+        "title": "Reload Library Packs",
+        "category": "C/C++ Project Manager",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "cpm.library.managePacks",
+        "title": "Manage Library Packs",
+        "category": "C/C++ Project Manager",
+        "icon": "$(package)"
+      },
+      {
+        "command": "cpm.library.importPack",
+        "title": "Import Library Pack...",
+        "category": "C/C++ Project Manager",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "cpm.library.createPack",
+        "title": "Create Library Pack...",
+        "category": "C/C++ Project Manager",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "cpm.library.openVisualEditor",
+        "title": "Open Visual Library Pack Editor",
+        "category": "C/C++ Project Manager",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "cpm.library.generateHeader",
+        "title": "Generate Header From Library Pack",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.importSymbols",
+        "title": "Import Source/Header Into Library Pack",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.importPrototypes",
+        "title": "Import Prototypes Into Library Pack",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.importSnippetFile",
+        "title": "Import Snippet File Into Library Pack",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.addLanguageStarter",
+        "title": "Add Language Starter Into Library Pack",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.addContent",
+        "title": "Add Content To Library Pack",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.exportContent",
+        "title": "Export Content From Library Pack",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.library.deleteContent",
+        "title": "Delete Content From Library Pack",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.insertSnippet",
+        "title": "Insert snippet",
+        "category": "CPM",
+        "icon": "$(symbol-snippet)"
+      },
+      {
+        "command": "cpm.saveSelectionAsSnippet",
+        "title": "Save selection as snippet",
+        "category": "CPM"
+      },
+      {
+        "command": "cpm.manageSnippets",
+        "title": "Manage snippets...",
+        "category": "CPM"
+      },
+      {
+        "command": "cpm.insertFileHeader",
+        "title": "Insert file description header",
+        "category": "CPM",
+        "icon": "$(note)"
+      },
+      {
+        "command": "cpm.insertHeaderChangeEntry",
+        "title": "Insert header change line",
+        "category": "CPM",
+        "icon": "$(add)"
+      },
+      {
+        "command": "cpm.insertCommentSection",
+        "title": "Insert comment section",
+        "category": "CPM",
+        "icon": "$(symbol-string)"
+      },
+      {
+        "command": "cpm.insertSpecialCharacterText",
+        "title": "Insert special-character text",
+        "category": "CPM",
+        "icon": "$(symbol-string)"
+      },
+      {
+        "command": "cpm.insertColorValue",
+        "title": "Insert color value",
+        "category": "CPM",
+        "icon": "$(symbol-color)"
+      },
+      {
+        "command": "cpm.openDigitalFilterDesigner",
+        "title": "Open digital filter designer",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openTruthTableDesigner",
+        "title": "Open truth table / FSM designer",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openNumberConverter",
+        "title": "Open number / bit converter",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.convertSelectedNumbersToText",
+        "title": "Convert selected numbers to text",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.convertSelectedTextToDecimalValues",
+        "title": "Convert selected text to decimal values",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openCharacterTable",
+        "title": "Open character table / converter",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.saveFileAsTemplate",
+        "title": "Save as C/C++ Creation Template...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.importFileTemplate",
+        "title": "CPM: Import creation template from file...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.manageFileTemplates",
+        "title": "CPM: Manage creation templates...",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.chooseBuildAction",
+        "title": "Build / Rebuild / Clean Active Project",
+        "icon": "$(tools)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.clean",
+        "title": "Clean Active Project",
+        "icon": "$(trash)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.cleanProject",
+        "title": "Clean Generated Target",
+        "icon": "$(trash)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectTargetType",
+        "title": "Select Target Type...",
+        "icon": "$(symbol-enum)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.editBuildSettings",
+        "title": "Settings & Tools...",
+        "icon": "$(settings-gear)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.editBuildSettingsSafeMode",
+        "title": "Project Build Settings (Safe Mode)…",
+        "icon": "$(shield)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.generatePrototypes",
+        "title": "Generate Prototypes Header...",
+        "icon": "$(symbol-method)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.refreshFileSymbols",
+        "title": "Refresh Selected File Symbols",
+        "category": "C/C++ Project Manager",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cpm.revealFileSymbol",
+        "title": "Reveal Function in Source",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.chooseRunAction",
+        "title": "Run Options...",
+        "icon": "$(list-selection)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.runWithoutBuild",
+        "title": "Run",
+        "category": "C/C++ Project Manager",
+        "icon": "$(play)"
+      },
+      {
+        "command": "cpm.selectBuildModeD32",
+        "title": "D32",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectBuildModeR32",
+        "title": "R32",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectBuildModeD64",
+        "title": "D64",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectBuildModeR64",
+        "title": "R64",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectTargetTypeEXE",
+        "title": "EXE",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectTargetTypeDLL",
+        "title": "DLL",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectTargetTypeLIB",
+        "title": "LIB",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.generateImportLibraryFromHeaders",
+        "title": "Generate Import Library (.lib) from Header(s)...",
+        "icon": "$(library)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.generateImportLibraryFromDll",
+        "title": "Generate DLL Import Library (.lib)...",
+        "icon": "$(library)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.extractDllDefinitionFile",
+        "title": "Extract DLL Exports (.def)...",
+        "icon": "$(file-code)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openImportLibraryReport",
+        "title": "Open Import Library Generation Report",
+        "icon": "$(output)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.analyzeDll",
+        "title": "Analyze DLL...",
+        "icon": "$(search)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.analyzeLibrary",
+        "title": "Analyze .a / .lib Library...",
+        "icon": "$(search)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.convertSelectedIntegerToDecimal",
+        "title": "Convert Selected Integer to Decimal",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.convertSelectedIntegerToHexadecimal",
+        "title": "Convert Selected Integer to Hexadecimal",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.convertSelectedIntegerToBinary",
+        "title": "Convert Selected Integer to Binary",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.configureSdl",
+        "title": "Detect / Select SDL2 or SDL3 SDK",
+        "icon": "$(window)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.createSdlWorkspaceProject",
+        "title": "Create SDL Workspace and Project",
+        "icon": "$(window)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.createSdlProjectInWorkspace",
+        "title": "Create New SDL Project in Workspace...",
+        "icon": "$(window)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.showBuildProblems",
+        "title": "Show Build Problems",
+        "category": "C/C++ Project Manager",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "cpm.showFullBuildTrace",
+        "title": "Show Full Build Trace",
+        "category": "C/C++ Project Manager",
+        "icon": "$(output)"
+      },
+      {
+        "command": "cpm.copyFileSymbol",
+        "title": "Copy File Symbol Signature",
+        "category": "C/C++ Project Manager",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "cpm.copyFileSymbolDeclaration",
+        "title": "Copy File Symbol Declaration",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.copyFileSymbols",
+        "title": "Copy File Symbols",
+        "category": "C/C++ Project Manager",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "cpm.copyFileSymbolDeclarations",
+        "title": "Copy File Symbol Declarations",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.exportFileSymbols",
+        "title": "Export File Symbols...",
+        "category": "C/C++ Project Manager",
+        "icon": "$(export)"
+      },
+      {
+        "command": "cpm.generateFileSymbolsHeader",
+        "title": "Generate Header From File Symbols...",
+        "category": "C/C++ Project Manager",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "cpm.generateFileSymbolsSource",
+        "title": "Generate Source From File Symbols...",
+        "category": "C/C++ Project Manager",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "cpm.selectLinkageMode",
+        "title": "Select Linkage Mode",
+        "icon": "$(link)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.inspectRuntimeDependencies",
+        "title": "Inspect Built Runtime DLL Dependencies",
+        "icon": "$(search)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.refreshProjectHealth",
+        "title": "Refresh Project Health",
+        "icon": "$(refresh)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openProjectHealthReport",
+        "title": "Open Project Health Report",
+        "icon": "$(report)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.repairProjectHealth",
+        "title": "Repair Project Health...",
+        "icon": "$(wrench)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.dependencies.configure",
+        "title": "Configure Dependency Managers",
+        "icon": "$(settings-gear)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.dependencies.detectTools",
+        "title": "Detect Dependency Tools",
+        "icon": "$(search)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.dependencies.generateManifests",
+        "title": "Generate Dependency Manifests",
+        "icon": "$(file-code)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.dependencies.install",
+        "title": "Install / Synchronize Dependencies",
+        "icon": "$(cloud-download)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.dependencies.openReport",
+        "title": "Open Dependency Report",
+        "icon": "$(preview)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.dependencies.revealOutput",
+        "title": "Reveal Dependency Output",
+        "icon": "$(folder-opened)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.dependencies.clean",
+        "title": "Clean Dependency Output",
+        "icon": "$(trash)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openSshDeviceManager",
+        "title": "OpenSSH Device Manager",
+        "icon": "$(remote-explorer)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.configure",
+        "title": "Configure Remote Linux / Raspberry Pi",
+        "icon": "$(settings-gear)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.testConnection",
+        "title": "Test Remote SSH Connection",
+        "icon": "$(plug)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.sync",
+        "title": "Synchronize Project to Remote Linux",
+        "icon": "$(sync)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.build",
+        "title": "Build on Remote Linux",
+        "icon": "$(tools)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.run",
+        "title": "Run on Remote Linux",
+        "icon": "$(run)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.buildRun",
+        "title": "Build and Run on Remote Linux",
+        "icon": "$(play)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.debug",
+        "title": "Debug on Remote Linux with gdbserver",
+        "icon": "$(debug-alt)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.openTerminal",
+        "title": "Open Remote SSH Terminal",
+        "icon": "$(terminal)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.remote.openReport",
+        "title": "Open Remote Linux Report",
+        "icon": "$(preview)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.selectBuildBackend",
+        "title": "Select Build Backend",
+        "category": "C/C++ Project Manager",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "cpm.cmake.configure",
+        "title": "Configure CMake Project",
+        "category": "C/C++ Project Manager",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "cpm.cmake.openReport",
+        "title": "Open CMake Backend Report",
+        "category": "C/C++ Project Manager",
+        "icon": "$(report)"
+      },
+      {
+        "command": "cpm.openTools",
+        "title": "Open CPM Tools",
+        "icon": "$(tools)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openInstrumentDiagnostics",
+        "title": "Open Instrument Diagnostics",
+        "icon": "$(radio-tower)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openNetworkDiagnostics",
+        "title": "Open Network & Wireless Diagnostics",
+        "icon": "$(globe)",
+        "category": "C/C++ Project Manager"
+      },
+      {
+        "command": "cpm.openDeviceManager",
+        "title": "Open CPM Device Manager",
+        "icon": "$(device-desktop)",
+        "category": "C/C++ Project Manager"
+      }
     ],
-    "activationEvents": [
-        "onCommand:cpm.selectAutocompleteProfile",
-        "onView:cpm.quickActions",
-        "onView:cpm.workspaceExplorer",
-        "onCommand:cpm.openHome",
-        "onCommand:cpm.createProjectInWorkspace",
-        "onView:cpm.libraryExplorer",
-        "onCommand:cpm.debugWithGdb",
-        "onCommand:cpm.library.findFunction",
-        "onCommand:cpm.library.managePacks",
-        "onCommand:cpm.library.reloadPacks",
-        "onCommand:cpm.insertSnippet",
-        "onCommand:cpm.saveSelectionAsSnippet",
-        "onCommand:cpm.manageSnippets",
-        "onCommand:cpm.saveFileAsTemplate",
-        "onCommand:cpm.importFileTemplate",
-        "onCommand:cpm.manageFileTemplates",
-        "onCommand:cpm.diagnoseCppTools",
-        "onCommand:cpm.addWorkspaceFolderForIntelliSense",
-        "onCommand:cpm.repairCppToolsProvider",
-        "onCommand:cpm.enableAutomaticSuggestions",
-        "onCommand:cpm.chooseBuildAction",
-        "onCommand:cpm.clean",
-        "onCommand:cpm.cleanProject",
-        "onCommand:cpm.selectTargetType",
-        "onCommand:cpm.editBuildSettings",
-        "onCommand:cpm.editBuildSettingsSafeMode",
-        "onCommand:cpm.generatePrototypes",
-        "onView:cpm.fileSymbols",
-        "onCommand:cpm.refreshFileSymbols",
-        "onCommand:cpm.revealFileSymbol",
-        "onCommand:cpm.chooseRunAction",
-        "onCommand:cpm.buildAndRun",
-        "onCommand:cpm.runWithoutBuild",
-        "onCommand:cpm.selectBuildModeD32",
-        "onCommand:cpm.selectBuildModeR32",
-        "onCommand:cpm.selectBuildModeD64",
-        "onCommand:cpm.selectBuildModeR64",
-        "onCommand:cpm.selectTargetTypeEXE",
-        "onCommand:cpm.selectTargetTypeDLL",
-        "onCommand:cpm.selectTargetTypeLIB",
-        "onCommand:cpm.prepareDllImportLibraryGeneration",
-        "onCommand:cpm.copyFilePath",
-        "onCommand:cpm.copyRelativeFilePath",
-        "onCommand:cpm.convertSelectedIntegerToDecimal",
-        "onCommand:cpm.convertSelectedIntegerToHexadecimal",
-        "onCommand:cpm.convertSelectedIntegerToBinary",
-        "onCommand:cpm.openFunctionPanel",
-        "onCommand:cpm.insertFileHeader",
-        "onCommand:cpm.insertHeaderChangeEntry",
-        "onCommand:cpm.insertCommentSection",
-        "onCommand:cpm.insertSpecialCharacterText",
-        "onCommand:cpm.insertColorValue",
-        "onCommand:cpm.configureSdl",
-        "onCommand:cpm.createSdlWorkspaceProject",
-        "onCommand:cpm.createSdlProjectInWorkspace",
-        "onCommand:cpm.moveFileToFolder",
-        "onCommand:cpm.library.createPack",
-        "onCommand:cpm.library.importPack",
-        "onCommand:cpm.copyFileSymbol",
-        "onCommand:cpm.copyFileSymbolDeclaration",
-        "onCommand:cpm.copyFileSymbols",
-        "onCommand:cpm.copyFileSymbolDeclarations",
-        "onCommand:cpm.exportFileSymbols",
-        "onCommand:cpm.generateFileSymbolsHeader",
-        "onCommand:cpm.generateFileSymbolsSource",
-        "onCommand:cpm.selectLinkageMode",
-        "onCommand:cpm.inspectRuntimeDependencies",
-        "onView:cpm.projectHealth",
-        "onCommand:cpm.refreshProjectHealth",
-        "onCommand:cpm.openProjectHealthReport",
-        "onCommand:cpm.repairProjectHealth",
-        "onView:cpm.dependencies",
-        "onCommand:cpm.dependencies.configure",
-        "onCommand:cpm.dependencies.detectTools",
-        "onCommand:cpm.dependencies.generateManifests",
-        "onCommand:cpm.dependencies.install",
-        "onCommand:cpm.dependencies.openReport",
-        "onCommand:cpm.dependencies.revealOutput",
-        "onCommand:cpm.dependencies.clean",
-        "onView:cpm.remoteLinux",
-        "onCommand:cpm.openSshDeviceManager",
-        "onCommand:cpm.remote.configure",
-        "onCommand:cpm.remote.testConnection",
-        "onCommand:cpm.remote.sync",
-        "onCommand:cpm.remote.build",
-        "onCommand:cpm.remote.run",
-        "onCommand:cpm.remote.buildRun",
-        "onCommand:cpm.remote.debug",
-        "onCommand:cpm.remote.openTerminal",
-        "onCommand:cpm.remote.openReport",
-        "onCommand:cpm.selectBuildBackend",
-        "onCommand:cpm.cmake.configure",
-        "onCommand:cpm.cmake.openReport",
-        "onCommand:cpm.buildAndRunProject",
-        "onCommand:cpm.generateImportLibraryFromHeaders",
-        "onCommand:cpm.generateImportLibraryFromDll",
-        "onCommand:cpm.extractDllDefinitionFile",
-        "onCommand:cpm.openImportLibraryReport",
-        "onCommand:cpm.analyzeDll",
-        "onCommand:cpm.analyzeLibrary"
+    "menus": {
+      "view/title": [
+        {
+          "command": "cpm.openHome",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.openWorkspace",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.chooseBuildAction",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.run",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cpm.runDebug",
+          "when": "view == cpm.workspaceExplorer && cpm.targetType != lib",
+          "group": "navigation@5"
+        },
+        {
+          "command": "cpm.chooseRunAction",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@6"
+        },
+        {
+          "command": "cpm.selectBuildModeD32",
+          "when": "view == cpm.workspaceExplorer && cpm.buildMode == debug",
+          "group": "navigation@7"
+        },
+        {
+          "command": "cpm.selectBuildModeR32",
+          "when": "view == cpm.workspaceExplorer && cpm.buildMode == release",
+          "group": "navigation@7"
+        },
+        {
+          "command": "cpm.selectBuildModeD64",
+          "when": "view == cpm.workspaceExplorer && cpm.buildMode == debug64",
+          "group": "navigation@7"
+        },
+        {
+          "command": "cpm.selectBuildModeR64",
+          "when": "view == cpm.workspaceExplorer && cpm.buildMode == release64",
+          "group": "navigation@7"
+        },
+        {
+          "command": "cpm.selectTargetTypeEXE",
+          "when": "view == cpm.workspaceExplorer && cpm.targetType == exe",
+          "group": "navigation@8"
+        },
+        {
+          "command": "cpm.selectTargetTypeDLL",
+          "when": "view == cpm.workspaceExplorer && cpm.targetType == dll",
+          "group": "navigation@8"
+        },
+        {
+          "command": "cpm.selectTargetTypeLIB",
+          "when": "view == cpm.workspaceExplorer && cpm.targetType == lib",
+          "group": "navigation@8"
+        },
+        {
+          "command": "cpm.editBuildSettings",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@9"
+        },
+        {
+          "command": "cpm.refresh",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@10"
+        },
+        {
+          "command": "cpm.configureSdl",
+          "when": "view == cpm.workspaceExplorer",
+          "group": "navigation@9.5"
+        },
+        {
+          "command": "cpm.library.findFunction",
+          "when": "view == cpm.libraryExplorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.library.clearFind",
+          "when": "view == cpm.libraryExplorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.library.createPack",
+          "when": "view == cpm.libraryExplorer",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.library.importPack",
+          "when": "view == cpm.libraryExplorer",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cpm.library.managePacks",
+          "when": "view == cpm.libraryExplorer",
+          "group": "navigation@5"
+        },
+        {
+          "command": "cpm.library.openVisualEditor",
+          "when": "view == cpm.libraryExplorer",
+          "group": "navigation@6"
+        },
+        {
+          "command": "cpm.library.reloadPacks",
+          "when": "view == cpm.libraryExplorer",
+          "group": "navigation@7"
+        },
+        {
+          "command": "cpm.refreshFileSymbols",
+          "when": "view == cpm.fileSymbols",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.copyFileSymbols",
+          "when": "view == cpm.fileSymbols",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.exportFileSymbols",
+          "when": "view == cpm.fileSymbols",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.generateFileSymbolsHeader",
+          "when": "view == cpm.fileSymbols",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cpm.generateFileSymbolsSource",
+          "when": "view == cpm.fileSymbols",
+          "group": "navigation@5"
+        },
+        {
+          "command": "cpm.refreshProjectHealth",
+          "when": "view == cpm.projectHealth",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.openProjectHealthReport",
+          "when": "view == cpm.projectHealth",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.repairProjectHealth",
+          "when": "view == cpm.projectHealth",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.dependencies.configure",
+          "when": "view == cpm.dependencies",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.dependencies.install",
+          "when": "view == cpm.dependencies",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.dependencies.detectTools",
+          "when": "view == cpm.dependencies",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.remote.testConnection",
+          "when": "view == cpm.remoteLinux",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.remote.sync",
+          "when": "view == cpm.remoteLinux",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.remote.buildRun",
+          "when": "view == cpm.remoteLinux",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.remote.debug",
+          "when": "view == cpm.remoteLinux",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cpm.remote.configure",
+          "when": "view == cpm.remoteLinux",
+          "group": "navigation@5"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "cpm.openWorkspaceFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
+          "group": "inline@1"
+        },
+        {
+          "command": "cpm.createProjectInWorkspace",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
+          "group": "modification@1"
+        },
+        {
+          "command": "cpm.addExistingProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
+          "group": "modification@2"
+        },
+        {
+          "command": "cpm.saveAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "project@1"
+        },
+        {
+          "command": "cpm.setActiveProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "project@2"
+        },
+        {
+          "command": "cpm.editProjectFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "build@4"
+        },
+        {
+          "command": "cpm.removeProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "build@6"
+        },
+        {
+          "command": "cpm.addFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "modification@1"
+        },
+        {
+          "command": "cpm.addFiles",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "modification@2"
+        },
+        {
+          "command": "cpm.createNewFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "modification@3"
+        },
+        {
+          "command": "cpm.openProjectFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.revealProjectFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.exploreProjectDirectory",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.findProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cpm.expandAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "navigation@5"
+        },
+        {
+          "command": "cpm.collapseAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "navigation@6"
+        },
+        {
+          "command": "cpm.renameFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "modification@1"
+        },
+        {
+          "command": "cpm.removeFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "modification@2"
+        },
+        {
+          "command": "cpm.addFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "modification@3"
+        },
+        {
+          "command": "cpm.addFiles",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "modification@4"
+        },
+        {
+          "command": "cpm.createNewFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "modification@5"
+        },
+        {
+          "command": "cpm.findFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.exploreFolderDirectory",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.expandAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.collapseAll",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cpm.openFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|library|other)\\./",
+          "group": "inline@1"
+        },
+        {
+          "command": "cpm.openPanelFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.panel\\./",
+          "group": "inline@1"
+        },
+        {
+          "command": "cpm.openFunctionPanel",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.functionPanel\\./",
+          "group": "inline@1"
+        },
+        {
+          "command": "cpm.saveFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|library|other)\\./",
+          "group": "file@2"
+        },
+        {
+          "command": "cpm.excludeFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.included\\./",
+          "group": "build@1"
+        },
+        {
+          "command": "cpm.includeFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.excluded\\./",
+          "group": "build@1"
+        },
+        {
+          "command": "cpm.toggleObjOption",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
+          "group": "build@2"
+        },
+        {
+          "command": "cpm.renameFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "modification@1"
+        },
+        {
+          "command": "cpm.moveFileToFolder",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "modification@2"
+        },
+        {
+          "command": "cpm.replaceFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "modification@3"
+        },
+        {
+          "command": "cpm.removeFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "modification@4"
+        },
+        {
+          "command": "cpm.compileFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
+          "group": "build@3"
+        },
+        {
+          "command": "cpm.copyFilePath",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "clipboard@1"
+        },
+        {
+          "command": "cpm.copyRelativeFilePath",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "clipboard@2"
+        },
+        {
+          "command": "cpm.revealFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.exploreFileDirectory",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cpm.findFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cpm.expandAll",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cpm.collapseAll",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
+          "group": "navigation@5"
+        },
+        {
+          "command": "cpm.library.insertCall",
+          "when": "view == cpm.libraryExplorer && viewItem == cpmFunction",
+          "group": "inline@9"
+        },
+        {
+          "command": "cpm.saveFileAsTemplate",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|other)\\./",
+          "group": "modification@3"
+        },
+        {
+          "command": "cpm.openWorkspaceFile",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cpm.cleanProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "build@3"
+        },
+        {
+          "command": "cpm.selectTargetType",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "settings@1"
+        },
+        {
+          "command": "cpm.editBuildSettings",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "settings@2"
+        },
+        {
+          "command": "cpm.editBuildSettingsSafeMode",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "settings@3"
+        },
+        {
+          "command": "cpm.generatePrototypes",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
+          "group": "build@4"
+        },
+        {
+          "command": "cpm.generateImportLibraryFromHeaders",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.header\\./",
+          "group": "build@5"
+        },
+        {
+          "command": "cpm.generateImportLibraryFromDll",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
+          "group": "build@5"
+        },
+        {
+          "command": "cpm.extractDllDefinitionFile",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
+          "group": "build@6"
+        },
+        {
+          "command": "cpm.analyzeDll",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
+          "group": "build@7"
+        },
+        {
+          "command": "cpm.analyzeLibrary",
+          "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-(lib|a)$/",
+          "group": "build@7.5"
+        },
+        {
+          "command": "cpm.createSdlProjectInWorkspace",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
+          "group": "modification@1.5"
+        },
+        {
+          "command": "cpm.copyFileSymbol",
+          "when": "view == cpm.fileSymbols && viewItem == cpmFileSymbol",
+          "group": "clipboard@1"
+        },
+        {
+          "command": "cpm.copyFileSymbolDeclaration",
+          "when": "view == cpm.fileSymbols && viewItem == cpmFileSymbol",
+          "group": "clipboard@2"
+        },
+        {
+          "command": "cpm.selectLinkageMode",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "settings@1.5"
+        },
+        {
+          "command": "cpm.inspectRuntimeDependencies",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "build@3.5"
+        },
+        {
+          "command": "cpm.remote.buildRun",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "remote@1"
+        },
+        {
+          "command": "cpm.remote.debug",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "remote@2"
+        },
+        {
+          "command": "cpm.remote.sync",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "remote@3"
+        },
+        {
+          "command": "cpm.buildProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "build@1"
+        },
+        {
+          "command": "cpm.rebuildProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "build@2"
+        },
+        {
+          "command": "cpm.executeProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "run@1"
+        },
+        {
+          "command": "cpm.runDebugProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "run@2"
+        },
+        {
+          "command": "cpm.buildAndRunProject",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "run@3"
+        },
+        {
+          "command": "cpm.debugProjectWithGdb",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "run@4"
+        },
+        {
+          "command": "cpm.chooseRunAction",
+          "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
+          "group": "run@5"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "cpm.setActiveProject",
+          "when": "false"
+        },
+        {
+          "command": "cpm.buildProject",
+          "when": "false"
+        },
+        {
+          "command": "cpm.rebuildProject",
+          "when": "false"
+        },
+        {
+          "command": "cpm.executeProject",
+          "when": "false"
+        },
+        {
+          "command": "cpm.editProjectFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.openProjectFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.removeProject",
+          "when": "false"
+        },
+        {
+          "command": "cpm.addFiles",
+          "when": "false"
+        },
+        {
+          "command": "cpm.addFolder",
+          "when": "false"
+        },
+        {
+          "command": "cpm.renameFolder",
+          "when": "false"
+        },
+        {
+          "command": "cpm.removeFolder",
+          "when": "false"
+        },
+        {
+          "command": "cpm.removeFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.excludeFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.includeFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.toggleObjOption",
+          "when": "false"
+        },
+        {
+          "command": "cpm.renameFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.replaceFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.compileFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.saveFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.openFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.openPanelFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.revealProjectFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.revealFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.exploreProjectDirectory",
+          "when": "false"
+        },
+        {
+          "command": "cpm.exploreFolderDirectory",
+          "when": "false"
+        },
+        {
+          "command": "cpm.exploreFileDirectory",
+          "when": "false"
+        },
+        {
+          "command": "cpm.findProject",
+          "when": "false"
+        },
+        {
+          "command": "cpm.findFolder",
+          "when": "false"
+        },
+        {
+          "command": "cpm.findFile",
+          "when": "false"
+        },
+        {
+          "command": "cpm.debugProjectWithGdb",
+          "when": "false"
+        },
+        {
+          "command": "cpm.cleanProject",
+          "when": "false"
+        },
+        {
+          "command": "cpm.generatePrototypes",
+          "when": "false"
+        },
+        {
+          "command": "cpm.selectBuildModeD32",
+          "when": "false"
+        },
+        {
+          "command": "cpm.selectBuildModeR32",
+          "when": "false"
+        },
+        {
+          "command": "cpm.selectBuildModeD64",
+          "when": "false"
+        },
+        {
+          "command": "cpm.selectBuildModeR64",
+          "when": "false"
+        },
+        {
+          "command": "cpm.selectTargetTypeEXE",
+          "when": "false"
+        },
+        {
+          "command": "cpm.selectTargetTypeDLL",
+          "when": "false"
+        },
+        {
+          "command": "cpm.selectTargetTypeLIB",
+          "when": "false"
+        },
+        {
+          "command": "cpm.copyFilePath",
+          "when": "false"
+        },
+        {
+          "command": "cpm.copyRelativeFilePath",
+          "when": "false"
+        },
+        {
+          "command": "cpm.openFunctionPanel",
+          "when": "false"
+        },
+        {
+          "command": "cpm.moveFileToFolder",
+          "when": "false"
+        },
+        {
+          "command": "cpm.selectBuildBackend",
+          "when": "false"
+        },
+        {
+          "command": "cpm.runDebugProject",
+          "when": "false"
+        },
+        {
+          "command": "cpm.runWithoutBuild",
+          "when": "false"
+        },
+        {
+          "command": "cpm.buildAndRunProject",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "cpm.editorRoot",
+          "when": "editorLangId == c || editorLangId == cpp",
+          "group": "modification@1"
+        }
+      ],
+      "cpm.convertSelectedInteger": [
+        {
+          "command": "cpm.convertSelectedIntegerToDecimal",
+          "when": "editorHasSelection",
+          "group": "1_convert@1"
+        },
+        {
+          "command": "cpm.convertSelectedIntegerToHexadecimal",
+          "when": "editorHasSelection",
+          "group": "1_convert@2"
+        },
+        {
+          "command": "cpm.convertSelectedIntegerToBinary",
+          "when": "editorHasSelection",
+          "group": "1_convert@3"
+        }
+      ],
+      "cpm.editorRoot": [
+        {
+          "submenu": "cpm.editorDocumentation",
+          "group": "1_doc@1"
+        },
+        {
+          "submenu": "cpm.editorSnippets",
+          "group": "2_snippets@1"
+        },
+        {
+          "submenu": "cpm.editorUtilities",
+          "group": "3_tools@1"
+        },
+        {
+          "submenu": "cpm.editorLibraries",
+          "group": "4_libraries@1"
+        }
+      ],
+      "cpm.editorDocumentation": [
+        {
+          "command": "cpm.insertFileHeader",
+          "group": "1_header@1"
+        },
+        {
+          "command": "cpm.insertHeaderChangeEntry",
+          "group": "1_header@2"
+        },
+        {
+          "command": "cpm.insertCommentSection",
+          "group": "2_section@1"
+        },
+        {
+          "command": "cpm.insertSpecialCharacterText",
+          "group": "2_section@2"
+        }
+      ],
+      "cpm.editorSnippets": [
+        {
+          "command": "cpm.insertSnippet",
+          "group": "1_snippets@1"
+        },
+        {
+          "command": "cpm.saveSelectionAsSnippet",
+          "when": "editorHasSelection",
+          "group": "1_snippets@2"
+        },
+        {
+          "command": "cpm.manageSnippets",
+          "group": "1_snippets@3"
+        }
+      ],
+      "cpm.editorUtilities": [
+        {
+          "command": "cpm.insertColorValue",
+          "group": "1_color@1"
+        },
+        {
+          "submenu": "cpm.characterEncodingTools",
+          "group": "2_encoding@1"
+        },
+        {
+          "submenu": "cpm.numberBitTools",
+          "group": "3_number@1"
+        },
+        {
+          "submenu": "cpm.logicStateTools",
+          "group": "4_logic@1"
+        },
+        {
+          "submenu": "cpm.signalFilterTools",
+          "group": "5_signal@1"
+        }
+      ],
+      "cpm.characterEncodingTools": [
+        {
+          "command": "cpm.openCharacterTable",
+          "group": "1_table@1"
+        },
+        {
+          "command": "cpm.convertSelectedTextToDecimalValues",
+          "when": "editorHasSelection",
+          "group": "2_convert@1"
+        },
+        {
+          "command": "cpm.convertSelectedNumbersToText",
+          "when": "editorHasSelection",
+          "group": "2_convert@2"
+        }
+      ],
+      "cpm.numberBitTools": [
+        {
+          "command": "cpm.openNumberConverter",
+          "group": "1_table@1"
+        },
+        {
+          "submenu": "cpm.convertSelectedInteger",
+          "when": "editorHasSelection",
+          "group": "2_convert@1"
+        }
+      ],
+      "cpm.logicStateTools": [
+        {
+          "command": "cpm.openTruthTableDesigner",
+          "group": "1_logic@1"
+        }
+      ],
+      "cpm.signalFilterTools": [
+        {
+          "command": "cpm.openDigitalFilterDesigner",
+          "group": "1_filter@1"
+        }
+      ],
+      "cpm.editorLibraries": [
+        {
+          "command": "cpm.library.createPack",
+          "group": "packs@1"
+        },
+        {
+          "command": "cpm.library.importPack",
+          "group": "packs@2"
+        },
+        {
+          "command": "cpm.library.managePacks",
+          "group": "packs@3"
+        },
+        {
+          "command": "cpm.library.openVisualEditor",
+          "group": "editor@1"
+        },
+        {
+          "command": "cpm.library.reloadPacks",
+          "group": "editor@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Project Manager",
+      "properties": {
+        "cpm.installations": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Known C/C++ toolchain root or bin directories detected or added manually.",
+          "markdownDescription": "Known C/C++ toolchain root or bin directories detected or added manually."
+        },
+        "cpm.activeInstallation": {
+          "type": "string",
+          "default": "",
+          "description": "Selected C/C++ toolchain root or bin directory. Leave empty to use automatic detection from PATH and common MinGW/MSYS2/Clang locations."
+        },
+        "cpm.buildMode": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "release",
+            "debug64",
+            "release64"
+          ],
+          "default": "debug",
+          "description": "Build mode used by the generic C/C++ build pipeline. Debug modes add -g -O0; release modes add -O2."
+        },
+        "cpm.runArguments": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Arguments passed to the active executable when running it."
+        },
+        "cpm.runOutputMode": {
+          "type": "string",
+          "enum": [
+            "integrated-terminal",
+            "output-channel",
+            "detached"
+          ],
+          "enumDescriptions": [
+            "Run the executable in a VS Code integrated terminal. Recommended for printf/std::cout and interactive stdin (scanf/std::cin).",
+            "Capture stdout and stderr in the C/C++ Project Manager - Program Output channel. Standard input is not interactive in this mode.",
+            "Launch in the background without capturing stdout/stderr, matching the legacy CPM behavior."
+          ],
+          "default": "integrated-terminal",
+          "description": "Where CPM displays stdout/stderr when running an executable outside the debugger."
+        },
+        "cpm.projectFormatVersion": {
+          "type": "number",
+          "default": 1200,
+          "minimum": 1,
+          "description": "Internal .cws/.prj format version used when generating new C/C++ Project Manager workspaces. Keep the default unless you need compatibility with a specific legacy parser."
+        },
+        "cpm.autoLoadWorkspace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically load a .cws file when the opened VS Code folder contains exactly one C/C++ workspace."
+        },
+        "cpm.autoConfigureCppTools": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically create or update the managed C/C++ Project Manager entry in .vscode/c_cpp_properties.json when a C/C++ workspace is opened or the selected installation changes. Disabled by default to avoid slowing Microsoft C/C++ IntelliSense; use the Sync IntelliSense command manually."
+        },
+        "cpm.autoAddCpmFolderToWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically add the precise C/C++ project root to the standard VS Code Explorer. Disabled by default to avoid unexpected workspace changes and large IntelliSense indexing scopes."
+        },
+        "cpm.intelliSenseCompilerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional explicit compiler executable used by Microsoft C/C++ IntelliSense. Leave empty to use the selected gcc/g++/clang toolchain."
+        },
+        "cpm.additionalIncludePaths": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional include directories appended to the generated C/C++ IntelliSense configuration."
+        },
+        "cpm.autocompleteProfile": {
+          "type": "string",
+          "enum": [
+            "hybrid",
+            "native",
+            "nativeSignature",
+            "standardAssist",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "Hybrid: CPM adds active-project symbols, lightweight standard-library assistance and immediate Signature Help. Microsoft C/C++ or another native provider may also contribute results.",
+            "Native: CPM contributes no completion items or Signature Help; Microsoft C/C++ (or another installed provider) remains untouched.",
+            "Native + CPM Signature Help: completion stays native while CPM provides immediate prototypes and active-parameter hints after ( and ,.",
+            "Standard Library Assist: project completion stays native; CPM adds missing-header standard-library completion plus immediate Signature Help.",
+            "Custom: use the advanced CPM completion/signature switches below."
+          ],
+          "default": "hybrid",
+          "description": "Select how CPM participates in C/C++ autocompletion. CPM never disables or rewrites another extension provider when switching profiles."
+        },
+        "cpm.enableSupplementalCompletionProvider": {
+          "type": "boolean",
+          "default": true,
+          "description": "Custom profile only: master switch for the CPM supplemental C/C++ completion provider. It is scoped to files belonging to the active CPM workspace."
+        },
+        "cpm.enableSupplementalProjectCompletion": {
+          "type": "boolean",
+          "default": true,
+          "description": "Custom profile only: include functions discovered in the active CPM project sources and headers in CPM completion."
+        },
+        "cpm.enableStandardLibraryCompletionProvider": {
+          "type": "boolean",
+          "default": true,
+          "description": "Custom profile only: include lightweight completion items for common C/C++ standard-library symbols when the matching header is not already included."
+        },
+        "cpm.enableSupplementalSignatureHelp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Custom profile only: show immediate parameter/signature help for project and standard-library functions after typing ( or , in CPM workspace files."
+        },
+        "cpm.standardLibraryCompletionAutoInclude": {
+          "type": "boolean",
+          "default": true,
+          "description": "When a standard-library completion item is accepted, insert the required #include if it is missing from the current file."
+        },
+        "cpm.showPersistentStatusBarActions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show compact C/C++ Project Manager actions in the VS Code status bar. These actions remain available when the C/C++ Workspace view is collapsed."
+        },
+        "cpm.cCompilerPath": {
+          "type": "string",
+          "default": "gcc",
+          "description": "C compiler executable used by the generic build pipeline, for example gcc or an absolute MinGW gcc.exe path."
+        },
+        "cpm.cppCompilerPath": {
+          "type": "string",
+          "default": "g++",
+          "description": "C++ compiler and linker executable used by the generic build pipeline, for example g++ or an absolute MinGW g++.exe path."
+        },
+        "cpm.archiverPath": {
+          "type": "string",
+          "default": "ar",
+          "description": "Static-library archiver executable used for Static Library targets."
+        },
+        "cpm.debuggerPath": {
+          "type": "string",
+          "default": "gdb",
+          "description": "GDB executable used when launching the VS Code cppdbg debugger."
+        },
+        "cpm.outputDirectory": {
+          "type": "string",
+          "default": "build",
+          "description": "Directory, relative to the project file by default, used to store generic compiler objects and fallback targets."
+        },
+        "cpm.cStandard": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "c89",
+            "c90",
+            "c99",
+            "c11",
+            "c17",
+            "gnu89",
+            "gnu99",
+            "gnu11",
+            "gnu17"
+          ],
+          "default": "auto",
+          "description": "C language standard passed as -std=<value>. auto does not pass a C standard flag."
+        },
+        "cpm.cppStandard": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "c++98",
+            "c++03",
+            "c++11",
+            "c++14",
+            "c++17",
+            "c++20",
+            "c++23",
+            "gnu++11",
+            "gnu++14",
+            "gnu++17",
+            "gnu++20",
+            "gnu++23"
+          ],
+          "default": "c++17",
+          "description": "C++ language standard passed as -std=<value>. auto does not pass a C++ standard flag."
+        },
+        "cpm.warningLevel": {
+          "type": "string",
+          "enum": [
+            "none",
+            "wall",
+            "wall-extra",
+            "wall-extra-pedantic",
+            "all"
+          ],
+          "default": "wall-extra",
+          "description": "Predefined warning profile used by the generic GCC/MinGW build pipeline. none passes no warning flag; all adds -Wall -Wextra -Wpedantic -Wconversion."
+        },
+        "cpm.optimizationLevel": {
+          "type": "string",
+          "enum": [
+            "mode-default",
+            "none",
+            "O0",
+            "Og",
+            "O1",
+            "O2",
+            "O3",
+            "Os",
+            "Ofast"
+          ],
+          "default": "mode-default",
+          "description": "Optimization profile used by the generic build pipeline. mode-default uses -O0 for Debug and -O2 for Release."
+        },
+        "cpm.debugInformation": {
+          "type": "string",
+          "enum": [
+            "mode-default",
+            "none",
+            "g",
+            "g3"
+          ],
+          "default": "mode-default",
+          "description": "Debug-information profile used by the generic build pipeline. mode-default adds -g only for Debug configurations."
+        },
+        "cpm.architectureMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "from-build-mode",
+            "m32",
+            "m64"
+          ],
+          "default": "auto",
+          "description": "Architecture flag mode. auto uses the selected compiler default; from-build-mode maps Debug/Release to -m32 and Debug64/Release64 to -m64."
+        },
+        "cpm.compilerFlags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional flags passed to both C and C++ compilation commands."
+        },
+        "cpm.cCompilerFlags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional flags passed only to C compilation commands."
+        },
+        "cpm.cppCompilerFlags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional flags passed only to C++ compilation commands."
+        },
+        "cpm.linkerFlags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional flags passed to the final link command."
+        },
+        "cpm.includePaths": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional include directories. Relative paths are resolved from the project file directory."
+        },
+        "cpm.libraryPaths": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional library search directories passed as -L entries. Relative paths are resolved from the project file directory."
+        },
+        "cpm.libraries": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional libraries passed to the linker. Values may be names such as m/ws2_32 or complete -l flags."
+        },
+        "cpm.defineSymbols": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Preprocessor symbols passed as -D entries."
+        },
+        "cpm.useBuildModeArchitectureFlags": {
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled, x86 modes add -m32 and x64 modes add -m64. Keep disabled if you select architecture by choosing a specific compiler path."
+        },
+        "cpm.runtimeDependencyMode": {
+          "type": "string",
+          "enum": [
+            "copy-dlls",
+            "path-only",
+            "static-link"
+          ],
+          "default": "copy-dlls",
+          "description": "Dynamic-runtime deployment policy. copy-dlls copies detected GCC/MinGW/MSYS2 and LLVM/Clang runtime DLLs beside the target; path-only uses the selected toolchain through PATH. The legacy static-link value is still accepted for migration, but new static builds should use the per-project Linkage mode in CPM Build Settings."
+        },
+        "cpm.deployRuntimeDlls": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "never",
+            "copy-dlls",
+            "path-only",
+            "static-link"
+          ],
+          "default": "auto",
+          "description": "Legacy setting for toolchain runtime DLL deployment. Prefer cpm.runtimeDependencyMode.",
+          "deprecationMessage": "Use cpm.runtimeDependencyMode instead. Legacy auto maps to copy-dlls and never maps to path-only."
+        },
+        "cpm.useLocalBuildCacheForOneDrive": {
+          "type": "boolean",
+          "default": true,
+          "description": "When the project is located under OneDrive and the normal object directory cannot be created, fall back to a local build cache for intermediate object files."
+        },
+        "cpm.cleanRuntimeDllsOnDeploy": {
+          "type": "boolean",
+          "default": true,
+          "description": "Before deploying toolchain runtime DLLs beside the target, remove stale or architecture-mismatched runtime DLLs managed by CPM from the target directory. This prevents x86/x64 runtime DLL mix-ups when switching build modes or toolchains."
+        },
+        "cpm.sdlInstallations": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Known SDL SDK root directories detected or added manually."
+        },
+        "cpm.sdlRootPath": {
+          "type": "string",
+          "default": "",
+          "description": "Selected SDL2/SDL3 SDK directory. This can be the SDK root, an architecture folder such as i686-w64-mingw32/x86_64-w64-mingw32, or a nested bin/lib/include/include\\SDL2 folder. Leave empty to let CPM auto-scan common SDK roots when a project uses SDL."
+        },
+        "cpm.sdlEnabled": {
+          "type": "string",
+          "enum": [
+            "off",
+            "auto",
+            "on"
+          ],
+          "default": "auto",
+          "description": "SDL build integration mode. off disables SDL flags; auto injects SDL only for projects that include or call SDL; on always injects SDL for active builds."
+        },
+        "cpm.sdlPackages": {
+          "type": "array",
+          "default": [
+            "SDL2"
+          ],
+          "items": {
+            "type": "string",
+            "enum": [
+              "SDL2",
+              "SDL2_image",
+              "SDL2_mixer",
+              "SDL2_ttf",
+              "SDL2_net",
+              "SDL2_gfx",
+              "SDL3",
+              "SDL3_image",
+              "SDL3_mixer",
+              "SDL3_ttf",
+              "SDL3_net"
+            ]
+          },
+          "description": "SDL packages linked by the generic build pipeline. SDL2 or SDL3 core is selected from cpm.sdlVersion; extension packages are added when selected and present in the SDK."
+        },
+        "cpm.sdlRuntimeMode": {
+          "type": "string",
+          "enum": [
+            "copy-dlls",
+            "path-only",
+            "static-link"
+          ],
+          "default": "copy-dlls",
+          "description": "How SDL runtime dependencies are handled. copy-dlls copies SDL2/SDL3 DLLs beside the executable; path-only prepends SDL bin to PATH at run/debug; static-link uses static SDL libraries when available."
+        },
+        "cpm.sdlSubsystem": {
+          "type": "string",
+          "enum": [
+            "windows",
+            "console"
+          ],
+          "default": "windows",
+          "description": "Windows subsystem used for SDL executable linking. windows hides the console with -mwindows; console keeps terminal output visible with -mconsole."
+        },
+        "cpm.sdlCopyAllRuntimeDlls": {
+          "type": "boolean",
+          "default": true,
+          "description": "When SDL runtime mode is copy-dlls, copy every DLL from the SDL bin directory. This helps SDL_image, SDL_ttf and similar packages that may depend on companion DLLs."
+        },
+        "cpm.sdlVersion": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "SDL2",
+            "SDL3"
+          ],
+          "default": "auto",
+          "description": "SDL major version used by the generic build pipeline. auto infers SDL2 or SDL3 from selected packages and source includes."
+        },
+        "cpm.buildLogDetail": {
+          "type": "string",
+          "default": "normal",
+          "enum": [
+            "compact",
+            "normal",
+            "verbose"
+          ],
+          "enumDescriptions": [
+            "Show phase summaries, warnings, errors and final status only.",
+            "Show phases, compiled files, timings, structured diagnostics, hints and final status without full compiler commands.",
+            "Show normal report plus full commands and successful raw output in the main output channel."
+          ],
+          "description": "Controls how much information the structured CPM build report shows in the main C/C++ Project Manager output channel. Full raw output is always preserved in C/C++ Project Manager - Build Trace."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "cpm.library.findFunction",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p"
+      },
+      {
+        "command": "cpm.insertSnippet",
+        "key": "ctrl+alt+i",
+        "mac": "cmd+alt+i",
+        "when": "editorTextFocus"
+      }
     ],
-    "main": "./out/extension.js",
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "npm run clean:out && tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "package": "vsce package",
-        "package:marketplace": "vsce package --allow-missing-repository",
-        "publish:marketplace": "vsce publish --allow-missing-repository",
-        "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.88.vsix",
-        "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
-    },
-    "contributes": {
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "cpm",
-                    "title": "PM",
-                    "icon": "media/cpm.svg"
-                }
-            ]
-        },
-        "views": {
-            "cpm": [
-                {
-                    "id": "cpm.workspaceExplorer",
-                    "name": "C/C++ Workspace",
-                    "contextualTitle": "C/C++ Workspace",
-                    "showCollapseAll": true
-                },
-                {
-                    "id": "cpm.quickActions",
-                    "name": "C/C++ Actions",
-                    "contextualTitle": "C/C++ Actions",
-                    "visibility": "visible",
-                    "showCollapseAll": false
-                },
-                {
-                    "id": "cpm.dependencies",
-                    "name": "C/C++ Dependencies",
-                    "contextualTitle": "C/C++ Dependencies",
-                    "showCollapseAll": false
-                },
-                {
-                    "id": "cpm.remoteLinux",
-                    "name": "C/C++ Remote Linux",
-                    "contextualTitle": "C/C++ Remote Linux",
-                    "showCollapseAll": false
-                },
-                {
-                    "id": "cpm.projectHealth",
-                    "name": "C/C++ Project Health",
-                    "contextualTitle": "C/C++ Project Health",
-                    "showCollapseAll": false
-                },
-                {
-                    "id": "cpm.fileSymbols",
-                    "name": "C/C++ File Symbols",
-                    "contextualTitle": "C/C++ File Symbols",
-                    "showCollapseAll": false
-                },
-                {
-                    "id": "cpm.libraryExplorer",
-                    "name": "C/C++ Libraries",
-                    "contextualTitle": "C/C++ Libraries",
-                    "showCollapseAll": true
-                }
-            ]
-        },
-        "viewsWelcome": [
-            {
-                "view": "cpm.workspaceExplorer",
-                "contents": "No C/C++ workspace is currently loaded.\n[Open a workspace](command:cpm.openWorkspace)\n[Create a workspace and project](command:cpm.createWorkspaceProject)\n[Open the home page](command:cpm.openHome)\n[Create SDL workspace and project](command:cpm.createSdlWorkspaceProject)"
-            }
-        ],
-        "commands": [
-            {
-                "command": "cpm.openHome",
-                "title": "Open Home",
-                "icon": "$(home)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openWorkspace",
-                "title": "Open Workspace or Project",
-                "icon": "$(folder-opened)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.createWorkspaceProject",
-                "title": "Create Workspace and Project",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.refresh",
-                "title": "Refresh Workspace",
-                "icon": "$(refresh)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.configureInstallation",
-                "title": "Detect / Select Toolchain",
-                "icon": "$(settings-gear)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.installSupportedToolchains",
-                "title": "Install / Manage Supported Toolchains",
-                "icon": "$(cloud-download)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectAutocompleteProfile",
-                "title": "Select Autocompletion Profile",
-                "icon": "$(settings-gear)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.syncCppTools",
-                "title": "Synchronize C/C++ IntelliSense Configuration",
-                "icon": "$(symbol-namespace)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.diagnoseCppTools",
-                "title": "Diagnose C/C++ IntelliSense Configuration",
-                "icon": "$(pulse)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.repairCppToolsProvider",
-                "title": "Repair C/C++ IntelliSense Provider Selection",
-                "icon": "$(wrench)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.enableAutomaticSuggestions",
-                "title": "Enable Automatic C/C++ Suggestions",
-                "icon": "$(sparkle)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.addWorkspaceFolderForIntelliSense",
-                "title": "Add Folder to VS Code Workspace for IntelliSense",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectBuildMode",
-                "title": "Select Build Mode",
-                "icon": "$(symbol-enum)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.build",
-                "title": "Build Active Project",
-                "icon": "$(tools)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.rebuild",
-                "title": "Rebuild Active Project",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.run",
-                "title": "Run",
-                "icon": "$(play)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.buildAndRun",
-                "title": "Build & Run",
-                "icon": "$(run-all)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openWorkspaceFile",
-                "title": "Open Workspace File",
-                "icon": "$(link-external)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.setActiveProject",
-                "title": "Set Active Project",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.buildProject",
-                "title": "Build",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.rebuildProject",
-                "title": "Rebuild",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.executeProject",
-                "title": "Run",
-                "icon": "$(play)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.buildAndRunProject",
-                "title": "Build & Run",
-                "category": "C/C++ Project Manager",
-                "icon": "$(run-all)"
-            },
-            {
-                "command": "cpm.editProjectFile",
-                "title": "Edit Project File...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openProjectFile",
-                "title": "Browse Project File...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.createProjectInWorkspace",
-                "title": "Create New Project in Workspace...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.addExistingProject",
-                "title": "Add Existing Project to Workspace",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.removeProject",
-                "title": "Remove Project From Workspace",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.addFiles",
-                "title": "Add Existing File...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.createNewFile",
-                "title": "Create New File or Starter...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.addFolder",
-                "title": "Add Folder...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.renameFolder",
-                "title": "Rename Folder...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.removeFolder",
-                "title": "Remove Folder",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.removeFile",
-                "title": "Remove File",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.excludeFile",
-                "title": "Exclude File from Build",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.includeFile",
-                "title": "Include File in Build",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.toggleObjOption",
-                "title": "Toggle .Obj Option",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.renameFile",
-                "title": "Rename File...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.moveFileToFolder",
-                "title": "Move File To Folder...",
-                "icon": "$(move)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.replaceFile",
-                "title": "Replace File in Project...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.compileFile",
-                "title": "Compile File",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.saveFile",
-                "title": "Save",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.saveAll",
-                "title": "Save All",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openFile",
-                "title": "Open",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openPanelFile",
-                "title": "Open UI/Resource File",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openFunctionPanel",
-                "title": "Open Function Panel",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.revealProjectFile",
-                "title": "Reveal Project File in Explorer",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.revealFile",
-                "title": "Browse File...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.copyFilePath",
-                "title": "Copy Path",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.copyRelativeFilePath",
-                "title": "Copy Relative Path",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.exploreProjectDirectory",
-                "title": "Explore Directory...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.exploreFolderDirectory",
-                "title": "Explore Directory...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.exploreFileDirectory",
-                "title": "Explore Directory...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.findProject",
-                "title": "Find...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.findFolder",
-                "title": "Find...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.findFile",
-                "title": "Find...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.expandAll",
-                "title": "Expand All",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.collapseAll",
-                "title": "Collapse All",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.runDebug",
-                "title": "Debug",
-                "category": "C/C++ Project Manager",
-                "icon": "$(debug-alt)"
-            },
-            {
-                "command": "cpm.runDebugProject",
-                "title": "Debug",
-                "category": "C/C++ Project Manager",
-                "icon": "$(debug-alt)"
-            },
-            {
-                "command": "cpm.debugWithGdb",
-                "title": "Build & Debug",
-                "category": "C/C++ Project Manager",
-                "icon": "$(debug-alt)"
-            },
-            {
-                "command": "cpm.debugProjectWithGdb",
-                "title": "Build & Debug",
-                "category": "C/C++ Project Manager",
-                "icon": "$(debug-alt)"
-            },
-            {
-                "command": "cpm.library.refresh",
-                "title": "Refresh Libraries",
-                "category": "C/C++ Project Manager",
-                "icon": "$(refresh)"
-            },
-            {
-                "command": "cpm.library.showFunctionDetails",
-                "title": "Show Symbol Details",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.insertCall",
-                "title": "Insert Symbol Call",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.findFunction",
-                "title": "Find Symbol",
-                "category": "C/C++ Project Manager",
-                "icon": "$(search)"
-            },
-            {
-                "command": "cpm.library.clearFind",
-                "title": "Clear Filter",
-                "category": "C/C++ Project Manager",
-                "icon": "$(clear-all)"
-            },
-            {
-                "command": "cpm.library.reloadPacks",
-                "title": "Reload Library Packs",
-                "category": "C/C++ Project Manager",
-                "icon": "$(sync)"
-            },
-            {
-                "command": "cpm.library.managePacks",
-                "title": "Manage Library Packs",
-                "category": "C/C++ Project Manager",
-                "icon": "$(package)"
-            },
-            {
-                "command": "cpm.library.importPack",
-                "title": "Import Library Pack...",
-                "category": "C/C++ Project Manager",
-                "icon": "$(folder-opened)"
-            },
-            {
-                "command": "cpm.library.createPack",
-                "title": "Create Library Pack...",
-                "category": "C/C++ Project Manager",
-                "icon": "$(new-file)"
-            },
-            {
-                "command": "cpm.library.openVisualEditor",
-                "title": "Open Visual Library Pack Editor",
-                "category": "C/C++ Project Manager",
-                "icon": "$(edit)"
-            },
-            {
-                "command": "cpm.library.generateHeader",
-                "title": "Generate Header From Library Pack",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.importSymbols",
-                "title": "Import Source/Header Into Library Pack",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.importPrototypes",
-                "title": "Import Prototypes Into Library Pack",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.importSnippetFile",
-                "title": "Import Snippet File Into Library Pack",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.addLanguageStarter",
-                "title": "Add Language Starter Into Library Pack",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.addContent",
-                "title": "Add Content To Library Pack",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.exportContent",
-                "title": "Export Content From Library Pack",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.library.deleteContent",
-                "title": "Delete Content From Library Pack",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.insertSnippet",
-                "title": "Insert snippet",
-                "category": "CPM",
-                "icon": "$(symbol-snippet)"
-            },
-            {
-                "command": "cpm.saveSelectionAsSnippet",
-                "title": "Save selection as snippet",
-                "category": "CPM"
-            },
-            {
-                "command": "cpm.manageSnippets",
-                "title": "Manage snippets...",
-                "category": "CPM"
-            },
-            {
-                "command": "cpm.insertFileHeader",
-                "title": "Insert file description header",
-                "category": "CPM",
-                "icon": "$(note)"
-            },
-            {
-                "command": "cpm.insertHeaderChangeEntry",
-                "title": "Insert header change line",
-                "category": "CPM",
-                "icon": "$(add)"
-            },
-            {
-                "command": "cpm.insertCommentSection",
-                "title": "Insert comment section",
-                "category": "CPM",
-                "icon": "$(symbol-string)"
-            },
-            {
-                "command": "cpm.insertSpecialCharacterText",
-                "title": "Insert special-character text",
-                "category": "CPM",
-                "icon": "$(symbol-string)"
-            },
-            {
-                "command": "cpm.insertColorValue",
-                "title": "Insert color value",
-                "category": "CPM",
-                "icon": "$(symbol-color)"
-            },
-            {
-                "command": "cpm.openDigitalFilterDesigner",
-                "title": "Open digital filter designer",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openTruthTableDesigner",
-                "title": "Open truth table / FSM designer",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openNumberConverter",
-                "title": "Open number / bit converter",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.convertSelectedNumbersToText",
-                "title": "Convert selected numbers to text",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.convertSelectedTextToDecimalValues",
-                "title": "Convert selected text to decimal values",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openCharacterTable",
-                "title": "Open character table / converter",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.saveFileAsTemplate",
-                "title": "Save as C/C++ Creation Template...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.importFileTemplate",
-                "title": "CPM: Import creation template from file...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.manageFileTemplates",
-                "title": "CPM: Manage creation templates...",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.chooseBuildAction",
-                "title": "Build / Rebuild / Clean Active Project",
-                "icon": "$(tools)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.clean",
-                "title": "Clean Active Project",
-                "icon": "$(trash)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.cleanProject",
-                "title": "Clean Generated Target",
-                "icon": "$(trash)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectTargetType",
-                "title": "Select Target Type...",
-                "icon": "$(symbol-enum)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.editBuildSettings",
-                "title": "Project Build Settings...",
-                "icon": "$(settings-gear)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.editBuildSettingsSafeMode",
-                "title": "Project Build Settings (Safe Mode)…",
-                "icon": "$(shield)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.generatePrototypes",
-                "title": "Generate Prototypes Header...",
-                "icon": "$(symbol-method)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.refreshFileSymbols",
-                "title": "Refresh Selected File Symbols",
-                "category": "C/C++ Project Manager",
-                "icon": "$(refresh)"
-            },
-            {
-                "command": "cpm.revealFileSymbol",
-                "title": "Reveal Function in Source",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.chooseRunAction",
-                "title": "Run Options...",
-                "icon": "$(list-selection)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.runWithoutBuild",
-                "title": "Run",
-                "category": "C/C++ Project Manager",
-                "icon": "$(play)"
-            },
-            {
-                "command": "cpm.selectBuildModeD32",
-                "title": "D32",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectBuildModeR32",
-                "title": "R32",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectBuildModeD64",
-                "title": "D64",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectBuildModeR64",
-                "title": "R64",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectTargetTypeEXE",
-                "title": "EXE",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectTargetTypeDLL",
-                "title": "DLL",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectTargetTypeLIB",
-                "title": "LIB",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.generateImportLibraryFromHeaders",
-                "title": "Generate Import Library (.lib) from Header(s)...",
-                "icon": "$(library)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.generateImportLibraryFromDll",
-                "title": "Generate DLL Import Library (.lib)...",
-                "icon": "$(library)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.extractDllDefinitionFile",
-                "title": "Extract DLL Exports (.def)...",
-                "icon": "$(file-code)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openImportLibraryReport",
-                "title": "Open Import Library Generation Report",
-                "icon": "$(output)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.analyzeDll",
-                "title": "Analyze DLL...",
-                "icon": "$(search)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.analyzeLibrary",
-                "title": "Analyze .a / .lib Library...",
-                "icon": "$(search)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.convertSelectedIntegerToDecimal",
-                "title": "Convert Selected Integer to Decimal",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.convertSelectedIntegerToHexadecimal",
-                "title": "Convert Selected Integer to Hexadecimal",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.convertSelectedIntegerToBinary",
-                "title": "Convert Selected Integer to Binary",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.configureSdl",
-                "title": "Detect / Select SDL2 or SDL3 SDK",
-                "icon": "$(window)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.createSdlWorkspaceProject",
-                "title": "Create SDL Workspace and Project",
-                "icon": "$(window)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.createSdlProjectInWorkspace",
-                "title": "Create New SDL Project in Workspace...",
-                "icon": "$(window)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.showBuildProblems",
-                "title": "Show Build Problems",
-                "category": "C/C++ Project Manager",
-                "icon": "$(warning)"
-            },
-            {
-                "command": "cpm.showFullBuildTrace",
-                "title": "Show Full Build Trace",
-                "category": "C/C++ Project Manager",
-                "icon": "$(output)"
-            },
-            {
-                "command": "cpm.copyFileSymbol",
-                "title": "Copy File Symbol Signature",
-                "category": "C/C++ Project Manager",
-                "icon": "$(copy)"
-            },
-            {
-                "command": "cpm.copyFileSymbolDeclaration",
-                "title": "Copy File Symbol Declaration",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.copyFileSymbols",
-                "title": "Copy File Symbols",
-                "category": "C/C++ Project Manager",
-                "icon": "$(copy)"
-            },
-            {
-                "command": "cpm.copyFileSymbolDeclarations",
-                "title": "Copy File Symbol Declarations",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.exportFileSymbols",
-                "title": "Export File Symbols...",
-                "category": "C/C++ Project Manager",
-                "icon": "$(export)"
-            },
-            {
-                "command": "cpm.generateFileSymbolsHeader",
-                "title": "Generate Header From File Symbols...",
-                "category": "C/C++ Project Manager",
-                "icon": "$(file-code)"
-            },
-            {
-                "command": "cpm.generateFileSymbolsSource",
-                "title": "Generate Source From File Symbols...",
-                "category": "C/C++ Project Manager",
-                "icon": "$(new-file)"
-            },
-            {
-                "command": "cpm.selectLinkageMode",
-                "title": "Select Linkage Mode",
-                "icon": "$(link)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.inspectRuntimeDependencies",
-                "title": "Inspect Built Runtime DLL Dependencies",
-                "icon": "$(search)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.refreshProjectHealth",
-                "title": "Refresh Project Health",
-                "icon": "$(refresh)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openProjectHealthReport",
-                "title": "Open Project Health Report",
-                "icon": "$(report)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.repairProjectHealth",
-                "title": "Repair Project Health...",
-                "icon": "$(wrench)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.dependencies.configure",
-                "title": "Configure Dependency Managers",
-                "icon": "$(settings-gear)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.dependencies.detectTools",
-                "title": "Detect Dependency Tools",
-                "icon": "$(search)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.dependencies.generateManifests",
-                "title": "Generate Dependency Manifests",
-                "icon": "$(file-code)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.dependencies.install",
-                "title": "Install / Synchronize Dependencies",
-                "icon": "$(cloud-download)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.dependencies.openReport",
-                "title": "Open Dependency Report",
-                "icon": "$(preview)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.dependencies.revealOutput",
-                "title": "Reveal Dependency Output",
-                "icon": "$(folder-opened)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.dependencies.clean",
-                "title": "Clean Dependency Output",
-                "icon": "$(trash)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.openSshDeviceManager",
-                "title": "OpenSSH Device Manager",
-                "icon": "$(remote-explorer)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.configure",
-                "title": "Configure Remote Linux / Raspberry Pi",
-                "icon": "$(settings-gear)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.testConnection",
-                "title": "Test Remote SSH Connection",
-                "icon": "$(plug)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.sync",
-                "title": "Synchronize Project to Remote Linux",
-                "icon": "$(sync)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.build",
-                "title": "Build on Remote Linux",
-                "icon": "$(tools)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.run",
-                "title": "Run on Remote Linux",
-                "icon": "$(run)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.buildRun",
-                "title": "Build and Run on Remote Linux",
-                "icon": "$(play)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.debug",
-                "title": "Debug on Remote Linux with gdbserver",
-                "icon": "$(debug-alt)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.openTerminal",
-                "title": "Open Remote SSH Terminal",
-                "icon": "$(terminal)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.remote.openReport",
-                "title": "Open Remote Linux Report",
-                "icon": "$(preview)",
-                "category": "C/C++ Project Manager"
-            },
-            {
-                "command": "cpm.selectBuildBackend",
-                "title": "Select Build Backend",
-                "category": "C/C++ Project Manager",
-                "icon": "$(gear)"
-            },
-            {
-                "command": "cpm.cmake.configure",
-                "title": "Configure CMake Project",
-                "category": "C/C++ Project Manager",
-                "icon": "$(gear)"
-            },
-            {
-                "command": "cpm.cmake.openReport",
-                "title": "Open CMake Backend Report",
-                "category": "C/C++ Project Manager",
-                "icon": "$(report)"
-            }
-        ],
-        "menus": {
-            "view/title": [
-                {
-                    "command": "cpm.openHome",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.openWorkspace",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.chooseBuildAction",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.run",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "cpm.runDebug",
-                    "when": "view == cpm.workspaceExplorer && cpm.targetType != lib",
-                    "group": "navigation@5"
-                },
-                {
-                    "command": "cpm.chooseRunAction",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@6"
-                },
-                {
-                    "command": "cpm.selectBuildModeD32",
-                    "when": "view == cpm.workspaceExplorer && cpm.buildMode == debug",
-                    "group": "navigation@7"
-                },
-                {
-                    "command": "cpm.selectBuildModeR32",
-                    "when": "view == cpm.workspaceExplorer && cpm.buildMode == release",
-                    "group": "navigation@7"
-                },
-                {
-                    "command": "cpm.selectBuildModeD64",
-                    "when": "view == cpm.workspaceExplorer && cpm.buildMode == debug64",
-                    "group": "navigation@7"
-                },
-                {
-                    "command": "cpm.selectBuildModeR64",
-                    "when": "view == cpm.workspaceExplorer && cpm.buildMode == release64",
-                    "group": "navigation@7"
-                },
-                {
-                    "command": "cpm.selectTargetTypeEXE",
-                    "when": "view == cpm.workspaceExplorer && cpm.targetType == exe",
-                    "group": "navigation@8"
-                },
-                {
-                    "command": "cpm.selectTargetTypeDLL",
-                    "when": "view == cpm.workspaceExplorer && cpm.targetType == dll",
-                    "group": "navigation@8"
-                },
-                {
-                    "command": "cpm.selectTargetTypeLIB",
-                    "when": "view == cpm.workspaceExplorer && cpm.targetType == lib",
-                    "group": "navigation@8"
-                },
-                {
-                    "command": "cpm.editBuildSettings",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@9"
-                },
-                {
-                    "command": "cpm.refresh",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@10"
-                },
-                {
-                    "command": "cpm.configureSdl",
-                    "when": "view == cpm.workspaceExplorer",
-                    "group": "navigation@9.5"
-                },
-                {
-                    "command": "cpm.library.findFunction",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.library.clearFind",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.library.createPack",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.library.importPack",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "cpm.library.managePacks",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@5"
-                },
-                {
-                    "command": "cpm.library.openVisualEditor",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@6"
-                },
-                {
-                    "command": "cpm.library.reloadPacks",
-                    "when": "view == cpm.libraryExplorer",
-                    "group": "navigation@7"
-                },
-                {
-                    "command": "cpm.refreshFileSymbols",
-                    "when": "view == cpm.fileSymbols",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.copyFileSymbols",
-                    "when": "view == cpm.fileSymbols",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.exportFileSymbols",
-                    "when": "view == cpm.fileSymbols",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.generateFileSymbolsHeader",
-                    "when": "view == cpm.fileSymbols",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "cpm.generateFileSymbolsSource",
-                    "when": "view == cpm.fileSymbols",
-                    "group": "navigation@5"
-                },
-                {
-                    "command": "cpm.refreshProjectHealth",
-                    "when": "view == cpm.projectHealth",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.openProjectHealthReport",
-                    "when": "view == cpm.projectHealth",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.repairProjectHealth",
-                    "when": "view == cpm.projectHealth",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.dependencies.configure",
-                    "when": "view == cpm.dependencies",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.dependencies.install",
-                    "when": "view == cpm.dependencies",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.dependencies.detectTools",
-                    "when": "view == cpm.dependencies",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.remote.testConnection",
-                    "when": "view == cpm.remoteLinux",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.remote.sync",
-                    "when": "view == cpm.remoteLinux",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.remote.buildRun",
-                    "when": "view == cpm.remoteLinux",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.remote.debug",
-                    "when": "view == cpm.remoteLinux",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "cpm.remote.configure",
-                    "when": "view == cpm.remoteLinux",
-                    "group": "navigation@5"
-                }
-            ],
-            "view/item/context": [
-                {
-                    "command": "cpm.openWorkspaceFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
-                    "group": "inline@1"
-                },
-                {
-                    "command": "cpm.createProjectInWorkspace",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
-                    "group": "modification@1"
-                },
-                {
-                    "command": "cpm.addExistingProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
-                    "group": "modification@2"
-                },
-                {
-                    "command": "cpm.saveAll",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "project@1"
-                },
-                {
-                    "command": "cpm.setActiveProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "project@2"
-                },
-                {
-                    "command": "cpm.editProjectFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@4"
-                },
-                {
-                    "command": "cpm.removeProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@6"
-                },
-                {
-                    "command": "cpm.addFolder",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "modification@1"
-                },
-                {
-                    "command": "cpm.addFiles",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "modification@2"
-                },
-                {
-                    "command": "cpm.createNewFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "modification@3"
-                },
-                {
-                    "command": "cpm.openProjectFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.revealProjectFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.exploreProjectDirectory",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.findProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "cpm.expandAll",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "navigation@5"
-                },
-                {
-                    "command": "cpm.collapseAll",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "navigation@6"
-                },
-                {
-                    "command": "cpm.renameFolder",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "modification@1"
-                },
-                {
-                    "command": "cpm.removeFolder",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "modification@2"
-                },
-                {
-                    "command": "cpm.addFolder",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "modification@3"
-                },
-                {
-                    "command": "cpm.addFiles",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "modification@4"
-                },
-                {
-                    "command": "cpm.createNewFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "modification@5"
-                },
-                {
-                    "command": "cpm.findFolder",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.exploreFolderDirectory",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.expandAll",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.collapseAll",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmFolder",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "cpm.openFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|library|other)\\./",
-                    "group": "inline@1"
-                },
-                {
-                    "command": "cpm.openPanelFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.panel\\./",
-                    "group": "inline@1"
-                },
-                {
-                    "command": "cpm.openFunctionPanel",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.functionPanel\\./",
-                    "group": "inline@1"
-                },
-                {
-                    "command": "cpm.saveFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|library|other)\\./",
-                    "group": "file@2"
-                },
-                {
-                    "command": "cpm.excludeFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.included\\./",
-                    "group": "build@1"
-                },
-                {
-                    "command": "cpm.includeFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.excluded\\./",
-                    "group": "build@1"
-                },
-                {
-                    "command": "cpm.toggleObjOption",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
-                    "group": "build@2"
-                },
-                {
-                    "command": "cpm.renameFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "modification@1"
-                },
-                {
-                    "command": "cpm.moveFileToFolder",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "modification@2"
-                },
-                {
-                    "command": "cpm.replaceFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "modification@3"
-                },
-                {
-                    "command": "cpm.removeFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "modification@4"
-                },
-                {
-                    "command": "cpm.compileFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
-                    "group": "build@3"
-                },
-                {
-                    "command": "cpm.copyFilePath",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "clipboard@1"
-                },
-                {
-                    "command": "cpm.copyRelativeFilePath",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "clipboard@2"
-                },
-                {
-                    "command": "cpm.revealFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.exploreFileDirectory",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "cpm.findFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "navigation@3"
-                },
-                {
-                    "command": "cpm.expandAll",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "cpm.collapseAll",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\./",
-                    "group": "navigation@5"
-                },
-                {
-                    "command": "cpm.library.insertCall",
-                    "when": "view == cpm.libraryExplorer && viewItem == cpmFunction",
-                    "group": "inline@9"
-                },
-                {
-                    "command": "cpm.saveFileAsTemplate",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.(source|header|other)\\./",
-                    "group": "modification@3"
-                },
-                {
-                    "command": "cpm.openWorkspaceFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "cpm.cleanProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@3"
-                },
-                {
-                    "command": "cpm.selectTargetType",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "settings@1"
-                },
-                {
-                    "command": "cpm.editBuildSettings",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "settings@2"
-                },
-                {
-                    "command": "cpm.editBuildSettingsSafeMode",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "settings@3"
-                },
-                {
-                    "command": "cpm.generatePrototypes",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.source\\./",
-                    "group": "build@4"
-                },
-                {
-                    "command": "cpm.generateImportLibraryFromHeaders",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\.header\\./",
-                    "group": "build@5"
-                },
-                {
-                    "command": "cpm.generateImportLibraryFromDll",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
-                    "group": "build@5"
-                },
-                {
-                    "command": "cpm.extractDllDefinitionFile",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
-                    "group": "build@6"
-                },
-                {
-                    "command": "cpm.analyzeDll",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-dll$/",
-                    "group": "build@7"
-                },
-                {
-                    "command": "cpm.analyzeLibrary",
-                    "when": "view == cpm.workspaceExplorer && viewItem =~ /^cpmFile\\..*\\.ext-(lib|a)$/",
-                    "group": "build@7.5"
-                },
-                {
-                    "command": "cpm.createSdlProjectInWorkspace",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmWorkspace",
-                    "group": "modification@1.5"
-                },
-                {
-                    "command": "cpm.copyFileSymbol",
-                    "when": "view == cpm.fileSymbols && viewItem == cpmFileSymbol",
-                    "group": "clipboard@1"
-                },
-                {
-                    "command": "cpm.copyFileSymbolDeclaration",
-                    "when": "view == cpm.fileSymbols && viewItem == cpmFileSymbol",
-                    "group": "clipboard@2"
-                },
-                {
-                    "command": "cpm.selectLinkageMode",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "settings@1.5"
-                },
-                {
-                    "command": "cpm.inspectRuntimeDependencies",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@3.5"
-                },
-                {
-                    "command": "cpm.remote.buildRun",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "remote@1"
-                },
-                {
-                    "command": "cpm.remote.debug",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "remote@2"
-                },
-                {
-                    "command": "cpm.remote.sync",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "remote@3"
-                },
-                {
-                    "command": "cpm.buildProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@1"
-                },
-                {
-                    "command": "cpm.rebuildProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "build@2"
-                },
-                {
-                    "command": "cpm.executeProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "run@1"
-                },
-                {
-                    "command": "cpm.runDebugProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "run@2"
-                },
-                {
-                    "command": "cpm.buildAndRunProject",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "run@3"
-                },
-                {
-                    "command": "cpm.debugProjectWithGdb",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "run@4"
-                },
-                {
-                    "command": "cpm.chooseRunAction",
-                    "when": "view == cpm.workspaceExplorer && viewItem == cpmProject",
-                    "group": "run@5"
-                }
-            ],
-            "commandPalette": [
-                {
-                    "command": "cpm.setActiveProject",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.buildProject",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.rebuildProject",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.executeProject",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.editProjectFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.openProjectFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.removeProject",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.addFiles",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.addFolder",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.renameFolder",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.removeFolder",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.removeFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.excludeFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.includeFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.toggleObjOption",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.renameFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.replaceFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.compileFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.saveFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.openFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.openPanelFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.revealProjectFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.revealFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.exploreProjectDirectory",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.exploreFolderDirectory",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.exploreFileDirectory",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.findProject",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.findFolder",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.findFile",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.debugProjectWithGdb",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.cleanProject",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.generatePrototypes",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.selectBuildModeD32",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.selectBuildModeR32",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.selectBuildModeD64",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.selectBuildModeR64",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.selectTargetTypeEXE",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.selectTargetTypeDLL",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.selectTargetTypeLIB",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.copyFilePath",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.copyRelativeFilePath",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.openFunctionPanel",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.moveFileToFolder",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.selectBuildBackend",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.runDebugProject",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.runWithoutBuild",
-                    "when": "false"
-                },
-                {
-                    "command": "cpm.buildAndRunProject",
-                    "when": "false"
-                }
-            ],
-            "editor/context": [
-                {
-                    "submenu": "cpm.editorRoot",
-                    "when": "editorLangId == c || editorLangId == cpp",
-                    "group": "modification@1"
-                }
-            ],
-            "cpm.convertSelectedInteger": [
-                {
-                    "command": "cpm.convertSelectedIntegerToDecimal",
-                    "when": "editorHasSelection",
-                    "group": "1_convert@1"
-                },
-                {
-                    "command": "cpm.convertSelectedIntegerToHexadecimal",
-                    "when": "editorHasSelection",
-                    "group": "1_convert@2"
-                },
-                {
-                    "command": "cpm.convertSelectedIntegerToBinary",
-                    "when": "editorHasSelection",
-                    "group": "1_convert@3"
-                }
-            ],
-            "cpm.editorRoot": [
-                {
-                    "submenu": "cpm.editorDocumentation",
-                    "group": "1_doc@1"
-                },
-                {
-                    "submenu": "cpm.editorSnippets",
-                    "group": "2_snippets@1"
-                },
-                {
-                    "submenu": "cpm.editorUtilities",
-                    "group": "3_tools@1"
-                },
-                {
-                    "submenu": "cpm.editorLibraries",
-                    "group": "4_libraries@1"
-                }
-            ],
-            "cpm.editorDocumentation": [
-                {
-                    "command": "cpm.insertFileHeader",
-                    "group": "1_header@1"
-                },
-                {
-                    "command": "cpm.insertHeaderChangeEntry",
-                    "group": "1_header@2"
-                },
-                {
-                    "command": "cpm.insertCommentSection",
-                    "group": "2_section@1"
-                },
-                {
-                    "command": "cpm.insertSpecialCharacterText",
-                    "group": "2_section@2"
-                }
-            ],
-            "cpm.editorSnippets": [
-                {
-                    "command": "cpm.insertSnippet",
-                    "group": "1_snippets@1"
-                },
-                {
-                    "command": "cpm.saveSelectionAsSnippet",
-                    "when": "editorHasSelection",
-                    "group": "1_snippets@2"
-                },
-                {
-                    "command": "cpm.manageSnippets",
-                    "group": "1_snippets@3"
-                }
-            ],
-            "cpm.editorUtilities": [
-                {
-                    "command": "cpm.insertColorValue",
-                    "group": "1_color@1"
-                },
-                {
-                    "submenu": "cpm.characterEncodingTools",
-                    "group": "2_encoding@1"
-                },
-                {
-                    "submenu": "cpm.numberBitTools",
-                    "group": "3_number@1"
-                },
-                {
-                    "submenu": "cpm.logicStateTools",
-                    "group": "4_logic@1"
-                },
-                {
-                    "submenu": "cpm.signalFilterTools",
-                    "group": "5_signal@1"
-                }
-            ],
-            "cpm.characterEncodingTools": [
-                {
-                    "command": "cpm.openCharacterTable",
-                    "group": "1_table@1"
-                },
-                {
-                    "command": "cpm.convertSelectedTextToDecimalValues",
-                    "when": "editorHasSelection",
-                    "group": "2_convert@1"
-                },
-                {
-                    "command": "cpm.convertSelectedNumbersToText",
-                    "when": "editorHasSelection",
-                    "group": "2_convert@2"
-                }
-            ],
-            "cpm.numberBitTools": [
-                {
-                    "command": "cpm.openNumberConverter",
-                    "group": "1_table@1"
-                },
-                {
-                    "submenu": "cpm.convertSelectedInteger",
-                    "when": "editorHasSelection",
-                    "group": "2_convert@1"
-                }
-            ],
-            "cpm.logicStateTools": [
-                {
-                    "command": "cpm.openTruthTableDesigner",
-                    "group": "1_logic@1"
-                }
-            ],
-            "cpm.signalFilterTools": [
-                {
-                    "command": "cpm.openDigitalFilterDesigner",
-                    "group": "1_filter@1"
-                }
-            ],
-            "cpm.editorLibraries": [
-                {
-                    "command": "cpm.library.createPack",
-                    "group": "packs@1"
-                },
-                {
-                    "command": "cpm.library.importPack",
-                    "group": "packs@2"
-                },
-                {
-                    "command": "cpm.library.managePacks",
-                    "group": "packs@3"
-                },
-                {
-                    "command": "cpm.library.openVisualEditor",
-                    "group": "editor@1"
-                },
-                {
-                    "command": "cpm.library.reloadPacks",
-                    "group": "editor@2"
-                }
-            ]
-        },
-        "configuration": {
-            "title": "Project Manager",
-            "properties": {
-                "cpm.installations": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Known C/C++ toolchain root or bin directories detected or added manually.",
-                    "markdownDescription": "Known C/C++ toolchain root or bin directories detected or added manually."
-                },
-                "cpm.activeInstallation": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Selected C/C++ toolchain root or bin directory. Leave empty to use automatic detection from PATH and common MinGW/MSYS2/Clang locations."
-                },
-                "cpm.buildMode": {
-                    "type": "string",
-                    "enum": [
-                        "debug",
-                        "release",
-                        "debug64",
-                        "release64"
-                    ],
-                    "default": "debug",
-                    "description": "Build mode used by the generic C/C++ build pipeline. Debug modes add -g -O0; release modes add -O2."
-                },
-                "cpm.runArguments": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Arguments passed to the active executable when running it."
-                },
-                "cpm.runOutputMode": {
-                    "type": "string",
-                    "enum": [
-                        "integrated-terminal",
-                        "output-channel",
-                        "detached"
-                    ],
-                    "enumDescriptions": [
-                        "Run the executable in a VS Code integrated terminal. Recommended for printf/std::cout and interactive stdin (scanf/std::cin).",
-                        "Capture stdout and stderr in the C/C++ Project Manager - Program Output channel. Standard input is not interactive in this mode.",
-                        "Launch in the background without capturing stdout/stderr, matching the legacy CPM behavior."
-                    ],
-                    "default": "integrated-terminal",
-                    "description": "Where CPM displays stdout/stderr when running an executable outside the debugger."
-                },
-                "cpm.projectFormatVersion": {
-                    "type": "number",
-                    "default": 1200,
-                    "minimum": 1,
-                    "description": "Internal .cws/.prj format version used when generating new C/C++ Project Manager workspaces. Keep the default unless you need compatibility with a specific legacy parser."
-                },
-                "cpm.autoLoadWorkspace": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Automatically load a .cws file when the opened VS Code folder contains exactly one C/C++ workspace."
-                },
-                "cpm.autoConfigureCppTools": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Automatically create or update the managed C/C++ Project Manager entry in .vscode/c_cpp_properties.json when a C/C++ workspace is opened or the selected installation changes. Disabled by default to avoid slowing Microsoft C/C++ IntelliSense; use the Sync IntelliSense command manually."
-                },
-                "cpm.autoAddCpmFolderToWorkspace": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Automatically add the precise C/C++ project root to the standard VS Code Explorer. Disabled by default to avoid unexpected workspace changes and large IntelliSense indexing scopes."
-                },
-                "cpm.intelliSenseCompilerPath": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Optional explicit compiler executable used by Microsoft C/C++ IntelliSense. Leave empty to use the selected gcc/g++/clang toolchain."
-                },
-                "cpm.additionalIncludePaths": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Additional include directories appended to the generated C/C++ IntelliSense configuration."
-                },
-                "cpm.autocompleteProfile": {
-                    "type": "string",
-                    "enum": [
-                        "hybrid",
-                        "native",
-                        "nativeSignature",
-                        "standardAssist",
-                        "custom"
-                    ],
-                    "enumDescriptions": [
-                        "Hybrid: CPM adds active-project symbols, lightweight standard-library assistance and immediate Signature Help. Microsoft C/C++ or another native provider may also contribute results.",
-                        "Native: CPM contributes no completion items or Signature Help; Microsoft C/C++ (or another installed provider) remains untouched.",
-                        "Native + CPM Signature Help: completion stays native while CPM provides immediate prototypes and active-parameter hints after ( and ,.",
-                        "Standard Library Assist: project completion stays native; CPM adds missing-header standard-library completion plus immediate Signature Help.",
-                        "Custom: use the advanced CPM completion/signature switches below."
-                    ],
-                    "default": "hybrid",
-                    "description": "Select how CPM participates in C/C++ autocompletion. CPM never disables or rewrites another extension provider when switching profiles."
-                },
-                "cpm.enableSupplementalCompletionProvider": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Custom profile only: master switch for the CPM supplemental C/C++ completion provider. It is scoped to files belonging to the active CPM workspace."
-                },
-                "cpm.enableSupplementalProjectCompletion": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Custom profile only: include functions discovered in the active CPM project sources and headers in CPM completion."
-                },
-                "cpm.enableStandardLibraryCompletionProvider": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Custom profile only: include lightweight completion items for common C/C++ standard-library symbols when the matching header is not already included."
-                },
-                "cpm.enableSupplementalSignatureHelp": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Custom profile only: show immediate parameter/signature help for project and standard-library functions after typing ( or , in CPM workspace files."
-                },
-                "cpm.standardLibraryCompletionAutoInclude": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "When a standard-library completion item is accepted, insert the required #include if it is missing from the current file."
-                },
-                "cpm.showPersistentStatusBarActions": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show compact C/C++ Project Manager actions in the VS Code status bar. These actions remain available when the C/C++ Workspace view is collapsed."
-                },
-                "cpm.cCompilerPath": {
-                    "type": "string",
-                    "default": "gcc",
-                    "description": "C compiler executable used by the generic build pipeline, for example gcc or an absolute MinGW gcc.exe path."
-                },
-                "cpm.cppCompilerPath": {
-                    "type": "string",
-                    "default": "g++",
-                    "description": "C++ compiler and linker executable used by the generic build pipeline, for example g++ or an absolute MinGW g++.exe path."
-                },
-                "cpm.archiverPath": {
-                    "type": "string",
-                    "default": "ar",
-                    "description": "Static-library archiver executable used for Static Library targets."
-                },
-                "cpm.debuggerPath": {
-                    "type": "string",
-                    "default": "gdb",
-                    "description": "GDB executable used when launching the VS Code cppdbg debugger."
-                },
-                "cpm.outputDirectory": {
-                    "type": "string",
-                    "default": "build",
-                    "description": "Directory, relative to the project file by default, used to store generic compiler objects and fallback targets."
-                },
-                "cpm.cStandard": {
-                    "type": "string",
-                    "enum": [
-                        "auto",
-                        "c89",
-                        "c90",
-                        "c99",
-                        "c11",
-                        "c17",
-                        "gnu89",
-                        "gnu99",
-                        "gnu11",
-                        "gnu17"
-                    ],
-                    "default": "auto",
-                    "description": "C language standard passed as -std=<value>. auto does not pass a C standard flag."
-                },
-                "cpm.cppStandard": {
-                    "type": "string",
-                    "enum": [
-                        "auto",
-                        "c++98",
-                        "c++03",
-                        "c++11",
-                        "c++14",
-                        "c++17",
-                        "c++20",
-                        "c++23",
-                        "gnu++11",
-                        "gnu++14",
-                        "gnu++17",
-                        "gnu++20",
-                        "gnu++23"
-                    ],
-                    "default": "c++17",
-                    "description": "C++ language standard passed as -std=<value>. auto does not pass a C++ standard flag."
-                },
-                "cpm.warningLevel": {
-                    "type": "string",
-                    "enum": [
-                        "none",
-                        "wall",
-                        "wall-extra",
-                        "wall-extra-pedantic",
-                        "all"
-                    ],
-                    "default": "wall-extra",
-                    "description": "Predefined warning profile used by the generic GCC/MinGW build pipeline. none passes no warning flag; all adds -Wall -Wextra -Wpedantic -Wconversion."
-                },
-                "cpm.optimizationLevel": {
-                    "type": "string",
-                    "enum": [
-                        "mode-default",
-                        "none",
-                        "O0",
-                        "Og",
-                        "O1",
-                        "O2",
-                        "O3",
-                        "Os",
-                        "Ofast"
-                    ],
-                    "default": "mode-default",
-                    "description": "Optimization profile used by the generic build pipeline. mode-default uses -O0 for Debug and -O2 for Release."
-                },
-                "cpm.debugInformation": {
-                    "type": "string",
-                    "enum": [
-                        "mode-default",
-                        "none",
-                        "g",
-                        "g3"
-                    ],
-                    "default": "mode-default",
-                    "description": "Debug-information profile used by the generic build pipeline. mode-default adds -g only for Debug configurations."
-                },
-                "cpm.architectureMode": {
-                    "type": "string",
-                    "enum": [
-                        "auto",
-                        "from-build-mode",
-                        "m32",
-                        "m64"
-                    ],
-                    "default": "auto",
-                    "description": "Architecture flag mode. auto uses the selected compiler default; from-build-mode maps Debug/Release to -m32 and Debug64/Release64 to -m64."
-                },
-                "cpm.compilerFlags": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Additional flags passed to both C and C++ compilation commands."
-                },
-                "cpm.cCompilerFlags": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Additional flags passed only to C compilation commands."
-                },
-                "cpm.cppCompilerFlags": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Additional flags passed only to C++ compilation commands."
-                },
-                "cpm.linkerFlags": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Additional flags passed to the final link command."
-                },
-                "cpm.includePaths": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Additional include directories. Relative paths are resolved from the project file directory."
-                },
-                "cpm.libraryPaths": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Additional library search directories passed as -L entries. Relative paths are resolved from the project file directory."
-                },
-                "cpm.libraries": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Additional libraries passed to the linker. Values may be names such as m/ws2_32 or complete -l flags."
-                },
-                "cpm.defineSymbols": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Preprocessor symbols passed as -D entries."
-                },
-                "cpm.useBuildModeArchitectureFlags": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "When enabled, x86 modes add -m32 and x64 modes add -m64. Keep disabled if you select architecture by choosing a specific compiler path."
-                },
-                "cpm.runtimeDependencyMode": {
-                    "type": "string",
-                    "enum": [
-                        "copy-dlls",
-                        "path-only",
-                        "static-link"
-                    ],
-                    "default": "copy-dlls",
-                    "description": "Dynamic-runtime deployment policy. copy-dlls copies detected GCC/MinGW/MSYS2 and LLVM/Clang runtime DLLs beside the target; path-only uses the selected toolchain through PATH. The legacy static-link value is still accepted for migration, but new static builds should use the per-project Linkage mode in CPM Build Settings."
-                },
-                "cpm.deployRuntimeDlls": {
-                    "type": "string",
-                    "enum": [
-                        "auto",
-                        "never",
-                        "copy-dlls",
-                        "path-only",
-                        "static-link"
-                    ],
-                    "default": "auto",
-                    "description": "Legacy setting for toolchain runtime DLL deployment. Prefer cpm.runtimeDependencyMode.",
-                    "deprecationMessage": "Use cpm.runtimeDependencyMode instead. Legacy auto maps to copy-dlls and never maps to path-only."
-                },
-                "cpm.useLocalBuildCacheForOneDrive": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "When the project is located under OneDrive and the normal object directory cannot be created, fall back to a local build cache for intermediate object files."
-                },
-                "cpm.cleanRuntimeDllsOnDeploy": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Before deploying toolchain runtime DLLs beside the target, remove stale or architecture-mismatched runtime DLLs managed by CPM from the target directory. This prevents x86/x64 runtime DLL mix-ups when switching build modes or toolchains."
-                },
-                "cpm.sdlInstallations": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Known SDL SDK root directories detected or added manually."
-                },
-                "cpm.sdlRootPath": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Selected SDL2/SDL3 SDK directory. This can be the SDK root, an architecture folder such as i686-w64-mingw32/x86_64-w64-mingw32, or a nested bin/lib/include/include\\SDL2 folder. Leave empty to let CPM auto-scan common SDK roots when a project uses SDL."
-                },
-                "cpm.sdlEnabled": {
-                    "type": "string",
-                    "enum": [
-                        "off",
-                        "auto",
-                        "on"
-                    ],
-                    "default": "auto",
-                    "description": "SDL build integration mode. off disables SDL flags; auto injects SDL only for projects that include or call SDL; on always injects SDL for active builds."
-                },
-                "cpm.sdlPackages": {
-                    "type": "array",
-                    "default": [
-                        "SDL2"
-                    ],
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "SDL2",
-                            "SDL2_image",
-                            "SDL2_mixer",
-                            "SDL2_ttf",
-                            "SDL2_net",
-                            "SDL2_gfx",
-                            "SDL3",
-                            "SDL3_image",
-                            "SDL3_mixer",
-                            "SDL3_ttf",
-                            "SDL3_net"
-                        ]
-                    },
-                    "description": "SDL packages linked by the generic build pipeline. SDL2 or SDL3 core is selected from cpm.sdlVersion; extension packages are added when selected and present in the SDK."
-                },
-                "cpm.sdlRuntimeMode": {
-                    "type": "string",
-                    "enum": [
-                        "copy-dlls",
-                        "path-only",
-                        "static-link"
-                    ],
-                    "default": "copy-dlls",
-                    "description": "How SDL runtime dependencies are handled. copy-dlls copies SDL2/SDL3 DLLs beside the executable; path-only prepends SDL bin to PATH at run/debug; static-link uses static SDL libraries when available."
-                },
-                "cpm.sdlSubsystem": {
-                    "type": "string",
-                    "enum": [
-                        "windows",
-                        "console"
-                    ],
-                    "default": "windows",
-                    "description": "Windows subsystem used for SDL executable linking. windows hides the console with -mwindows; console keeps terminal output visible with -mconsole."
-                },
-                "cpm.sdlCopyAllRuntimeDlls": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "When SDL runtime mode is copy-dlls, copy every DLL from the SDL bin directory. This helps SDL_image, SDL_ttf and similar packages that may depend on companion DLLs."
-                },
-                "cpm.sdlVersion": {
-                    "type": "string",
-                    "enum": [
-                        "auto",
-                        "SDL2",
-                        "SDL3"
-                    ],
-                    "default": "auto",
-                    "description": "SDL major version used by the generic build pipeline. auto infers SDL2 or SDL3 from selected packages and source includes."
-                },
-                "cpm.buildLogDetail": {
-                    "type": "string",
-                    "default": "normal",
-                    "enum": [
-                        "compact",
-                        "normal",
-                        "verbose"
-                    ],
-                    "enumDescriptions": [
-                        "Show phase summaries, warnings, errors and final status only.",
-                        "Show phases, compiled files, timings, structured diagnostics, hints and final status without full compiler commands.",
-                        "Show normal report plus full commands and successful raw output in the main output channel."
-                    ],
-                    "description": "Controls how much information the structured CPM build report shows in the main C/C++ Project Manager output channel. Full raw output is always preserved in C/C++ Project Manager - Build Trace."
-                }
-            }
-        },
-        "keybindings": [
-            {
-                "command": "cpm.library.findFunction",
-                "key": "ctrl+alt+p",
-                "mac": "cmd+alt+p"
-            },
-            {
-                "command": "cpm.insertSnippet",
-                "key": "ctrl+alt+i",
-                "mac": "cmd+alt+i",
-                "when": "editorTextFocus"
-            }
-        ],
-        "submenus": [
-            {
-                "id": "cpm.editorSnippets",
-                "label": "Snippets"
-            },
-            {
-                "id": "cpm.editorDocumentation",
-                "label": "Documentation / comments"
-            },
-            {
-                "id": "cpm.editorRoot",
-                "label": "CPM"
-            },
-            {
-                "id": "cpm.convertSelectedInteger",
-                "label": "Convert selected integer to"
-            },
-            {
-                "id": "cpm.editorUtilities",
-                "label": "Utilities"
-            },
-            {
-                "id": "cpm.characterEncodingTools",
-                "label": "Character / encoding tools"
-            },
-            {
-                "id": "cpm.numberBitTools",
-                "label": "Number / bit tools"
-            },
-            {
-                "id": "cpm.logicStateTools",
-                "label": "Logic / state tools"
-            },
-            {
-                "id": "cpm.signalFilterTools",
-                "label": "Signal / filter tools"
-            },
-            {
-                "id": "cpm.editorLibraries",
-                "label": "Libraries / packs"
-            }
-        ],
-        "breakpoints": [
-            {
-                "language": "c"
-            },
-            {
-                "language": "cpp"
-            }
-        ]
-    },
-    "devDependencies": {
-        "@types/node": "^22.10.0",
-        "@types/vscode": "^1.90.0",
-        "@vscode/vsce": "^3.2.1",
-        "typescript": "^5.7.2"
-    },
-    "icon": "media/cpm-marketplace.png"
+    "submenus": [
+      {
+        "id": "cpm.editorSnippets",
+        "label": "Snippets"
+      },
+      {
+        "id": "cpm.editorDocumentation",
+        "label": "Documentation / comments"
+      },
+      {
+        "id": "cpm.editorRoot",
+        "label": "CPM"
+      },
+      {
+        "id": "cpm.convertSelectedInteger",
+        "label": "Convert selected integer to"
+      },
+      {
+        "id": "cpm.editorUtilities",
+        "label": "Utilities"
+      },
+      {
+        "id": "cpm.characterEncodingTools",
+        "label": "Character / encoding tools"
+      },
+      {
+        "id": "cpm.numberBitTools",
+        "label": "Number / bit tools"
+      },
+      {
+        "id": "cpm.logicStateTools",
+        "label": "Logic / state tools"
+      },
+      {
+        "id": "cpm.signalFilterTools",
+        "label": "Signal / filter tools"
+      },
+      {
+        "id": "cpm.editorLibraries",
+        "label": "Libraries / packs"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "c"
+      },
+      {
+        "language": "cpp"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.1",
+    "typescript": "^5.7.2"
+  },
+  "icon": "media/cpm-marketplace.png"
 }

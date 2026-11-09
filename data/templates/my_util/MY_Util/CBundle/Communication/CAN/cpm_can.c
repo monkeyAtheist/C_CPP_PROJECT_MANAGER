@@ -1,510 +1,174 @@
-/**
- * @file cpm_can.c
- * @brief Implementation of the cpm_can C bundle.
- *
- * Generated bundle implementation. Public API semantics are documented in the matching header file.
- */
 #define _DEFAULT_SOURCE
 #include "cpm_can.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #if defined(__linux__)
 #include <errno.h>
-#include <fcntl.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #endif
 
-static char g_cpmCanLastError[256] = "";
+void CpmCan_Init(CpmCan *canBus) { if (canBus) { canBus->handle = -1; canBus->fdEnabled = 0; } }
 
-/**
- * @brief Implements the CpmCan_SetLastErrorText operation.
- * @param message See the matching header for semantic details.
- */
-static void CpmCan_SetLastErrorText(const char *message)
-{
-    if (message == NULL)
-        message = "CAN error";
-    strncpy(g_cpmCanLastError, message, sizeof(g_cpmCanLastError) - 1u);
-    g_cpmCanLastError[sizeof(g_cpmCanLastError) - 1u] = '\0';
-}
-
-/**
- * @brief Implements the CpmCan_CopyName operation.
- * @param dst See the matching header for semantic details.
- * @param dstSize See the matching header for semantic details.
- * @param src See the matching header for semantic details.
- */
-static void CpmCan_CopyName(char *dst, size_t dstSize, const char *src)
-{
-    if (dst == NULL || dstSize == 0u)
-        return;
-    if (src == NULL)
-        src = "";
-    strncpy(dst, src, dstSize - 1u);
-    dst[dstSize - 1u] = '\0';
-}
-
-/**
- * @brief Implements the CpmCan_InitBus operation.
- * @param bus See the matching header for semantic details.
- */
-void CpmCan_InitBus(CpmCanBus *bus)
-{
-    if (bus == NULL)
-        return;
-    bus->handle = -1;
-    bus->canFdEnabled = 0;
-    bus->interfaceName[0] = '\0';
-}
-
-/**
- * @brief Implements the CpmCan_InitFrame operation.
- * @param frame See the matching header for semantic details.
- */
-void CpmCan_InitFrame(CpmCanFrame *frame)
-{
-    if (frame == NULL)
-        return;
-    memset(frame, 0, sizeof(*frame));
-}
-
-/**
- * @brief Implements the CpmCan_SetData operation.
- * @param frame See the matching header for semantic details.
- * @param data See the matching header for semantic details.
- * @param size See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_SetData(CpmCanFrame *frame, const uint8_t *data, size_t size)
-{
-    if (frame == NULL || (data == NULL && size > 0u))
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-    if (size > CPM_CAN_MAX_DATA)
-        return CPM_CAN_ERROR_TRUNCATED;
-    if (!frame->isFd && size > 8u)
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-    if (size > 0u)
-        memcpy(frame->data, data, size);
-    frame->dlc = (uint8_t)size;
-    return CPM_CAN_OK;
-}
-
-/**
- * @brief Implements the CpmCan_MakeStandardId operation.
- * @param id11 See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-uint32_t CpmCan_MakeStandardId(uint16_t id11)
-{
-    return (uint32_t)(id11 & 0x07FFu);
-}
-
-/**
- * @brief Implements the CpmCan_MakeExtendedId operation.
- * @param id29 See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-uint32_t CpmCan_MakeExtendedId(uint32_t id29)
-{
-    return (uint32_t)(id29 & 0x1FFFFFFFu);
-}
-
-/**
- * @brief Implements the CpmCan_Open operation.
- * @param bus See the matching header for semantic details.
- * @param interfaceName See the matching header for semantic details.
- * @param enableCanFd See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_Open(CpmCanBus *bus, const char *interfaceName, int enableCanFd)
+int CpmCan_Open(CpmCan *canBus, const char *interfaceName, int enableFd)
 {
 #if defined(__linux__)
-    struct ifreq ifr;
-    struct sockaddr_can address;
     int fd;
-    int opt;
-
-    if (bus == NULL || interfaceName == NULL || interfaceName[0] == '\0')
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-
-    CpmCan_Close(bus);
-
+    struct ifreq ifr;
+    struct sockaddr_can addr;
+    int fdMode = enableFd ? 1 : 0;
+    if (!canBus || !interfaceName || !*interfaceName) return -1;
+    CpmCan_Close(canBus);
     fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (fd < 0)
-    {
-        CpmCan_SetLastErrorText("socket(PF_CAN, SOCK_RAW, CAN_RAW) failed");
-        return CPM_CAN_ERROR_SYSTEM;
-    }
-
-    memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, interfaceName, IFNAMSIZ - 1u);
-    if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0)
-    {
-        close(fd);
-        CpmCan_SetLastErrorText("CAN interface lookup failed");
-        return CPM_CAN_ERROR_SYSTEM;
-    }
-
-    if (enableCanFd)
-    {
-        opt = 1;
-        if (setsockopt(fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &opt, sizeof(opt)) < 0)
-        {
-            close(fd);
-            CpmCan_SetLastErrorText("CAN FD enable failed");
-            return CPM_CAN_ERROR_SYSTEM;
-        }
-    }
-
-    memset(&address, 0, sizeof(address));
-    address.can_family = AF_CAN;
-    address.can_ifindex = ifr.ifr_ifindex;
-
-    if (bind(fd, (struct sockaddr *)&address, sizeof(address)) < 0)
-    {
-        close(fd);
-        CpmCan_SetLastErrorText("CAN bind failed");
-        return CPM_CAN_ERROR_SYSTEM;
-    }
-
-    bus->handle = fd;
-    bus->canFdEnabled = enableCanFd ? 1 : 0;
-    CpmCan_CopyName(bus->interfaceName, sizeof(bus->interfaceName), interfaceName);
-    return CPM_CAN_OK;
+    if (fd < 0) return -2;
+    memset(&ifr, 0, sizeof(ifr)); snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), "%s", interfaceName);
+    if (ioctl(fd, SIOCGIFINDEX, &ifr) != 0) { close(fd); return -3; }
+    if (enableFd && setsockopt(fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &fdMode, sizeof(fdMode)) != 0) { close(fd); return -4; }
+    memset(&addr, 0, sizeof(addr)); addr.can_family = AF_CAN; addr.can_ifindex = ifr.ifr_ifindex;
+    if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) { close(fd); return -5; }
+    canBus->handle = fd; canBus->fdEnabled = enableFd ? 1 : 0; return 0;
 #else
-    (void)bus;
-    (void)interfaceName;
-    (void)enableCanFd;
-    CpmCan_SetLastErrorText("SocketCAN is not available on this platform in the default C bundle");
-    return CPM_CAN_ERROR_UNSUPPORTED;
+    (void)canBus; (void)interfaceName; (void)enableFd; return -2;
 #endif
 }
 
-/**
- * @brief Implements the CpmCan_Close operation.
- * @param bus See the matching header for semantic details.
- */
-void CpmCan_Close(CpmCanBus *bus)
+void CpmCan_Close(CpmCan *canBus)
 {
-    if (bus == NULL)
-        return;
+    if (!canBus) return;
 #if defined(__linux__)
-    if (bus->handle >= 0)
-        close(bus->handle);
+    if (canBus->handle >= 0) close(canBus->handle);
 #endif
-    bus->handle = -1;
-    bus->canFdEnabled = 0;
-    bus->interfaceName[0] = '\0';
+    CpmCan_Init(canBus);
 }
 
-/**
- * @brief Implements the CpmCan_IsOpen operation.
- * @param bus See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_IsOpen(const CpmCanBus *bus)
-{
-    return bus != NULL && bus->handle >= 0;
-}
-
-/**
- * @brief Implements the CpmCan_SetReceiveTimeout operation.
- * @param bus See the matching header for semantic details.
- * @param timeoutMs See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_SetReceiveTimeout(CpmCanBus *bus, int timeoutMs)
+int CpmCan_Send(CpmCan *canBus, const CpmCanFrame *frame)
 {
 #if defined(__linux__)
-    struct timeval timeout;
-    if (!CpmCan_IsOpen(bus) || timeoutMs < 0)
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-    timeout.tv_sec = timeoutMs / 1000;
-    timeout.tv_usec = (timeoutMs % 1000) * 1000;
-    if (setsockopt(bus->handle, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0)
-        return CPM_CAN_ERROR_SYSTEM;
-    return CPM_CAN_OK;
-#else
-    (void)bus;
-    (void)timeoutMs;
-    return CPM_CAN_ERROR_UNSUPPORTED;
-#endif
-}
-
-/**
- * @brief Implements the CpmCan_SetLoopback operation.
- * @param bus See the matching header for semantic details.
- * @param enabled See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_SetLoopback(CpmCanBus *bus, int enabled)
-{
-#if defined(__linux__)
-    int opt;
-    if (!CpmCan_IsOpen(bus))
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-    opt = enabled ? 1 : 0;
-    return setsockopt(bus->handle, SOL_CAN_RAW, CAN_RAW_LOOPBACK, &opt, sizeof(opt)) == 0
-        ? CPM_CAN_OK
-        : CPM_CAN_ERROR_SYSTEM;
-#else
-    (void)bus;
-    (void)enabled;
-    return CPM_CAN_ERROR_UNSUPPORTED;
-#endif
-}
-
-/**
- * @brief Implements the CpmCan_SetReceiveOwnMessages operation.
- * @param bus See the matching header for semantic details.
- * @param enabled See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_SetReceiveOwnMessages(CpmCanBus *bus, int enabled)
-{
-#if defined(__linux__)
-    int opt;
-    if (!CpmCan_IsOpen(bus))
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-    opt = enabled ? 1 : 0;
-    return setsockopt(bus->handle, SOL_CAN_RAW, CAN_RAW_RECV_OWN_MSGS, &opt, sizeof(opt)) == 0
-        ? CPM_CAN_OK
-        : CPM_CAN_ERROR_SYSTEM;
-#else
-    (void)bus;
-    (void)enabled;
-    return CPM_CAN_ERROR_UNSUPPORTED;
-#endif
-}
-
-/**
- * @brief Implements the CpmCan_SetFilters operation.
- * @param bus See the matching header for semantic details.
- * @param ids See the matching header for semantic details.
- * @param masks See the matching header for semantic details.
- * @param count See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_SetFilters(CpmCanBus *bus, const uint32_t *ids, const uint32_t *masks, size_t count)
-{
-#if defined(__linux__)
-    struct can_filter localFilters[32];
-    size_t i;
-    if (!CpmCan_IsOpen(bus) || ids == NULL || masks == NULL || count > 32u)
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-    for (i = 0; i < count; ++i)
-    {
-        localFilters[i].can_id = (canid_t)ids[i];
-        localFilters[i].can_mask = (canid_t)masks[i];
-    }
-    if (setsockopt(bus->handle, SOL_CAN_RAW, CAN_RAW_FILTER, localFilters, (socklen_t)(count * sizeof(localFilters[0]))) < 0)
-        return CPM_CAN_ERROR_SYSTEM;
-    return CPM_CAN_OK;
-#else
-    (void)bus;
-    (void)ids;
-    (void)masks;
-    (void)count;
-    return CPM_CAN_ERROR_UNSUPPORTED;
-#endif
-}
-
-/**
- * @brief Implements the CpmCan_ClearFilters operation.
- * @param bus See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_ClearFilters(CpmCanBus *bus)
-{
-#if defined(__linux__)
-    if (!CpmCan_IsOpen(bus))
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-    if (setsockopt(bus->handle, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0) < 0)
-        return CPM_CAN_ERROR_SYSTEM;
-    return CPM_CAN_OK;
-#else
-    (void)bus;
-    return CPM_CAN_ERROR_UNSUPPORTED;
-#endif
-}
-
-#if defined(__linux__)
-/**
- * @brief Implements the CpmCan_ToLinuxId operation.
- * @param frame See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-static canid_t CpmCan_ToLinuxId(const CpmCanFrame *frame)
-{
-    canid_t id = (canid_t)(frame->id & (frame->isExtended ? CAN_EFF_MASK : CAN_SFF_MASK));
-    if (frame->isExtended)
-        id |= CAN_EFF_FLAG;
-    if (frame->isRemote)
-        id |= CAN_RTR_FLAG;
-    if (frame->isError)
-        id |= CAN_ERR_FLAG;
-    return id;
-}
-
-/**
- * @brief Implements the CpmCan_FromLinuxId operation.
- * @param frame See the matching header for semantic details.
- * @param id See the matching header for semantic details.
- */
-static void CpmCan_FromLinuxId(CpmCanFrame *frame, canid_t id)
-{
-    frame->isExtended = (id & CAN_EFF_FLAG) ? 1u : 0u;
-    frame->isRemote = (id & CAN_RTR_FLAG) ? 1u : 0u;
-    frame->isError = (id & CAN_ERR_FLAG) ? 1u : 0u;
-    frame->id = frame->isExtended ? (uint32_t)(id & CAN_EFF_MASK) : (uint32_t)(id & CAN_SFF_MASK);
-}
-#endif
-
-/**
- * @brief Implements the CpmCan_Send operation.
- * @param bus See the matching header for semantic details.
- * @param frame See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_Send(CpmCanBus *bus, const CpmCanFrame *frame)
-{
-#if defined(__linux__)
-    ssize_t written;
-    if (!CpmCan_IsOpen(bus) || frame == NULL || frame->dlc > CPM_CAN_MAX_DATA || (!frame->isFd && frame->dlc > 8u))
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-
-    if (frame->isFd)
-    {
-        struct canfd_frame out;
-        if (!bus->canFdEnabled)
-            return CPM_CAN_ERROR_INVALID_ARGUMENT;
-        memset(&out, 0, sizeof(out));
-        out.can_id = CpmCan_ToLinuxId(frame);
-        out.len = frame->dlc;
-        if (frame->bitrateSwitch)
-            out.flags |= CANFD_BRS;
-        if (frame->errorStateIndicator)
-            out.flags |= CANFD_ESI;
-        memcpy(out.data, frame->data, frame->dlc);
-        written = write(bus->handle, &out, sizeof(out));
-        return written == (ssize_t)sizeof(out) ? CPM_CAN_OK : CPM_CAN_ERROR_SYSTEM;
-    }
-    else
-    {
-        struct can_frame out;
-        memset(&out, 0, sizeof(out));
-        out.can_id = CpmCan_ToLinuxId(frame);
-        out.can_dlc = frame->dlc;
-        memcpy(out.data, frame->data, frame->dlc);
-        written = write(bus->handle, &out, sizeof(out));
-        return written == (ssize_t)sizeof(out) ? CPM_CAN_OK : CPM_CAN_ERROR_SYSTEM;
+    canid_t id;
+    if (!canBus || canBus->handle < 0 || !frame || frame->length > 64) return -1;
+    id = frame->id | (frame->extended ? CAN_EFF_FLAG : 0) | (frame->remote ? CAN_RTR_FLAG : 0);
+    if (frame->fd || canBus->fdEnabled) {
+        struct canfd_frame nativeFrame; memset(&nativeFrame, 0, sizeof(nativeFrame)); nativeFrame.can_id = id; nativeFrame.len = frame->length; memcpy(nativeFrame.data, frame->data, frame->length);
+        return write(canBus->handle, &nativeFrame, sizeof(nativeFrame)) == (ssize_t)sizeof(nativeFrame) ? 0 : -2;
+    } else {
+        struct can_frame nativeFrame; if (frame->length > 8) return -3; memset(&nativeFrame, 0, sizeof(nativeFrame)); nativeFrame.can_id = id; nativeFrame.can_dlc = frame->length; memcpy(nativeFrame.data, frame->data, frame->length);
+        return write(canBus->handle, &nativeFrame, sizeof(nativeFrame)) == (ssize_t)sizeof(nativeFrame) ? 0 : -2;
     }
 #else
-    (void)bus;
-    (void)frame;
-    return CPM_CAN_ERROR_UNSUPPORTED;
+    (void)canBus; (void)frame; return -2;
 #endif
 }
 
-/**
- * @brief Implements the CpmCan_Receive operation.
- * @param bus See the matching header for semantic details.
- * @param frame See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmCan_Receive(CpmCanBus *bus, CpmCanFrame *frame)
+int CpmCan_Receive(CpmCan *canBus, CpmCanFrame *frame, int timeoutMs)
 {
 #if defined(__linux__)
-    uint8_t buffer[sizeof(struct canfd_frame)];
-    ssize_t received;
-    if (!CpmCan_IsOpen(bus) || frame == NULL)
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-
-    memset(buffer, 0, sizeof(buffer));
-    received = read(bus->handle, buffer, sizeof(buffer));
-    if (received < 0)
-    {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return CPM_CAN_ERROR_TIMEOUT;
-        return CPM_CAN_ERROR_SYSTEM;
+    fd_set set; struct timeval tv; int rc;
+    if (!canBus || canBus->handle < 0 || !frame) return -1;
+    FD_ZERO(&set); FD_SET(canBus->handle, &set); tv.tv_sec = timeoutMs < 0 ? 0 : timeoutMs / 1000; tv.tv_usec = timeoutMs < 0 ? 0 : (timeoutMs % 1000) * 1000;
+    rc = select(canBus->handle + 1, &set, NULL, NULL, timeoutMs < 0 ? NULL : &tv);
+    if (rc <= 0) return rc;
+    memset(frame, 0, sizeof(*frame));
+    if (canBus->fdEnabled) {
+        struct canfd_frame nativeFrame; ssize_t n = read(canBus->handle, &nativeFrame, sizeof(nativeFrame)); if (n < (ssize_t)sizeof(struct can_frame)) return -2;
+        frame->id = nativeFrame.can_id & (nativeFrame.can_id & CAN_EFF_FLAG ? CAN_EFF_MASK : CAN_SFF_MASK); frame->extended = !!(nativeFrame.can_id & CAN_EFF_FLAG); frame->remote = !!(nativeFrame.can_id & CAN_RTR_FLAG); frame->length = nativeFrame.len; frame->fd = n == (ssize_t)sizeof(struct canfd_frame); memcpy(frame->data, nativeFrame.data, frame->length); return 1;
+    } else {
+        struct can_frame nativeFrame; ssize_t n = read(canBus->handle, &nativeFrame, sizeof(nativeFrame)); if (n != (ssize_t)sizeof(nativeFrame)) return -2;
+        frame->id = nativeFrame.can_id & (nativeFrame.can_id & CAN_EFF_FLAG ? CAN_EFF_MASK : CAN_SFF_MASK); frame->extended = !!(nativeFrame.can_id & CAN_EFF_FLAG); frame->remote = !!(nativeFrame.can_id & CAN_RTR_FLAG); frame->length = nativeFrame.can_dlc; memcpy(frame->data, nativeFrame.data, frame->length); return 1;
     }
-
-    CpmCan_InitFrame(frame);
-    if (received == (ssize_t)sizeof(struct can_frame))
-    {
-        const struct can_frame *in = (const struct can_frame *)buffer;
-        CpmCan_FromLinuxId(frame, in->can_id);
-        frame->dlc = in->can_dlc;
-        memcpy(frame->data, in->data, frame->dlc);
-        return CPM_CAN_OK;
-    }
-    if (received == (ssize_t)sizeof(struct canfd_frame))
-    {
-        const struct canfd_frame *in = (const struct canfd_frame *)buffer;
-        CpmCan_FromLinuxId(frame, in->can_id);
-        frame->isFd = 1u;
-        frame->dlc = in->len;
-        frame->bitrateSwitch = (in->flags & CANFD_BRS) ? 1u : 0u;
-        frame->errorStateIndicator = (in->flags & CANFD_ESI) ? 1u : 0u;
-        memcpy(frame->data, in->data, frame->dlc);
-        return CPM_CAN_OK;
-    }
-    return CPM_CAN_ERROR_TRUNCATED;
 #else
-    (void)bus;
-    (void)frame;
-    return CPM_CAN_ERROR_UNSUPPORTED;
+    (void)canBus; (void)frame; (void)timeoutMs; return -2;
 #endif
 }
 
-/**
- * @brief Implements the CpmCan_FormatFrame operation.
- * @param frame See the matching header for semantic details.
- * @param buffer See the matching header for semantic details.
- * @param bufferSize See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
+int CpmCan_SetFilter(CpmCan *canBus, uint32_t id, uint32_t mask, int extended)
+{
+#if defined(__linux__)
+    struct can_filter filter;
+    if (!canBus || canBus->handle < 0) return -1;
+    filter.can_id = id | (extended ? CAN_EFF_FLAG : 0); filter.can_mask = mask | CAN_EFF_FLAG;
+    return setsockopt(canBus->handle, SOL_CAN_RAW, CAN_RAW_FILTER, &filter, sizeof(filter)) == 0 ? 0 : -2;
+#else
+    (void)canBus; (void)id; (void)mask; (void)extended; return -2;
+#endif
+}
+
+int CpmCan_SetLoopback(CpmCan *canBus, int enabled)
+{
+#if defined(__linux__)
+    int value = enabled ? 1 : 0; if (!canBus || canBus->handle < 0) return -1; return setsockopt(canBus->handle, SOL_CAN_RAW, CAN_RAW_LOOPBACK, &value, sizeof(value)) == 0 ? 0 : -2;
+#else
+    (void)canBus; (void)enabled; return -2;
+#endif
+}
+
+int CpmCan_SetReceiveOwnMessages(CpmCan *canBus, int enabled)
+{
+#if defined(__linux__)
+    int value = enabled ? 1 : 0; if (!canBus || canBus->handle < 0) return -1; return setsockopt(canBus->handle, SOL_CAN_RAW, CAN_RAW_RECV_OWN_MSGS, &value, sizeof(value)) == 0 ? 0 : -2;
+#else
+    (void)canBus; (void)enabled; return -2;
+#endif
+}
+
 int CpmCan_FormatFrame(const CpmCanFrame *frame, char *buffer, size_t bufferSize)
 {
-    size_t offset;
-    size_t i;
-    int written;
-
-    if (frame == NULL || buffer == NULL || bufferSize == 0u)
-        return CPM_CAN_ERROR_INVALID_ARGUMENT;
-
-    written = snprintf(buffer, bufferSize, "%s %08lX [%u]",
-                       frame->isFd ? "CANFD" : "CAN",
-                       (unsigned long)frame->id,
-                       (unsigned int)frame->dlc);
-    if (written < 0 || (size_t)written >= bufferSize)
-        return CPM_CAN_ERROR_TRUNCATED;
-    offset = (size_t)written;
-
-    for (i = 0u; i < frame->dlc && i < CPM_CAN_MAX_DATA; ++i)
-    {
-        written = snprintf(buffer + offset, bufferSize - offset, " %02X", (unsigned int)frame->data[i]);
-        if (written < 0 || (size_t)written >= bufferSize - offset)
-            return CPM_CAN_ERROR_TRUNCATED;
-        offset += (size_t)written;
-    }
-
-    return CPM_CAN_OK;
+    size_t used = 0; unsigned i;
+    if (!frame || !buffer || bufferSize == 0) return -1;
+    used = (size_t)snprintf(buffer, bufferSize, "%s0x%X [%u]", frame->extended ? "EXT " : "STD ", frame->id, (unsigned)frame->length);
+    for (i = 0; i < frame->length && used + 4 < bufferSize; ++i) used += (size_t)snprintf(buffer + used, bufferSize - used, " %02X", frame->data[i]);
+    return (int)used;
 }
 
-/**
- * @brief Implements the CpmCan_LastError operation.
- * @return See the matching header for status code or value semantics.
- */
-const char *CpmCan_LastError(void)
+int CpmCan_SetFilters(CpmCan *canBus, const CpmCanFilter *filters, size_t count)
 {
-    return g_cpmCanLastError;
+#if defined(__linux__)
+    struct can_filter *nativeFilters;
+    size_t i;
+    int rc;
+    if (!canBus || canBus->handle < 0 || (!filters && count)) return -1;
+    if (count == 0) return CpmCan_ClearFilters(canBus);
+    nativeFilters = (struct can_filter *)calloc(count, sizeof(*nativeFilters));
+    if (!nativeFilters) return -2;
+    for (i = 0; i < count; ++i)
+    {
+        nativeFilters[i].can_id = filters[i].id | (filters[i].extended ? CAN_EFF_FLAG : 0);
+        nativeFilters[i].can_mask = filters[i].mask | CAN_EFF_FLAG;
+    }
+    rc = setsockopt(canBus->handle, SOL_CAN_RAW, CAN_RAW_FILTER, nativeFilters, (socklen_t)(count * sizeof(*nativeFilters))) == 0 ? 0 : -3;
+    free(nativeFilters);
+    return rc;
+#else
+    (void)canBus; (void)filters; (void)count; return -2;
+#endif
+}
+
+int CpmCan_ClearFilters(CpmCan *canBus)
+{
+#if defined(__linux__)
+    struct can_filter acceptAll;
+    if (!canBus || canBus->handle < 0) return -1;
+    memset(&acceptAll, 0, sizeof(acceptAll));
+    return setsockopt(canBus->handle, SOL_CAN_RAW, CAN_RAW_FILTER, &acceptAll, sizeof(acceptAll)) == 0 ? 0 : -2;
+#else
+    (void)canBus; return -2;
+#endif
+}
+
+int CpmCan_SetErrorMask(CpmCan *canBus, uint32_t errorMask)
+{
+#if defined(__linux__)
+    can_err_mask_t mask = (can_err_mask_t)errorMask;
+    if (!canBus || canBus->handle < 0) return -1;
+    return setsockopt(canBus->handle, SOL_CAN_RAW, CAN_RAW_ERR_FILTER, &mask, sizeof(mask)) == 0 ? 0 : -2;
+#else
+    (void)canBus; (void)errorMask; return -2;
+#endif
 }

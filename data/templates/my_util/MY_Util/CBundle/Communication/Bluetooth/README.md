@@ -1,13 +1,10 @@
-# CPM C Bluetooth RFCOMM bundle
+# CPM Bluetooth Classic / RFCOMM bundle
 
-This module provides a small C interface for Bluetooth Classic RFCOMM client communication.
+Windows-first RFCOMM client wrapper using Winsock Bluetooth sockets.
 
-Current scope:
+Features:
+- connection timeout;
+- raw send/receive;
+- send-all, receive-exact and line helpers.
 
-- Windows RFCOMM client through Winsock Bluetooth (`AF_BTH`, `BTHPROTO_RFCOMM`)
-- Send/receive helpers once connected
-- Clear unsupported return code on non-Windows platforms in the default template
-
-Bluetooth Low Energy is not included because BLE uses a GATT/service/characteristic model that is substantially different from RFCOMM streams.
-
-Windows link dependency: `ws2_32`.
+BLE/GATT is deliberately not implemented here because Windows GATT access uses WinRT rather than RFCOMM sockets. Use CPM Network & Wireless Diagnostics for BLE discovery/GATT inspection, or add a platform-specific BLE backend to your project.

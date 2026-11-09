@@ -1,224 +1,148 @@
-/**
- * @file cpm_bluetooth.c
- * @brief Implementation of the cpm_bluetooth C bundle.
- *
- * Generated bundle implementation. Public API semantics are documented in the matching header file.
- */
 #include "cpm_bluetooth.h"
-
-#include <stdio.h>
 #include <string.h>
 
-#ifndef _WIN32
-#  include <unistd.h>
-#  define INVALID_SOCKET (-1)
-#  define SOCKET_ERROR (-1)
-#endif
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2bth.h>
+#include <ws2tcpip.h>
+#include <stdio.h>
 
-static char g_cpmBluetoothLastError[256] = "";
-
-/**
- * @brief Implements the CpmBluetooth_SetLastError operation.
- * @param message See the matching header for semantic details.
- */
-static void CpmBluetooth_SetLastError(const char *message)
-{
-    if (message == NULL)
-        message = "Bluetooth error";
-    strncpy(g_cpmBluetoothLastError, message, sizeof(g_cpmBluetoothLastError) - 1);
-    g_cpmBluetoothLastError[sizeof(g_cpmBluetoothLastError) - 1] = '\0';
-}
-
-/**
- * @brief Implements the CpmBluetooth_Init operation.
- * @param link See the matching header for semantic details.
- */
-void CpmBluetooth_Init(CpmBluetoothLink *link)
-{
-    if (link == NULL)
-        return;
-    link->handle = INVALID_SOCKET;
-    link->isOpen = 0;
-}
-
-/**
- * @brief Implements the CpmBluetooth_InitLibrary operation.
- * @return See the matching header for status code or value semantics.
- */
-int CpmBluetooth_InitLibrary(void)
-{
-#ifdef _WIN32
-    WSADATA data;
-    if (WSAStartup(MAKEWORD(2, 2), &data) != 0)
-    {
-        CpmBluetooth_SetLastError("WSAStartup failed");
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-/**
- * @brief Implements the CpmBluetooth_ShutdownLibrary operation.
- */
-void CpmBluetooth_ShutdownLibrary(void)
-{
-#ifdef _WIN32
-    WSACleanup();
-#endif
-}
-
-#ifdef _WIN32
-/**
- * @brief Implements the CpmBluetooth_ParseAddress operation.
- * @param text See the matching header for semantic details.
- * @param address See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
 static int CpmBluetooth_ParseAddress(const char *text, BTH_ADDR *address)
 {
-    if (text == NULL || address == NULL)
-        return -1;
-    unsigned int b[6] = {0, 0, 0, 0, 0, 0};
-    int count = sscanf(text, "%x:%x:%x:%x:%x:%x", &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]);
-    if (count != 6)
-        count = sscanf(text, "%2x%2x%2x%2x%2x%2x", &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]);
-    if (count != 6)
-        return -2;
-    *address = 0;
-    for (int i = 0; i < 6; ++i)
-        *address |= ((BTH_ADDR)(b[i] & 0xFFu)) << (8 * i);
+    unsigned int b[6];
+    if (!text || !address) return -1;
+    if (sscanf(text, "%x:%x:%x:%x:%x:%x", &b[0], &b[1], &b[2], &b[3], &b[4], &b[5]) != 6 &&
+        sscanf(text, "%x-%x-%x-%x-%x-%x", &b[0], &b[1], &b[2], &b[3], &b[4], &b[5]) != 6) return -1;
+    *address = ((BTH_ADDR)b[0] << 40) | ((BTH_ADDR)b[1] << 32) | ((BTH_ADDR)b[2] << 24) |
+               ((BTH_ADDR)b[3] << 16) | ((BTH_ADDR)b[4] << 8) | (BTH_ADDR)b[5];
     return 0;
+}
+
+static int CpmBluetooth_SetBlocking(SOCKET s, int blocking)
+{
+    u_long mode = blocking ? 0UL : 1UL;
+    return ioctlsocket(s, FIONBIO, &mode) == 0 ? 0 : -1;
 }
 #endif
 
-/**
- * @brief Implements the CpmBluetooth_OpenRfcommClient operation.
- * @param link See the matching header for semantic details.
- * @param address See the matching header for semantic details.
- * @param channel See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmBluetooth_OpenRfcommClient(CpmBluetoothLink *link, const char *address, unsigned int channel)
+int CpmBluetooth_Startup(void)
 {
-    if (link == NULL)
-        return -1;
-    CpmBluetooth_Close(link);
-#ifdef _WIN32
-    BTH_ADDR remoteAddress = 0;
-    if (CpmBluetooth_ParseAddress(address, &remoteAddress) != 0)
-    {
-        CpmBluetooth_SetLastError("invalid Bluetooth address");
-        return -2;
-    }
-    SOCKET s = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
-    if (s == INVALID_SOCKET)
-    {
-        CpmBluetooth_SetLastError("Bluetooth socket failed");
-        return -3;
-    }
-    SOCKADDR_BTH remote;
-    memset(&remote, 0, sizeof(remote));
-    remote.addressFamily = AF_BTH;
-    remote.btAddr = remoteAddress;
-    remote.port = channel;
-    if (connect(s, (const struct sockaddr *)&remote, sizeof(remote)) == SOCKET_ERROR)
-    {
-        closesocket(s);
-        CpmBluetooth_SetLastError("Bluetooth RFCOMM connect failed");
-        return -4;
-    }
-    link->handle = s;
-    link->isOpen = 1;
-    return 0;
+#if defined(_WIN32)
+    WSADATA data;
+    return WSAStartup(MAKEWORD(2, 2), &data) == 0 ? 0 : -1;
 #else
-    (void)address;
-    (void)channel;
-    CpmBluetooth_SetLastError("Bluetooth RFCOMM is not implemented on this platform in the default C bundle");
     return -2;
 #endif
 }
 
-/**
- * @brief Implements the CpmBluetooth_Send operation.
- * @param link See the matching header for semantic details.
- * @param data See the matching header for semantic details.
- * @param size See the matching header for semantic details.
- * @param sent See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmBluetooth_Send(CpmBluetoothLink *link, const void *data, size_t size, size_t *sent)
+void CpmBluetooth_Cleanup(void)
 {
-    if (!CpmBluetooth_IsOpen(link) || data == NULL)
-        return -1;
-#ifdef _WIN32
-    int ret = send(link->handle, (const char *)data, (int)size, 0);
-#else
-    int ret = (int)write(link->handle, data, size);
+#if defined(_WIN32)
+    WSACleanup();
 #endif
-    if (ret < 0)
-        return -2;
-    if (sent != NULL)
-        *sent = (size_t)ret;
-    return 0;
 }
 
-/**
- * @brief Implements the CpmBluetooth_Receive operation.
- * @param link See the matching header for semantic details.
- * @param buffer See the matching header for semantic details.
- * @param bufferSize See the matching header for semantic details.
- * @param received See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmBluetooth_Receive(CpmBluetoothLink *link, void *buffer, size_t bufferSize, size_t *received)
+CpmBluetoothHandle CpmBluetooth_RfcommConnect(const char *bluetoothAddress, uint32_t channel, int timeoutMs)
 {
-    if (!CpmBluetooth_IsOpen(link) || buffer == NULL || bufferSize == 0)
-        return -1;
-#ifdef _WIN32
-    int ret = recv(link->handle, (char *)buffer, (int)bufferSize, 0);
+#if defined(_WIN32)
+    SOCKET s;
+    SOCKADDR_BTH addr;
+    BTH_ADDR parsed;
+    if (CpmBluetooth_ParseAddress(bluetoothAddress, &parsed) != 0) return CPM_BLUETOOTH_INVALID;
+    s = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
+    if (s == INVALID_SOCKET) return CPM_BLUETOOTH_INVALID;
+    memset(&addr, 0, sizeof(addr)); addr.addressFamily = AF_BTH; addr.btAddr = parsed; addr.port = channel;
+    if (timeoutMs >= 0)
+    {
+        fd_set set; struct timeval tv; int rc; int error = 0; int errorLen = sizeof(error);
+        if (CpmBluetooth_SetBlocking(s, 0) != 0) { closesocket(s); return CPM_BLUETOOTH_INVALID; }
+        if (connect(s, (SOCKADDR *)&addr, sizeof(addr)) != 0 && WSAGetLastError() != WSAEWOULDBLOCK) { closesocket(s); return CPM_BLUETOOTH_INVALID; }
+        FD_ZERO(&set); FD_SET(s, &set); tv.tv_sec = timeoutMs / 1000; tv.tv_usec = (timeoutMs % 1000) * 1000;
+        rc = select(0, NULL, &set, NULL, &tv);
+        if (rc <= 0 || getsockopt(s, SOL_SOCKET, SO_ERROR, (char *)&error, &errorLen) != 0 || error != 0) { closesocket(s); return CPM_BLUETOOTH_INVALID; }
+        (void)CpmBluetooth_SetBlocking(s, 1);
+    }
+    else if (connect(s, (SOCKADDR *)&addr, sizeof(addr)) != 0) { closesocket(s); return CPM_BLUETOOTH_INVALID; }
+    return (CpmBluetoothHandle)s;
 #else
-    int ret = (int)read(link->handle, buffer, bufferSize);
+    (void)bluetoothAddress; (void)channel; (void)timeoutMs;
+    return CPM_BLUETOOTH_INVALID;
 #endif
-    if (ret < 0)
-        return -2;
-    if (received != NULL)
-        *received = (size_t)ret;
-    return ret == 0 ? 1 : 0;
 }
 
-/**
- * @brief Implements the CpmBluetooth_Close operation.
- * @param link See the matching header for semantic details.
- */
-void CpmBluetooth_Close(CpmBluetoothLink *link)
+int CpmBluetooth_Send(CpmBluetoothHandle handle, const void *data, size_t size)
 {
-    if (link == NULL || !link->isOpen)
-        return;
-#ifdef _WIN32
-    closesocket(link->handle);
+#if defined(_WIN32)
+    return (handle != CPM_BLUETOOTH_INVALID && (data || size == 0)) ? send((SOCKET)handle, (const char *)data, (int)size, 0) : -1;
 #else
-    close(link->handle);
+    (void)handle; (void)data; (void)size; return -2;
 #endif
-    link->handle = INVALID_SOCKET;
-    link->isOpen = 0;
 }
 
-/**
- * @brief Implements the CpmBluetooth_IsOpen operation.
- * @param link See the matching header for semantic details.
- * @return See the matching header for status code or value semantics.
- */
-int CpmBluetooth_IsOpen(const CpmBluetoothLink *link)
+int CpmBluetooth_SendAll(CpmBluetoothHandle handle, const void *data, size_t size)
 {
-    return link != NULL && link->isOpen;
+    const unsigned char *bytes = (const unsigned char *)data;
+    size_t total = 0;
+    if (handle == CPM_BLUETOOTH_INVALID || (!data && size)) return -1;
+    while (total < size)
+    {
+        int n = CpmBluetooth_Send(handle, bytes + total, size - total);
+        if (n <= 0) return n < 0 ? n : -2;
+        total += (size_t)n;
+    }
+    return (int)total;
 }
 
-/**
- * @brief Implements the CpmBluetooth_LastError operation.
- * @return See the matching header for status code or value semantics.
- */
-const char *CpmBluetooth_LastError(void)
+int CpmBluetooth_Receive(CpmBluetoothHandle handle, void *data, size_t size, int timeoutMs)
 {
-    return g_cpmBluetoothLastError;
+#if defined(_WIN32)
+    fd_set set; struct timeval tv; int rc;
+    if (handle == CPM_BLUETOOTH_INVALID || !data || size == 0) return -1;
+    FD_ZERO(&set); FD_SET((SOCKET)handle, &set);
+    tv.tv_sec = timeoutMs < 0 ? 0 : timeoutMs / 1000;
+    tv.tv_usec = timeoutMs < 0 ? 0 : (timeoutMs % 1000) * 1000;
+    rc = select(0, &set, NULL, NULL, timeoutMs < 0 ? NULL : &tv);
+    return rc <= 0 ? rc : recv((SOCKET)handle, (char *)data, (int)size, 0);
+#else
+    (void)handle; (void)data; (void)size; (void)timeoutMs; return -2;
+#endif
+}
+
+int CpmBluetooth_ReceiveExact(CpmBluetoothHandle handle, void *data, size_t size, int timeoutMs)
+{
+    unsigned char *bytes = (unsigned char *)data;
+    size_t total = 0;
+    if (!data || size == 0) return -1;
+    while (total < size)
+    {
+        int n = CpmBluetooth_Receive(handle, bytes + total, size - total, timeoutMs);
+        if (n <= 0) return total ? (int)total : n;
+        total += (size_t)n;
+    }
+    return (int)total;
+}
+
+int CpmBluetooth_ReadLine(CpmBluetoothHandle handle, char *buffer, size_t bufferSize, int timeoutMs)
+{
+    size_t used = 0;
+    if (!buffer || bufferSize == 0) return -1;
+    while (used + 1 < bufferSize)
+    {
+        char ch;
+        int rc = CpmBluetooth_Receive(handle, &ch, 1, timeoutMs);
+        if (rc <= 0) { buffer[used] = '\0'; return used ? (int)used : rc; }
+        if (ch == '\n') break;
+        if (ch != '\r') buffer[used++] = ch;
+    }
+    buffer[used] = '\0';
+    return (int)used;
+}
+
+void CpmBluetooth_Close(CpmBluetoothHandle handle)
+{
+#if defined(_WIN32)
+    if (handle != CPM_BLUETOOTH_INVALID) closesocket((SOCKET)handle);
+#else
+    (void)handle;
+#endif
 }

@@ -25,10 +25,14 @@ import { CpmColorValueService } from './services/cpmColorValueService';
 import { CpmEditorUtilitiesService } from './services/cpmEditorUtilitiesService';
 import { CpmDependencyService } from './services/cpmDependencyService';
 import { CpmRemoteLinuxService } from './services/cpmRemoteLinuxService';
-import { openSshDeviceManager } from './services/cpmSshDeviceManager';
 import { CpmCMakeService } from './services/cpmCMakeService';
 import { CpmToolchainInstallerService } from './services/cpmToolchainInstallerService';
 import { CpmImportLibraryService } from './services/cpmImportLibraryService';
+import { CpmInstrumentService } from './services/cpmInstrumentService';
+import { InstrumentDiagnosticsPanel } from './views/instrumentDiagnosticsPanel';
+import { CpmNetworkDiagnosticsService } from './services/cpmNetworkDiagnosticsService';
+import { NetworkDiagnosticsPanel } from './views/networkDiagnosticsPanel';
+import { CpmDeviceEndpoint, CpmDeviceRegistry } from './services/cpmDeviceRegistry';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
@@ -45,6 +49,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const workspaces = new CpmWorkspaceService(context, parser, installations, templates, sdl, output);
   const projectSettings = new CpmProjectSettingsService(workspaces, parser, output);
   const importLibraries = new CpmImportLibraryService(workspaces, projectSettings, installations, output);
+  const instruments = new CpmInstrumentService(output);
+  const networkDiagnosticsService = new CpmNetworkDiagnosticsService(output);
+  const deviceRegistry = new CpmDeviceRegistry(context);
   const dependencies = new CpmDependencyService(workspaces, projectSettings, output);
   const cmake = new CpmCMakeService(workspaces, projectSettings, output);
   cppTools.setExternalIncludePathsProvider(() => { const ref = workspaces.activeProjectRef; return ref?.exists ? dependencies.getIntegration(ref).includeDirectories : []; });
@@ -81,19 +88,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
   const home = new HomePanel(context, workspaces, builds, installations);
   const buildSettings = new BuildSettingsPanel(workspaces, parser, projectSettings);
+  const instrumentDiagnostics = new InstrumentDiagnosticsPanel(context, instruments, output, deviceRegistry);
+  const networkDiagnostics = new NetworkDiagnosticsPanel(context, networkDiagnosticsService, instruments, output, workspaces, projectSettings, deviceRegistry);
   const quickActions = new QuickActionsView(workspaces, builds, projectSettings);
   const quickActionsRegistration = vscode.window.registerTreeDataProvider('cpm.quickActions', quickActions);
 
   const statusBarItems = [
     createStatusBarAction('$(home)', 'C/C++ Project Manager home', 'cpm.openHome', 99),
     createStatusBarAction('$(folder-opened)', 'Open a C/C++ workspace or project', 'cpm.openWorkspace', 98),
-    createStatusBarAction('$(tools)', 'Build / rebuild / clean', 'cpm.chooseBuildAction', 97),
+    createStatusBarAction('$(tools)', 'Build / rebuild / clean active project', 'cpm.chooseBuildAction', 97),
     createStatusBarAction('$(play)', 'Run active target', 'cpm.run', 96),
-    createStatusBarAction('$(list-selection)', 'Advanced run options', 'cpm.chooseRunAction', 95),
-    createStatusBarAction('$(debug-alt)', 'Debug active target without build', 'cpm.runDebug', 94.5),
-    createStatusBarAction('D32', 'Select build mode', 'cpm.selectBuildMode', 94),
-    createStatusBarAction('EXE', 'Select target type', 'cpm.selectTargetType', 93),
-    createStatusBarAction('DYN', 'Select linkage mode', 'cpm.selectLinkageMode', 92)
+    createStatusBarAction('$(debug-alt)', 'Debug active target', 'cpm.runDebug', 95),
+    createStatusBarAction('$(settings-gear)', 'CPM settings and tools', 'cpm.editBuildSettings', 94)
   ];
 
   const updateToolbarContexts = (): void => {
@@ -107,18 +113,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   };
 
   const updateStatusBar = (): void => {
-    const targetType = workspaces.activeProject?.targetType;
-    const modeText = builds.buildMode === 'debug64' ? 'D64' : builds.buildMode === 'release64' ? 'R64' : builds.buildMode === 'release' ? 'REL' : 'DBG';
-    const targetText = targetType === 'Dynamic Link Library' ? 'DLL' : targetType === 'Static Library' ? 'LIB' : targetType === 'Executable' ? 'EXE' : '---';
-    statusBarItems[5].text = '$(debug-alt) Debug';
-    statusBarItems[5].tooltip = 'Run the existing active executable, or DLL host, under VS Code cppdbg/GDB without rebuilding.';
-    statusBarItems[6].text = modeText;
-    statusBarItems[6].tooltip = `C/C++ build mode: ${modeText}. Click to change.`;
-    statusBarItems[7].text = targetText;
-    statusBarItems[7].tooltip = `C/C++ target type: ${targetText}. Click to change.`;
-    const linkageMode = builds.getLinkageMode();
-    statusBarItems[8].text = linkageMode === 'static' ? 'STA' : linkageMode === 'static-runtime' ? 'RTS' : 'DYN';
-    statusBarItems[8].tooltip = `C/C++ linkage: ${linkageMode === 'static' ? 'Fully static when available' : linkageMode === 'static-runtime' ? 'Static compiler runtime' : 'Dynamic'}. Click to change.`;
     const show = vscode.workspace.getConfiguration('cpm').get<boolean>('showPersistentStatusBarActions', true);
     for (const item of statusBarItems) {
       if (show) item.show(); else item.hide();
@@ -180,6 +174,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     workspaces,
     home,
     buildSettings,
+    instruments,
+    instrumentDiagnostics,
+    networkDiagnosticsService,
+    deviceRegistry,
+    networkDiagnostics,
     sdl,
     quickActions,
     quickActionsRegistration,
@@ -234,6 +233,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }),
     register('cpm.openHome', () => home.show()),
+    register('cpm.openInstrumentDiagnostics', (endpoint?: CpmDeviceEndpoint) => instrumentDiagnostics.show(endpoint)),
+    register('cpm.openNetworkDiagnostics', () => networkDiagnostics.show()),
+    register('cpm.openDeviceManager', () => networkDiagnostics.show('devices')),
+    register('cpm.openExtensionSettings', () => vscode.commands.executeCommand('workbench.action.openSettings', 'cpm')),
     register('cpm.openWorkspace', () => workspaces.openWorkspace()),
     register('cpm.createWorkspaceProject', () => workspaces.createWorkspaceProject()),
     register('cpm.createSdlWorkspaceProject', () => workspaces.createSdlWorkspaceProject()),
@@ -249,7 +252,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.dependencies.openReport', () => dependencies.openReport()),
     register('cpm.dependencies.revealOutput', () => dependencies.revealOutput()),
     register('cpm.dependencies.clean', () => dependencies.clean()),
-    register('cpm.openSshDeviceManager', () => openSshDeviceManager(context)),
+    register('cpm.openSshDeviceManager', () => networkDiagnostics.show('ssh')),
     register('cpm.remote.configure', () => remoteLinux.configure()),
     register('cpm.remote.testConnection', () => remoteLinux.testConnection()),
     register('cpm.remote.sync', () => remoteLinux.syncProject()),
@@ -313,6 +316,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.selectTargetTypeDLL', () => workspaces.selectTargetType()),
     register('cpm.selectTargetTypeLIB', () => workspaces.selectTargetType()),
     register('cpm.editBuildSettings', (node?: ProjectNode) => buildSettings.show(node?.ref)),
+    register('cpm.openTools', () => buildSettings.show(workspaces.activeProjectRef, 'tools')),
     register('cpm.editBuildSettingsSafeMode', (node?: ProjectNode) => buildSettings.showSafeMode(node?.ref)),
     register('cpm.executeProject', (node?: ProjectNode) => node ? builds.runWithoutBuild(node.ref) : undefined),
     register('cpm.buildAndRunProject', (node?: ProjectNode) => node ? builds.buildAndRun(node.ref) : undefined),

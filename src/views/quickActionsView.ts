@@ -75,13 +75,21 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
         info('No workspace loaded', 'Open or create a C/C++ workspace to display the active target summary.', 'info'),
         action('Open workspace or project…', 'cpm.openWorkspace', 'folder-opened'),
         action('Create workspace and project…', 'cpm.createWorkspaceProject', 'new-folder'),
-        action('Create SDL workspace and project…', 'cpm.createSdlWorkspaceProject', 'window')
+        action('Create SDL workspace and project…', 'cpm.createSdlWorkspaceProject', 'window'),
+        action('Open CPM Tools…', 'cpm.openTools', 'tools'),
+        action('Open Instrument Diagnostics…', 'cpm.openInstrumentDiagnostics', 'radio-tower'),
+        action('Open Network & Wireless Diagnostics…', 'cpm.openNetworkDiagnostics', 'globe'),
+        action('Open CPM Device Manager…', 'cpm.openDeviceManager', 'device-desktop')
       ];
     }
     if (!ref?.exists) {
       return [
         info('No active project', 'Select an existing project in the workspace tree.', 'info'),
-        action('Open workspace or project…', 'cpm.openWorkspace', 'folder-opened')
+        action('Open workspace or project…', 'cpm.openWorkspace', 'folder-opened'),
+        action('Open CPM Tools…', 'cpm.openTools', 'tools'),
+        action('Open Instrument Diagnostics…', 'cpm.openInstrumentDiagnostics', 'radio-tower'),
+        action('Open Network & Wireless Diagnostics…', 'cpm.openNetworkDiagnostics', 'globe'),
+        action('Open CPM Device Manager…', 'cpm.openDeviceManager', 'device-desktop')
       ];
     }
 
@@ -99,7 +107,10 @@ export class QuickActionsView implements vscode.TreeDataProvider<QuickActionNode
       info('Build steps', summary.buildSteps, 'list-ordered'),
       info('Dependencies', summary.dependencies, 'references'),
       info('Project files', summary.files, summary.hasMissingFiles ? 'warning' : 'pass'),
-      action('Open project build settings…', 'cpm.editBuildSettings', 'settings-gear'),
+      action('Open CPM Tools…', 'cpm.openTools', 'tools'),
+      action('Open Instrument Diagnostics…', 'cpm.openInstrumentDiagnostics', 'radio-tower'),
+      action('Open Network & Wireless Diagnostics…', 'cpm.openNetworkDiagnostics', 'globe'),
+      action('Open CPM Device Manager…', 'cpm.openDeviceManager', 'device-desktop'),
       action('Open Project Health…', 'cpm.projectHealth.focus', 'pulse'),
       action('Repair Project Health…', 'cpm.repairProjectHealth', 'wrench'),
       action('Configure SDL SDK…', 'cpm.configureSdl', 'window'),

@@ -11,11 +11,16 @@ interface StoredFileTemplate {
   content: string;
 }
 
+type SnippetLanguage = 'c' | 'cpp';
+type StoredSnippetLanguage = SnippetLanguage | 'both';
+
 interface StoredSnippet {
   id: string;
   label: string;
   description?: string;
   body: string;
+  language?: StoredSnippetLanguage;
+  category?: string;
 }
 
 interface StoredCollection<T> {
@@ -52,6 +57,9 @@ export interface BuiltInSnippet {
   label: string;
   description: string;
   body: string;
+  languages: SnippetLanguage[];
+  category: string;
+  subcategory?: string;
 }
 
 const FILE_TEMPLATE_STORE = 'file-templates.json';
@@ -3547,6 +3555,7 @@ void CpmWebUi_SetActionHandler(CpmWebUiServer *server, CpmWebUiActionHandler han
 interface BundledModuleChoice {
   label: string;
   group: string;
+  category?: string;
   description: string;
   detail: string;
   defaultFolder: string;
@@ -4704,7 +4713,7 @@ Generated C helpers for small project utilities.
 
 ## Files
 
-- 'cpm_util.c' / 'cpm_util.h': string helpers, trimming helpers, timestamp helper and simple INI key reading.
+- 'cpm_util.c' / 'cpm_util.h': string helpers, trimming helpers, timestamp helper and legacy flat INI key reading.
 - 'cpm_util.ini': example runtime configuration file.
 
 ## Typical use
@@ -4713,7 +4722,7 @@ Generated C helpers for small project utilities.
 #include "cpm_util.h"
 
 char value[128];
-if (CpmUtil_ReadIniString("cpm_util.ini", "utility", "logPath", value, sizeof(value)) == 0)
+if (CpmUtil_ReadIniValue("cpm_util.ini", "logPath", value, sizeof(value)) == 0)
 {
     /* use value */
 }
@@ -4760,11 +4769,11 @@ Generated C bridge for launching Python scripts and exchanging text or JSON-like
 
 Python scripts are intentionally not copied with this backend bridge. Add them separately with:
 
-'Module bundles > Scripts > Python worker protocol starter'
+'Create > Scripts and text > Bundles... > Workers & scripts > Python worker protocol starter'
 
 or, for the old project-specific demo scripts:
 
-'Module bundles > Scripts > Robot demo Python scripts'
+'Robot demo Python scripts' (legacy bundle, shown only when its payload is installed)
 `;
 
 const C_LUA_EXEC_README_TEMPLATE = `# CPM C Lua execution bridge
@@ -4789,7 +4798,7 @@ This bridge launches the Lua interpreter as an external executable. The default 
 
 Lua scripts are intentionally not copied with this backend bridge. Add a starter separately with:
 
-'Module bundles > Scripts > Lua worker protocol starter'
+'Create > Scripts and text > Bundles... > Workers & scripts > Lua worker protocol starter'
 `;
 
 const C_WEBUI_README_TEMPLATE = `# CPM C Web UI backend bridge
@@ -4808,8 +4817,8 @@ On Windows, this backend requires 'ws2_32'. CPM automatically adds 'ws2_32' to t
 
 Use one of these script bundles separately:
 
-- 'Module bundles > Scripts > Minimal Web UI frontend'
-- 'Module bundles > Scripts > Embedded demo Web UI frontend'
+- 'Create > Scripts and text > Bundles... > Web UI > Minimal Web UI frontend'
+- 'Embedded demo Web UI frontend' (legacy bundle, shown only when its payload is installed)
 `;
 
 const PYTHON_WORKER_PROTOCOL_README_TEMPLATE = `# Python worker protocol starter
@@ -5063,17 +5072,52 @@ Expected backend routes:
 No project-specific GPIO, camera, LiDAR or Raspberry Pi assets are included in this starter.
 `;
 
+function getBundledModuleCategory(module: BundledModuleChoice): string {
+  if (module.category) {
+    return module.category;
+  }
+  const label = module.label.toLowerCase();
+  if (module.group === 'C bundles' || module.group === 'C++ bundles') {
+    if (label.includes('communication') || label.includes('uart') || label.includes('ipc') || label.includes('ethernet') || label.includes('wi-fi') || label.includes('bluetooth') || label.includes('can') || label.includes('i2c') || label.includes('spi')) {
+      return 'Communication';
+    }
+    if (label.includes('python') || label.includes('lua') || label.includes('web ui')) {
+      return 'Interoperability & UI';
+    }
+    return 'Configuration & utilities';
+  }
+  if (label.includes('web ui') || label.includes('frontend')) {
+    return 'Web UI';
+  }
+  return 'Workers & scripts';
+}
+
 function getBuiltInMyUtilModules(): BundledModuleChoice[] {
   return [
     {
-      label: 'Core utilities',
+      label: 'Core utilities (legacy)',
       group: 'C bundles',
+      category: 'Legacy & compatibility',
       description: 'Create cpm_util.c, cpm_util.h and cpm_util.ini.',
-      detail: 'Small C helpers for strings, trimming, timestamps and simple INI key reading.',
+      detail: 'Legacy compatibility bundle. New projects should use INI plus the focused System/Data/Diagnostics bundles instead.',
       defaultFolder: 'Bundle/C/CPM_Util',
       generator: 'c-core',
       entries: [],
       requiredWindowsLibraries: []
+    },
+    {
+      label: 'INI configuration',
+      group: 'C bundles',
+      category: 'Configuration & utilities',
+      description: 'Create cpm_ini.c, cpm_ini.h, example.ini and README.md.',
+      detail: 'Dependency-free section-aware INI parser/writer with typed getters, defaults, editing, enumeration and one-shot read/write helpers.',
+      defaultFolder: 'Bundle/C/Configuration/INI',
+      entries: [
+        'CBundle/Configuration/INI/cpm_ini.c=>cpm_ini.c',
+        'CBundle/Configuration/INI/cpm_ini.h=>cpm_ini.h',
+        'CBundle/Configuration/INI/example.ini=>example.ini',
+        'CBundle/Configuration/INI/README.md=>README.md'
+      ]
     },
     {
       label: 'Error management',
@@ -5083,6 +5127,120 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       defaultFolder: 'Bundle/C/CPM_Error',
       generator: 'c-error',
       entries: []
+    },
+    {
+      label: 'File & path utilities',
+      group: 'C bundles',
+      category: 'System',
+      description: 'Create cpm_file.c, cpm_file.h and README.md.',
+      detail: 'Cross-platform full-file I/O, recursive directories, path manipulation and executable-path helpers.',
+      defaultFolder: 'Bundle/C/System/FilePath',
+      entries: ['CBundle/System/FilePath/cpm_file.c=>cpm_file.c', 'CBundle/System/FilePath/cpm_file.h=>cpm_file.h', 'CBundle/System/FilePath/README.md=>README.md']
+    },
+    {
+      label: 'String utilities',
+      group: 'C bundles',
+      category: 'System',
+      description: 'Create cpm_string.c, cpm_string.h and README.md.',
+      detail: 'Safe bounded string operations, trimming/search/replace/split helpers and a dynamic StringBuilder.',
+      defaultFolder: 'Bundle/C/System/String',
+      entries: ['CBundle/System/String/cpm_string.c=>cpm_string.c', 'CBundle/System/String/cpm_string.h=>cpm_string.h', 'CBundle/System/String/README.md=>README.md']
+    },
+    {
+      label: 'Time & periodic timers',
+      group: 'C bundles',
+      category: 'System',
+      description: 'Create cpm_time.c, cpm_time.h and README.md.',
+      detail: 'Monotonic nanosecond/microsecond/millisecond clocks, sleeps, stopwatch and drift-resistant periodic timing for Windows/POSIX.',
+      defaultFolder: 'Bundle/C/System/Time',
+      entries: ['CBundle/System/Time/cpm_time.c=>cpm_time.c', 'CBundle/System/Time/cpm_time.h=>cpm_time.h', 'CBundle/System/Time/README.md=>README.md']
+    },
+    {
+      label: 'Threads & synchronization',
+      group: 'C bundles',
+      category: 'System',
+      description: 'Create cpm_thread.c, cpm_thread.h and README.md.',
+      detail: 'Portable threads, mutexes, condition variables, timed waits and thread IDs using Win32 or pthreads.',
+      defaultFolder: 'Bundle/C/System/Thread',
+      entries: ['CBundle/System/Thread/cpm_thread.c=>cpm_thread.c', 'CBundle/System/Thread/cpm_thread.h=>cpm_thread.h', 'CBundle/System/Thread/README.md=>README.md']
+    },
+    {
+      label: 'Process & environment utilities',
+      group: 'C bundles',
+      category: 'System',
+      description: 'Create cpm_process.c, cpm_process.h and README.md.',
+      detail: 'Run shell commands, capture stdout, start detached commands, access environment variables and get the process ID.',
+      defaultFolder: 'Bundle/C/System/Process',
+      entries: ['CBundle/System/Process/cpm_process.c=>cpm_process.c', 'CBundle/System/Process/cpm_process.h=>cpm_process.h', 'CBundle/System/Process/README.md=>README.md']
+    },
+    {
+      label: 'JSON tokenizer & writer',
+      group: 'C bundles',
+      category: 'Data & serialization',
+      description: 'Create cpm_json.c, cpm_json.h and README.md.',
+      detail: 'Dependency-free zero-allocation JSON token parser with typed accessors plus a fixed-buffer JSON writer.',
+      defaultFolder: 'Bundle/C/Data/JSON',
+      entries: ['CBundle/Data/JSON/cpm_json.c=>cpm_json.c', 'CBundle/Data/JSON/cpm_json.h=>cpm_json.h', 'CBundle/Data/JSON/README.md=>README.md']
+    },
+    {
+      label: 'CSV reader & writer',
+      group: 'C bundles',
+      category: 'Data & serialization',
+      description: 'Create cpm_csv.c, cpm_csv.h and README.md.',
+      detail: 'CSV parsing and writing with configurable delimiter, quoted fields, escaped quotes and callback-based file reading.',
+      defaultFolder: 'Bundle/C/Data/CSV',
+      entries: ['CBundle/Data/CSV/cpm_csv.c=>cpm_csv.c', 'CBundle/Data/CSV/cpm_csv.h=>cpm_csv.h', 'CBundle/Data/CSV/README.md=>README.md']
+    },
+    {
+      label: 'Byte buffer & endian utilities',
+      group: 'C bundles',
+      category: 'Data & serialization',
+      description: 'Create cpm_buffer.c, cpm_buffer.h and README.md.',
+      detail: 'Dynamic byte buffers, cursor readers, LE/BE integer conversion and HEX encode/decode for binary protocols.',
+      defaultFolder: 'Bundle/C/Data/Buffer',
+      entries: ['CBundle/Data/Buffer/cpm_buffer.c=>cpm_buffer.c', 'CBundle/Data/Buffer/cpm_buffer.h=>cpm_buffer.h', 'CBundle/Data/Buffer/README.md=>README.md']
+    },
+    {
+      label: 'Containers (vector & ring buffer)',
+      group: 'C bundles',
+      category: 'Data & serialization',
+      description: 'Create cpm_containers.c, cpm_containers.h and README.md.',
+      detail: 'Generic growable vector and fixed-capacity FIFO/ring buffer for fixed-size C elements.',
+      defaultFolder: 'Bundle/C/Data/Containers',
+      entries: ['CBundle/Data/Containers/cpm_containers.c=>cpm_containers.c', 'CBundle/Data/Containers/cpm_containers.h=>cpm_containers.h', 'CBundle/Data/Containers/README.md=>README.md']
+    },
+    {
+      label: 'Checksums & CRC',
+      group: 'C bundles',
+      category: 'Integrity & diagnostics',
+      description: 'Create cpm_checksum.c, cpm_checksum.h and README.md.',
+      detail: 'XOR8, Sum8, Fletcher-16, Adler-32, CRC-8, CRC-16/CCITT, CRC-16/MODBUS and CRC-32 helpers.',
+      defaultFolder: 'Bundle/C/Diagnostics/Checksum',
+      entries: ['CBundle/Diagnostics/Checksum/cpm_checksum.c=>cpm_checksum.c', 'CBundle/Diagnostics/Checksum/cpm_checksum.h=>cpm_checksum.h', 'CBundle/Diagnostics/Checksum/README.md=>README.md']
+    },
+    {
+      label: 'Logging',
+      group: 'C bundles',
+      category: 'Integrity & diagnostics',
+      description: 'Create cpm_log.c, cpm_log.h and README.md.',
+      detail: 'Dependency-free leveled console/file logging, callback hook and hexadecimal dumps.',
+      defaultFolder: 'Bundle/C/Diagnostics/Logging',
+      entries: ['CBundle/Diagnostics/Logging/cpm_log.c=>cpm_log.c', 'CBundle/Diagnostics/Logging/cpm_log.h=>cpm_log.h', 'CBundle/Diagnostics/Logging/README.md=>README.md']
+    },
+    {
+      label: 'General C utility stack',
+      group: 'C bundles',
+      category: 'Configuration & utilities',
+      description: 'Create the maintained configuration, system, data and diagnostics C utility modules.',
+      detail: 'INI plus File/Path, String, Time, Thread, Process, JSON, CSV, Buffer/Endian, Containers, Checksum/CRC and Logging in one bundle.',
+      defaultFolder: 'Bundle/C/Utilities',
+      entries: [
+        'CBundle/README_GENERAL_UTILITIES.md=>README.md',
+        'CBundle/Configuration/INI=>Configuration/INI',
+        'CBundle/System=>System',
+        'CBundle/Data=>Data',
+        'CBundle/Diagnostics=>Diagnostics'
+      ]
     },
     {
       label: 'Python execution bridge',
@@ -5116,15 +5274,43 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       label: 'UART communication',
       group: 'C bundles',
       description: 'Create cpm_uart.c and cpm_uart.h.',
-      detail: 'Pure C serial-port wrapper with open/read/write/read-line helpers for Windows and POSIX.',
+      detail: 'Cross-platform serial wrapper with config structs, flow control, DTR/RTS, purge/flush, send-all and exact/delimited reads.',
       defaultFolder: 'Bundle/C/Communication/UART',
       entries: ['CBundle/Communication/UART/cpm_uart.c=>cpm_uart.c', 'CBundle/Communication/UART/cpm_uart.h=>cpm_uart.h', 'CBundle/Communication/UART/README.md=>README.md']
+    },
+    {
+      label: 'RS-485 communication',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create the RS-485 half-duplex wrapper plus the maintained UART backend.',
+      detail: 'Manual RTS direction control, optional Linux kernel RS-485 mode, transmit turnaround delays and transceive helpers.',
+      defaultFolder: 'Bundle/C/Communication/RS485',
+      entries: ['CBundle/Communication/RS485/cpm_rs485.c=>cpm_rs485.c', 'CBundle/Communication/RS485/cpm_rs485.h=>cpm_rs485.h', 'CBundle/Communication/RS485/README.md=>README.md', 'CBundle/Communication/UART/cpm_uart.c=>cpm_uart.c', 'CBundle/Communication/UART/cpm_uart.h=>cpm_uart.h']
+    },
+    {
+      label: 'LIN communication',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create a LIN 2.x master helper plus the maintained UART backend.',
+      detail: 'Protected IDs, classic/enhanced checksums, break/sync/PID headers and 1..8-byte master publish/request helpers.',
+      defaultFolder: 'Bundle/C/Communication/LIN',
+      entries: ['CBundle/Communication/LIN/cpm_lin.c=>cpm_lin.c', 'CBundle/Communication/LIN/cpm_lin.h=>cpm_lin.h', 'CBundle/Communication/LIN/README.md=>README.md', 'CBundle/Communication/UART/cpm_uart.c=>cpm_uart.c', 'CBundle/Communication/UART/cpm_uart.h=>cpm_uart.h']
+    },
+    {
+      label: 'USB HID communication',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create USB HID enumeration and report I/O helpers.',
+      detail: 'Native Windows HID/SetupAPI backend and optional HIDAPI backend on Linux/macOS; input/output/feature reports and VID/PID discovery.',
+      defaultFolder: 'Bundle/C/Communication/USBHID',
+      entries: ['CBundle/Communication/USBHID/cpm_hid.c=>cpm_hid.c', 'CBundle/Communication/USBHID/cpm_hid.h=>cpm_hid.h', 'CBundle/Communication/USBHID/README.md=>README.md'],
+      requiredWindowsLibraries: ['hid', 'setupapi']
     },
     {
       label: 'IPC communication',
       group: 'C bundles',
       description: 'Create cpm_ipc.c and cpm_ipc.h.',
-      detail: 'Pure C named-pipe/FIFO wrapper for simple local process communication.',
+      detail: 'Windows named-pipe / POSIX Unix-domain-socket IPC with reconnectable servers, exact I/O and 32-bit length-prefixed message framing.',
       defaultFolder: 'Bundle/C/Communication/IPC',
       entries: ['CBundle/Communication/IPC/cpm_ipc.c=>cpm_ipc.c', 'CBundle/Communication/IPC/cpm_ipc.h=>cpm_ipc.h', 'CBundle/Communication/IPC/README.md=>README.md']
     },
@@ -5132,7 +5318,7 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       label: 'Ethernet TCP-UDP communication',
       group: 'C bundles',
       description: 'Create cpm_socket.c and cpm_socket.h.',
-      detail: 'Pure C TCP client/server and UDP socket wrapper. On Windows, CPM automatically adds ws2_32 to linker libraries.',
+      detail: 'Portable TCP client/server and UDP wrapper with timeouts, exact/line reads, endpoint inspection, keepalive/Nagle controls, broadcast and multicast.',
       defaultFolder: 'Bundle/C/Communication/Ethernet',
       entries: ['CBundle/Communication/Ethernet/cpm_socket.c=>cpm_socket.c', 'CBundle/Communication/Ethernet/cpm_socket.h=>cpm_socket.h', 'CBundle/Communication/Ethernet/README.md=>README.md'],
       requiredWindowsLibraries: ['ws2_32']
@@ -5143,14 +5329,14 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       description: 'Create cpm_wifi.c and cpm_wifi.h.',
       detail: 'Pure C TCP/UDP wrapper for Wi-Fi-connected systems. It handles application IP traffic, not SSID association.',
       defaultFolder: 'Bundle/C/Communication/WiFi',
-      entries: ['CBundle/Communication/WiFi/cpm_wifi.c=>cpm_wifi.c', 'CBundle/Communication/WiFi/cpm_wifi.h=>cpm_wifi.h', 'CBundle/Communication/WiFi/README.md=>README.md'],
+      entries: ['CBundle/Communication/WiFi/cpm_wifi.c=>cpm_wifi.c', 'CBundle/Communication/WiFi/cpm_wifi.h=>cpm_wifi.h', 'CBundle/Communication/WiFi/README.md=>README.md', 'CBundle/Communication/Ethernet/cpm_socket.c=>cpm_socket.c', 'CBundle/Communication/Ethernet/cpm_socket.h=>cpm_socket.h'],
       requiredWindowsLibraries: ['ws2_32']
     },
     {
       label: 'Bluetooth RFCOMM communication',
       group: 'C bundles',
       description: 'Create cpm_bluetooth.c and cpm_bluetooth.h.',
-      detail: 'Pure C Bluetooth Classic RFCOMM client wrapper. Windows implementation included; other platforms return unsupported by default.',
+      detail: 'Bluetooth Classic RFCOMM client with connect timeout, send-all, exact reads and line helpers. Windows implementation included.',
       defaultFolder: 'Bundle/C/Communication/Bluetooth',
       entries: ['CBundle/Communication/Bluetooth/cpm_bluetooth.c=>cpm_bluetooth.c', 'CBundle/Communication/Bluetooth/cpm_bluetooth.h=>cpm_bluetooth.h', 'CBundle/Communication/Bluetooth/README.md=>README.md'],
       requiredWindowsLibraries: ['ws2_32']
@@ -5159,7 +5345,7 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       label: 'CAN communication',
       group: 'C bundles',
       description: 'Create cpm_can.c and cpm_can.h.',
-      detail: 'Pure C CAN/SocketCAN helper with classical CAN, CAN FD, filters, timeout and diagnostic formatting.',
+      detail: 'Linux SocketCAN helper with Classical CAN, CAN FD, filter arrays, error masks, loopback and diagnostic formatting.',
       defaultFolder: 'Bundle/C/Communication/CAN',
       entries: ['CBundle/Communication/CAN/cpm_can.c=>cpm_can.c', 'CBundle/Communication/CAN/cpm_can.h=>cpm_can.h', 'CBundle/Communication/CAN/README.md=>README.md']
     },
@@ -5167,7 +5353,7 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       label: 'I2C communication',
       group: 'C bundles',
       description: 'Create cpm_i2c.c and cpm_i2c.h.',
-      detail: 'Pure C Linux /dev/i2c wrapper with register read/write helpers. Other platforms return a clear unsupported status.',
+      detail: 'Linux /dev/i2c wrapper with repeated-start write/read, 8-bit and 16-bit register helpers and selectable register byte order.',
       defaultFolder: 'Bundle/C/Communication/I2C',
       entries: ['CBundle/Communication/I2C/cpm_i2c.c=>cpm_i2c.c', 'CBundle/Communication/I2C/cpm_i2c.h=>cpm_i2c.h', 'CBundle/Communication/I2C/README.md=>README.md']
     },
@@ -5175,26 +5361,179 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       label: 'SPI communication',
       group: 'C bundles',
       description: 'Create cpm_spi.c and cpm_spi.h.',
-      detail: 'Pure C Linux spidev wrapper with mode/speed/bits configuration and full-duplex transfer helpers. Other platforms return unsupported.',
+      detail: 'Linux spidev wrapper with per-transfer speed/delay/CS options, multi-segment transfers and full-duplex/read/write helpers.',
       defaultFolder: 'Bundle/C/Communication/SPI',
       entries: ['CBundle/Communication/SPI/cpm_spi.c=>cpm_spi.c', 'CBundle/Communication/SPI/cpm_spi.h=>cpm_spi.h', 'CBundle/Communication/SPI/README.md=>README.md']
     },
     {
-      label: 'Full communication stack',
+      label: 'VISA instrument communication',
       group: 'C bundles',
-      description: 'Create C UART, IPC, Ethernet, Wi-Fi, Bluetooth, CAN, I2C and SPI modules.',
-      detail: 'Pure C communication stack converted from the common CPM_Utility C++ communication bundles. CAN targets Linux SocketCAN by default; I2C/SPI target Linux device files; Bluetooth RFCOMM is Windows-first.',
-      defaultFolder: 'Bundle/C/Communication',
-      entries: ['CBundle/Communication/README.md=>README.md', 'CBundle/Communication/UART=>UART', 'CBundle/Communication/IPC=>IPC', 'CBundle/Communication/Ethernet=>Ethernet', 'CBundle/Communication/WiFi=>WiFi', 'CBundle/Communication/Bluetooth=>Bluetooth', 'CBundle/Communication/CAN=>CAN', 'CBundle/Communication/I2C=>I2C', 'CBundle/Communication/SPI=>SPI'],
+      category: 'Communication',
+      description: 'Create the compact dynamic VISA runtime loader.',
+      detail: 'Windows VISA resource discovery and raw session read/write/query without a compile-time dependency on NI/Keysight VISA headers or import libraries.',
+      defaultFolder: 'Bundle/C/Communication/VISA',
+      entries: ['CBundle/Communication/VISA/cpm_visa.c=>cpm_visa.c', 'CBundle/Communication/VISA/cpm_visa.h=>cpm_visa.h', 'CBundle/Communication/VISA/README.md=>README.md']
+    },
+    {
+      label: 'TLS client transport',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create the CPM TLS client transport.',
+      detail: 'OpenSSL-backed TLS 1.2/1.3 client with peer/hostname verification, SNI, CA/client certificate configuration and explicit fallback when OpenSSL is unavailable.',
+      defaultFolder: 'Bundle/C/Communication/TLS',
+      entries: ['CBundle/Communication/TLS/cpm_tls.c=>cpm_tls.c', 'CBundle/Communication/TLS/cpm_tls.h=>cpm_tls.h', 'CBundle/Communication/TLS/README.md=>README.md']
+    },
+    {
+      label: 'Generic USB / libusb communication',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create a generic USB transport using a dynamically-loaded libusb-1.0 runtime.',
+      detail: 'VID/PID enumeration/open, string descriptors, interface claim/release, control, bulk and interrupt transfers without a compile-time libusb dependency.',
+      defaultFolder: 'Bundle/C/Communication/USB',
+      entries: ['CBundle/Communication/USB/cpm_usb.c=>cpm_usb.c', 'CBundle/Communication/USB/cpm_usb.h=>cpm_usb.h', 'CBundle/Communication/USB/README.md=>README.md']
+    },
+    {
+      label: 'BLE GATT communication',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create the native Windows BLE GATT device/service/characteristic helper.',
+      detail: 'Enumerate BLE interfaces and GATT services/characteristics, then read/write characteristic values. Non-Windows builds expose explicit unsupported stubs.',
+      defaultFolder: 'Bundle/C/Communication/BLEGATT',
+      entries: ['CBundle/Communication/BLEGATT/cpm_ble_gatt.c=>cpm_ble_gatt.c', 'CBundle/Communication/BLEGATT/cpm_ble_gatt.h=>cpm_ble_gatt.h', 'CBundle/Communication/BLEGATT/README.md=>README.md'],
+      requiredWindowsLibraries: ['setupapi', 'BluetoothApis']
+    },
+    {
+      label: 'Binary framing (COBS / SLIP / length prefix)',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create cpm_framing.c, cpm_framing.h and README.md.',
+      detail: 'Dependency-free COBS, SLIP, 16/32-bit length-prefix framing and delimiter helpers for UART/TCP/IPC byte streams.',
+      defaultFolder: 'Bundle/C/Communication/Protocols/Framing',
+      entries: ['CBundle/Communication/Protocols/Framing/cpm_framing.c=>cpm_framing.c', 'CBundle/Communication/Protocols/Framing/cpm_framing.h=>cpm_framing.h', 'CBundle/Communication/Protocols/Framing/README.md=>README.md']
+    },
+    {
+      label: 'SCPI instrument protocol',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create transport-independent SCPI helpers.',
+      detail: 'SCPI/IEEE-488.2 command/query layer with typed queries, binary blocks, terminators and callbacks usable over UART, TCP, IPC, Bluetooth or a custom VISA transport.',
+      defaultFolder: 'Bundle/C/Communication/Protocols/SCPI',
+      entries: ['CBundle/Communication/Protocols/SCPI/cpm_scpi.c=>cpm_scpi.c', 'CBundle/Communication/Protocols/SCPI/cpm_scpi.h=>cpm_scpi.h', 'CBundle/Communication/Protocols/SCPI/README.md=>README.md']
+    },
+    {
+      label: 'Modbus RTU / TCP protocol',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create Modbus RTU/TCP frame builders and parsers.',
+      detail: 'Dependency-free Modbus CRC, RTU validation, read/write register requests, TCP MBAP framing, exception detection and register parsing.',
+      defaultFolder: 'Bundle/C/Communication/Protocols/Modbus',
+      entries: ['CBundle/Communication/Protocols/Modbus/cpm_modbus.c=>cpm_modbus.c', 'CBundle/Communication/Protocols/Modbus/cpm_modbus.h=>cpm_modbus.h', 'CBundle/Communication/Protocols/Modbus/README.md=>README.md']
+    },
+    {
+      label: 'Retry / reconnect policy',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create a transport-independent retry/backoff helper.',
+      detail: 'Fixed/linear/exponential backoff, bounded delay, jitter and caller-supplied retry/sleep callbacks.',
+      defaultFolder: 'Bundle/C/Communication/Protocols/Retry',
+      entries: ['CBundle/Communication/Protocols/Retry/cpm_retry.c=>cpm_retry.c', 'CBundle/Communication/Protocols/Retry/cpm_retry.h=>cpm_retry.h', 'CBundle/Communication/Protocols/Retry/README.md=>README.md']
+    },
+    {
+      label: 'HTTP / REST client',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create a compact HTTP/1.1 client plus the maintained socket backend.',
+      detail: 'GET/POST/custom methods, headers, status metadata, Content-Length and chunked responses. Plain HTTP only; TLS is intentionally separate.',
+      defaultFolder: 'Bundle/C/Communication/Protocols/HTTP',
+      entries: ['CBundle/Communication/Protocols/HTTP/cpm_http.c=>cpm_http.c', 'CBundle/Communication/Protocols/HTTP/cpm_http.h=>cpm_http.h', 'CBundle/Communication/Protocols/HTTP/README.md=>README.md', 'CBundle/Communication/Ethernet/cpm_socket.c=>cpm_socket.c', 'CBundle/Communication/Ethernet/cpm_socket.h=>cpm_socket.h'],
       requiredWindowsLibraries: ['ws2_32']
     },
     {
-      label: 'CPM_Utility core utilities',
+      label: 'MQTT 3.1.1 client',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create a compact MQTT client plus the maintained socket backend.',
+      detail: 'CONNECT, Last Will, QoS 0/1 publish, subscribe/unsubscribe, ping and incoming publish parsing over plain TCP.',
+      defaultFolder: 'Bundle/C/Communication/Protocols/MQTT',
+      entries: ['CBundle/Communication/Protocols/MQTT/cpm_mqtt.c=>cpm_mqtt.c', 'CBundle/Communication/Protocols/MQTT/cpm_mqtt.h=>cpm_mqtt.h', 'CBundle/Communication/Protocols/MQTT/README.md=>README.md', 'CBundle/Communication/Ethernet/cpm_socket.c=>cpm_socket.c', 'CBundle/Communication/Ethernet/cpm_socket.h=>cpm_socket.h'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'WebSocket client',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create an RFC 6455 ws:// client plus the maintained socket backend.',
+      detail: 'Upgrade handshake verification, masked client frames, text/binary, ping/pong and close. WSS/TLS remains a separate transport concern.',
+      defaultFolder: 'Bundle/C/Communication/Protocols/WebSocket',
+      entries: ['CBundle/Communication/Protocols/WebSocket/cpm_websocket.c=>cpm_websocket.c', 'CBundle/Communication/Protocols/WebSocket/cpm_websocket.h=>cpm_websocket.h', 'CBundle/Communication/Protocols/WebSocket/README.md=>README.md', 'CBundle/Communication/Ethernet/cpm_socket.c=>cpm_socket.c', 'CBundle/Communication/Ethernet/cpm_socket.h=>cpm_socket.h'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'SCPI over TCP / VISA stack',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create ready-to-use SCPI adapters for raw TCP and VISA sessions.',
+      detail: 'Binds the transport-independent SCPI protocol to a TCP socket or CPM VISA session without application-side callback boilerplate.',
+      defaultFolder: 'Bundle/C/Communication/Stacks/SCPI',
+      entries: ['CBundle/Communication/Stacks/SCPI/cpm_scpi_transport.c=>cpm_scpi_transport.c', 'CBundle/Communication/Stacks/SCPI/cpm_scpi_transport.h=>cpm_scpi_transport.h', 'CBundle/Communication/Stacks/SCPI/README.md=>README.md', 'CBundle/Communication/Protocols/SCPI/cpm_scpi.c=>cpm_scpi.c', 'CBundle/Communication/Protocols/SCPI/cpm_scpi.h=>cpm_scpi.h', 'CBundle/Communication/Ethernet/cpm_socket.c=>cpm_socket.c', 'CBundle/Communication/Ethernet/cpm_socket.h=>cpm_socket.h', 'CBundle/Communication/VISA/cpm_visa.c=>cpm_visa.c', 'CBundle/Communication/VISA/cpm_visa.h=>cpm_visa.h'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'Modbus RTU over RS-485 stack',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create a ready-to-use Modbus RTU master over the maintained RS-485/UART transport.',
+      detail: 'Read holding/input registers and write single/multiple registers without manually constructing RTU frames.',
+      defaultFolder: 'Bundle/C/Communication/Stacks/ModbusRS485',
+      entries: ['CBundle/Communication/Stacks/ModbusRS485/cpm_modbus_rs485.c=>cpm_modbus_rs485.c', 'CBundle/Communication/Stacks/ModbusRS485/cpm_modbus_rs485.h=>cpm_modbus_rs485.h', 'CBundle/Communication/Stacks/ModbusRS485/README.md=>README.md', 'CBundle/Communication/Protocols/Modbus/cpm_modbus.c=>cpm_modbus.c', 'CBundle/Communication/Protocols/Modbus/cpm_modbus.h=>cpm_modbus.h', 'CBundle/Communication/RS485/cpm_rs485.c=>cpm_rs485.c', 'CBundle/Communication/RS485/cpm_rs485.h=>cpm_rs485.h', 'CBundle/Communication/UART/cpm_uart.c=>cpm_uart.c', 'CBundle/Communication/UART/cpm_uart.h=>cpm_uart.h']
+    },
+    {
+      label: 'MQTT automatic reconnect stack',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create MQTT with retry, health checks, reconnect and subscription restoration.',
+      detail: 'Keeps MQTT 3.1.1 connection settings and subscriptions, reconnects with the CPM retry policy and retries publish after reconnect.',
+      defaultFolder: 'Bundle/C/Communication/Stacks/MQTTAuto',
+      entries: ['CBundle/Communication/Stacks/MQTTAuto/cpm_mqtt_auto.c=>cpm_mqtt_auto.c', 'CBundle/Communication/Stacks/MQTTAuto/cpm_mqtt_auto.h=>cpm_mqtt_auto.h', 'CBundle/Communication/Stacks/MQTTAuto/README.md=>README.md', 'CBundle/Communication/Protocols/MQTT/cpm_mqtt.c=>cpm_mqtt.c', 'CBundle/Communication/Protocols/MQTT/cpm_mqtt.h=>cpm_mqtt.h', 'CBundle/Communication/Protocols/Retry/cpm_retry.c=>cpm_retry.c', 'CBundle/Communication/Protocols/Retry/cpm_retry.h=>cpm_retry.h', 'CBundle/Communication/Ethernet/cpm_socket.c=>cpm_socket.c', 'CBundle/Communication/Ethernet/cpm_socket.h=>cpm_socket.h'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'Ready-to-use communication stacks',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create the composed SCPI, Modbus/RS-485 and MQTT reconnect stacks.',
+      detail: 'High-level stacks built exclusively from the maintained CPM transport/protocol modules.',
+      defaultFolder: 'Bundle/C/Communication/Stacks',
+      entries: ['CBundle/Communication/Stacks=>.'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'Communication protocol stack',
+      group: 'C bundles',
+      category: 'Communication',
+      description: 'Create framing, SCPI and Modbus protocol modules.',
+      detail: 'Framing, SCPI, Modbus, retry/reconnect, HTTP/REST, MQTT and WebSocket helpers designed to sit on top of maintained transports.',
+      defaultFolder: 'Bundle/C/Communication/Protocols',
+      entries: ['CBundle/Communication/Protocols=>.']
+    },
+    {
+      label: 'Full communication stack',
+      group: 'C bundles',
+      description: 'Create the complete maintained C transport and protocol stack.',
+      detail: 'UART, RS-485, LIN, IPC, TCP/UDP, Wi-Fi, Bluetooth RFCOMM, USB HID, generic USB, BLE GATT, CAN, I2C, SPI, VISA, TLS plus protocols and ready-to-use communication stacks.',
+      defaultFolder: 'Bundle/C/Communication',
+      entries: ['CBundle/Communication/README.md=>README.md', 'CBundle/Communication/UART=>UART', 'CBundle/Communication/RS485=>RS485', 'CBundle/Communication/LIN=>LIN', 'CBundle/Communication/IPC=>IPC', 'CBundle/Communication/Ethernet=>Ethernet', 'CBundle/Communication/WiFi=>WiFi', 'CBundle/Communication/Bluetooth=>Bluetooth', 'CBundle/Communication/USBHID=>USBHID', 'CBundle/Communication/USB=>USB', 'CBundle/Communication/BLEGATT=>BLEGATT', 'CBundle/Communication/TLS=>TLS', 'CBundle/Communication/CAN=>CAN', 'CBundle/Communication/I2C=>I2C', 'CBundle/Communication/SPI=>SPI', 'CBundle/Communication/VISA=>VISA', 'CBundle/Communication/Protocols=>Protocols', 'CBundle/Communication/Stacks=>Stacks'],
+      requiredWindowsLibraries: ['ws2_32', 'hid', 'setupapi', 'BluetoothApis']
+    },
+    {
+      label: 'CPM_Utility core utilities (legacy)',
       group: 'C++ bundles',
+      category: 'Legacy & compatibility',
       description: 'Copy cpm_utility.cpp, cpm_utility.h and utility.ini.',
-      detail: 'Canonical CPM C++ utility bundle: executable path helpers, filesystem, text I/O, INI, strings, timestamps, delays, stopwatch, matrix/vector and error-log helpers.',
+      detail: 'Legacy monolithic C++ compatibility bundle. New projects should prefer the focused C++17 Configuration/System/Data/Diagnostics bundles.',
       defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['cpm_utility.cpp', 'cpm_utility.h', 'utility.ini', 'README_CPM_Utility.md=>README.md']
+      generator: 'cpp-core',
+      entries: []
     },
     {
       label: 'Error management',
@@ -5206,96 +5545,394 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       entries: []
     },
     {
-      label: 'CPM_Utility error management',
+      label: 'INI configuration',
       group: 'C++ bundles',
-      description: 'Copy errorManagement.cpp/.h plus required core utility files.',
-      detail: 'check_negerror, check_zeroerror, set_error macros and a runtime utility.ini configuration file.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['cpm_utility.cpp', 'cpm_utility.h', 'utility.ini', 'ErrorManagement/errorManagement.cpp', 'ErrorManagement/errorManagement.h']
+      category: 'Configuration & utilities',
+      description: 'Create cpm::IniDocument plus the maintained C INI backend.',
+      detail: 'Move-aware RAII INI document with typed getters/setters, section/key enumeration and normalized save.',
+      defaultFolder: 'Bundle/C++/Configuration/INI',
+      entries: ['CppBundle/Configuration/INI=>.']
+    },
+    {
+      label: 'File & path utilities',
+      group: 'C++ bundles',
+      category: 'System',
+      description: 'Create C++17 filesystem helpers plus portable executable-path discovery.',
+      detail: 'std::filesystem/std::fstream helpers for text/binary I/O, directories, rename/remove and executable paths.',
+      defaultFolder: 'Bundle/C++/System/FilePath',
+      entries: ['CppBundle/System/FilePath=>.']
+    },
+    {
+      label: 'String utilities',
+      group: 'C++ bundles',
+      category: 'System',
+      description: 'Create C++17 std::string/std::string_view helpers.',
+      detail: 'Trim, case conversion, case-insensitive compare, starts/ends/contains, replace, split and join.',
+      defaultFolder: 'Bundle/C++/System/String',
+      entries: ['CppBundle/System/String=>.']
+    },
+    {
+      label: 'Time & periodic timers',
+      group: 'C++ bundles',
+      category: 'System',
+      description: 'Create std::chrono-based time, stopwatch and periodic-timer helpers.',
+      detail: 'Monotonic ns/us/ms clocks, generic sleepFor(), Stopwatch and drift-resistant PeriodicTimer.',
+      defaultFolder: 'Bundle/C++/System/Time',
+      entries: ['CppBundle/System/Time=>.']
+    },
+    {
+      label: 'Threads & synchronization',
+      group: 'C++ bundles',
+      category: 'System',
+      description: 'Create higher-level C++17 threading helpers.',
+      detail: 'JoiningThread RAII, ManualResetEvent and type-safe BlockingQueue built on the standard threading library.',
+      defaultFolder: 'Bundle/C++/System/Thread',
+      entries: ['CppBundle/System/Thread=>.']
+    },
+    {
+      label: 'Process & environment utilities',
+      group: 'C++ bundles',
+      category: 'System',
+      description: 'Create cpm::Process plus the maintained cross-platform C backend.',
+      detail: 'Run/capture/detach commands, process ID and environment variables through std::string-friendly APIs.',
+      defaultFolder: 'Bundle/C++/System/Process',
+      entries: ['CppBundle/System/Process=>.']
+    },
+    {
+      label: 'JSON document & writer',
+      group: 'C++ bundles',
+      category: 'Data & serialization',
+      description: 'Create cpm::JsonDocument / cpm::JsonWriter plus the maintained C tokenizer.',
+      detail: 'std::string/std::vector wrapper with object/array navigation, typed values and JSON generation.',
+      defaultFolder: 'Bundle/C++/Data/JSON',
+      entries: ['CppBundle/Data/JSON=>.']
+    },
+    {
+      label: 'CSV reader & writer',
+      group: 'C++ bundles',
+      category: 'Data & serialization',
+      description: 'Create std::vector<std::string>-based CSV helpers.',
+      detail: 'Parse lines, read complete CSV files and append quoted rows using the maintained C backend.',
+      defaultFolder: 'Bundle/C++/Data/CSV',
+      entries: ['CppBundle/Data/CSV=>.']
+    },
+    {
+      label: 'Byte buffer & endian utilities',
+      group: 'C++ bundles',
+      category: 'Data & serialization',
+      description: 'Create type-safe C++ binary buffer/reader helpers.',
+      detail: 'std::vector<uint8_t>-based binary construction, LE/BE reading and hexadecimal formatting.',
+      defaultFolder: 'Bundle/C++/Data/Buffer',
+      entries: ['CppBundle/Data/Buffer=>.']
+    },
+    {
+      label: 'Containers (ring buffer)',
+      group: 'C++ bundles',
+      category: 'Data & serialization',
+      description: 'Create type-safe RingBuffer and SynchronizedRingBuffer templates.',
+      detail: 'C++ templates complementing std::vector/deque with bounded FIFO and optional overwrite semantics.',
+      defaultFolder: 'Bundle/C++/Data/Containers',
+      entries: ['CppBundle/Data/Containers=>.']
+    },
+    {
+      label: 'Checksums & CRC',
+      group: 'C++ bundles',
+      category: 'Integrity & diagnostics',
+      description: 'Create container-friendly CRC/checksum helpers plus the maintained C backend.',
+      detail: 'CRC16 CCITT/MODBUS, CRC32, XOR8 and Sum8 usable directly with std::vector/std::string-like containers.',
+      defaultFolder: 'Bundle/C++/Diagnostics/Checksum',
+      entries: ['CppBundle/Diagnostics/Checksum=>.']
+    },
+    {
+      label: 'Logging',
+      group: 'C++ bundles',
+      category: 'Integrity & diagnostics',
+      description: 'Create cpm::Logger plus the maintained leveled logging backend.',
+      detail: 'RAII logger configuration for console/file output, levels and hexadecimal dumps.',
+      defaultFolder: 'Bundle/C++/Diagnostics/Logging',
+      entries: ['CppBundle/Diagnostics/Logging=>.']
+    },
+    {
+      label: 'General C++ utility stack',
+      group: 'C++ bundles',
+      category: 'Configuration & utilities',
+      description: 'Create the complete maintained C++17 utility stack.',
+      detail: 'INI plus focused System, Data & serialization and Integrity & diagnostics modules. Preferred replacement for monolithic CPM_Utility in new projects.',
+      defaultFolder: 'Bundle/C++/Utilities',
+      entries: ['CppBundle/README_GENERAL_UTILITIES.md=>README.md', 'CppBundle/Configuration=>Configuration', 'CppBundle/System=>System', 'CppBundle/Data=>Data', 'CppBundle/Diagnostics=>Diagnostics']
     },
     {
       label: 'UART communication',
       group: 'C++ bundles',
-      description: 'Copy the cross-platform UART class.',
-      detail: 'Serial port wrapper with text, byte and packet helpers.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication/uart/uart.cpp', 'Communication/uart/uart.h']
+      category: 'Communication',
+      description: 'Create cpm::SerialPort plus its maintained C backend.',
+      detail: 'C++17 move-only RAII serial-port wrapper with flow control, DTR/RTS, purge/flush and exact/line I/O.',
+      defaultFolder: 'Bundle/C++/Communication/UART',
+      entries: ['CppBundle/Communication/UART=>.']
+    },
+    {
+      label: 'RS-485 communication',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::Rs485Bus plus the maintained C UART/RS-485 backend.',
+      detail: 'C++17 move-only RAII half-duplex bus with RTS direction control and optional Linux kernel RS-485 mode.',
+      defaultFolder: 'Bundle/C++/Communication/RS485',
+      entries: ['CppBundle/Communication/RS485=>.']
+    },
+    {
+      label: 'LIN communication',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::LinMaster plus the maintained C LIN/UART backend.',
+      detail: 'C++17 LIN master helper with protected IDs, checksums, publish and request operations.',
+      defaultFolder: 'Bundle/C++/Communication/LIN',
+      entries: ['CppBundle/Communication/LIN=>.']
+    },
+    {
+      label: 'USB HID communication',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::HidDevice plus the maintained C HID backend.',
+      detail: 'RAII HID reports with native Windows discovery and optional HIDAPI support on Linux/macOS.',
+      defaultFolder: 'Bundle/C++/Communication/USBHID',
+      entries: ['CppBundle/Communication/USBHID=>.'],
+      requiredWindowsLibraries: ['hid', 'setupapi']
     },
     {
       label: 'IPC communication',
       group: 'C++ bundles',
-      description: 'Copy the IPC pipe class.',
-      detail: 'Named-pipe, local-socket and anonymous-pipe helpers.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication/IPC/IPC.cpp', 'Communication/IPC/IPC.h']
+      category: 'Communication',
+      description: 'Create cpm::IpcChannel plus its maintained C backend.',
+      detail: 'C++17 RAII named-pipe / Unix-domain-socket wrapper with reconnectable servers and length-prefixed messages.',
+      defaultFolder: 'Bundle/C++/Communication/IPC',
+      entries: ['CppBundle/Communication/IPC=>.']
     },
     {
       label: 'Ethernet TCP-UDP communication',
       group: 'C++ bundles',
-      description: 'Copy the TCP/UDP EthernetLink class.',
-      detail: 'Client/server TCP and UDP helpers with packet framing.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication/ethernet/ethernet.cpp', 'Communication/ethernet/ethernet.h'],
+      category: 'Communication',
+      description: 'Create cpm::TcpClient, TcpServer and UdpSocket.',
+      detail: 'C++17 RAII network classes over the maintained socket backend, including multicast, endpoints, exact/line reads and socket options.',
+      defaultFolder: 'Bundle/C++/Communication/Ethernet',
+      entries: ['CppBundle/Communication/Ethernet=>.'],
       requiredWindowsLibraries: ['ws2_32']
     },
     {
       label: 'Wi-Fi communication',
       group: 'C++ bundles',
-      description: 'Copy the C++ Wi-Fi TCP/UDP link class.',
-      detail: 'Application-layer Wi-Fi communication using regular TCP/UDP sockets once the OS network is connected.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication/wifi/wifi.cpp', 'Communication/wifi/wifi.h'],
+      category: 'Communication',
+      description: 'Create Wi-Fi TCP/UDP aliases over the maintained socket layer.',
+      detail: 'Application-layer Wi-Fi communication using cpm::WifiTcpClient, WifiTcpServer and WifiUdpSocket after the OS associates with an AP.',
+      defaultFolder: 'Bundle/C++/Communication/WiFi',
+      entries: ['CppBundle/Communication/WiFi=>.'],
       requiredWindowsLibraries: ['ws2_32']
     },
     {
-      label: 'Bluetooth communication',
+      label: 'Bluetooth RFCOMM communication',
       group: 'C++ bundles',
-      description: 'Copy the C++ Bluetooth communication class.',
-      detail: 'Bluetooth helper from the original CPM_Utility communication set, kept separate from the full stack.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication/bluetooth/bluetooth.cpp', 'Communication/bluetooth/bluetooth.h'],
+      category: 'Communication',
+      description: 'Create cpm::BluetoothRfcomm plus the Windows RFCOMM backend.',
+      detail: 'C++17 RAII Bluetooth Classic client with connect timeout, send-all and line receive helpers. BLE/GATT remains a separate API family.',
+      defaultFolder: 'Bundle/C++/Communication/Bluetooth',
+      entries: ['CppBundle/Communication/Bluetooth=>.'],
       requiredWindowsLibraries: ['ws2_32']
     },
     {
       label: 'CAN communication',
       group: 'C++ bundles',
-      description: 'Copy the C++ SocketCAN communication class.',
-      detail: 'C++ CAN helper with classical CAN, CAN FD, filters, timeout and diagnostic formatting. Linux SocketCAN backend by default.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication/can/can.cpp', 'Communication/can/can.h']
+      category: 'Communication',
+      description: 'Create cpm::CanBus plus the SocketCAN backend.',
+      detail: 'C++17 RAII CAN/CAN-FD wrapper with vector-based receive filters, loopback and timeout receive.',
+      defaultFolder: 'Bundle/C++/Communication/CAN',
+      entries: ['CppBundle/Communication/CAN=>.']
     },
     {
       label: 'I2C communication',
       group: 'C++ bundles',
-      description: 'Copy the C++ I2C class.',
-      detail: 'Linux I2C helper from the original CPM_Utility communication set.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication/I2C/I2C.cpp', 'Communication/I2C/I2C.h']
+      category: 'Communication',
+      description: 'Create cpm::I2cDevice plus the Linux I2C backend.',
+      detail: 'C++17 RAII I2C wrapper with repeated-start transactions and register helpers.',
+      defaultFolder: 'Bundle/C++/Communication/I2C',
+      entries: ['CppBundle/Communication/I2C=>.']
     },
     {
       label: 'SPI communication',
       group: 'C++ bundles',
-      description: 'Copy the C++ SPI class.',
-      detail: 'Linux SPI helper from the original CPM_Utility communication set.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication/SPI/SPI.cpp', 'Communication/SPI/SPI.h']
+      category: 'Communication',
+      description: 'Create cpm::SpiDevice plus the Linux spidev backend.',
+      detail: 'C++17 RAII SPI wrapper with vector transfers, per-segment options and read helpers.',
+      defaultFolder: 'Bundle/C++/Communication/SPI',
+      entries: ['CppBundle/Communication/SPI=>.']
+    },
+    {
+      label: 'VISA instrument communication',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::VisaRuntime and cpm::VisaSession.',
+      detail: 'C++17 RAII wrappers over the dynamically-loaded Windows VISA backend; no vendor VISA headers are required to compile.',
+      defaultFolder: 'Bundle/C++/Communication/VISA',
+      entries: ['CppBundle/Communication/VISA=>.']
+    },
+    {
+      label: 'TLS client transport',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::TlsClient plus the maintained OpenSSL-backed C transport.',
+      detail: 'RAII TLS client with verified peer/hostname by default and explicit OpenSSL availability reporting.',
+      defaultFolder: 'Bundle/C++/Communication/TLS',
+      entries: ['CppBundle/Communication/TLS=>.']
+    },
+    {
+      label: 'Generic USB / libusb communication',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::UsbRuntime / cpm::UsbDevice plus the dynamic libusb backend.',
+      detail: 'RAII generic USB access for enumeration, interface claims and control/bulk/interrupt transfers.',
+      defaultFolder: 'Bundle/C++/Communication/USB',
+      entries: ['CppBundle/Communication/USB=>.']
+    },
+    {
+      label: 'BLE GATT communication',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::BleGattDevice plus the native Windows GATT backend.',
+      detail: 'RAII BLE GATT service/characteristic discovery and characteristic reads/writes.',
+      defaultFolder: 'Bundle/C++/Communication/BLEGATT',
+      entries: ['CppBundle/Communication/BLEGATT=>.'],
+      requiredWindowsLibraries: ['setupapi', 'BluetoothApis']
+    },
+    {
+      label: 'Binary framing (COBS / SLIP / length prefix)',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create C++ framing helpers plus the maintained C backend.',
+      detail: 'std::vector-based COBS/SLIP helpers and the underlying C framing API.',
+      defaultFolder: 'Bundle/C++/Communication/Protocols/Framing',
+      entries: ['CppBundle/Communication/Protocols/Framing=>.']
+    },
+    {
+      label: 'SCPI instrument protocol',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::ScpiClient plus the transport-independent C backend.',
+      detail: 'C++17 std::function-based SCPI client supporting UART/TCP/IPC adapters, typed queries and binary blocks.',
+      defaultFolder: 'Bundle/C++/Communication/Protocols/SCPI',
+      entries: ['CppBundle/Communication/Protocols/SCPI=>.']
+    },
+    {
+      label: 'Modbus RTU / TCP protocol',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create C++ Modbus frame helpers plus the maintained C codec.',
+      detail: 'std::vector-based RTU/TCP request helpers with CRC/MBAP parsing provided by the C backend.',
+      defaultFolder: 'Bundle/C++/Communication/Protocols/Modbus',
+      entries: ['CppBundle/Communication/Protocols/Modbus=>.']
+    },
+    {
+      label: 'Retry / reconnect policy',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::retry plus the maintained C retry backend.',
+      detail: 'std::function-based retry operations with fixed/linear/exponential backoff and std::chrono delays.',
+      defaultFolder: 'Bundle/C++/Communication/Protocols/Retry',
+      entries: ['CppBundle/Communication/Protocols/Retry=>.']
+    },
+    {
+      label: 'HTTP / REST client',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::HttpClient plus the maintained C HTTP/socket backend.',
+      detail: 'C++17 vector/string wrapper for HTTP/1.1 requests. Plain HTTP only; TLS is intentionally separate.',
+      defaultFolder: 'Bundle/C++/Communication/Protocols/HTTP',
+      entries: ['CppBundle/Communication/Protocols/HTTP=>.'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'MQTT 3.1.1 client',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::MqttClient plus the maintained C MQTT/socket backend.',
+      detail: 'RAII MQTT client with QoS 0/1 publish, subscribe, Last Will and incoming message support over plain TCP.',
+      defaultFolder: 'Bundle/C++/Communication/Protocols/MQTT',
+      entries: ['CppBundle/Communication/Protocols/MQTT=>.'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'WebSocket client',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::WebSocket plus the maintained RFC 6455 C/socket backend.',
+      detail: 'C++17 RAII ws:// client with text/binary frames and ping/pong. WSS/TLS remains a separate transport concern.',
+      defaultFolder: 'Bundle/C++/Communication/Protocols/WebSocket',
+      entries: ['CppBundle/Communication/Protocols/WebSocket=>.'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'SCPI over TCP / VISA stack',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::ScpiTcpSession plus the composed C SCPI transport adapters.',
+      detail: 'Ready-to-use SCPI over TCP and VISA without manual callback binding.',
+      defaultFolder: 'Bundle/C++/Communication/Stacks/SCPI',
+      entries: ['CppBundle/Communication/Stacks/SCPI=>.'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'Modbus RTU over RS-485 stack',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::ModbusRs485Client plus the maintained RS-485/Modbus backends.',
+      detail: 'RAII-friendly Modbus RTU master operations over a CPM RS-485 bus.',
+      defaultFolder: 'Bundle/C++/Communication/Stacks/ModbusRS485',
+      entries: ['CppBundle/Communication/Stacks/ModbusRS485=>.']
+    },
+    {
+      label: 'MQTT automatic reconnect stack',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create cpm::AutoMqttClient with reconnect and subscription restoration.',
+      detail: 'C++17 convenience wrapper over the maintained MQTT + retry + socket composition.',
+      defaultFolder: 'Bundle/C++/Communication/Stacks/MQTTAuto',
+      entries: ['CppBundle/Communication/Stacks/MQTTAuto=>.'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'Ready-to-use communication stacks',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create all maintained high-level C++ communication stacks.',
+      detail: 'SCPI over TCP/VISA, Modbus RTU over RS-485 and MQTT automatic reconnect.',
+      defaultFolder: 'Bundle/C++/Communication/Stacks',
+      entries: ['CppBundle/Communication/Stacks=>.'],
+      requiredWindowsLibraries: ['ws2_32']
+    },
+    {
+      label: 'Communication protocol stack',
+      group: 'C++ bundles',
+      category: 'Communication',
+      description: 'Create Framing, SCPI and Modbus C++/C modules.',
+      detail: 'C++17 framing, SCPI, Modbus, retry, HTTP, MQTT and WebSocket layer paired with the maintained transport backends.',
+      defaultFolder: 'Bundle/C++/Communication/Protocols',
+      entries: ['CppBundle/Communication/Protocols=>.']
     },
     {
       label: 'Full communication stack',
       group: 'C++ bundles',
-      description: 'Copy Communication/* modules.',
-      detail: 'UART, Bluetooth, Wi-Fi, Ethernet, CAN, I2C, SPI, IPC, CommsManager and listen service.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['Communication'],
-      requiredWindowsLibraries: ['ws2_32']
+      category: 'Communication',
+      description: 'Create the complete maintained C++17 communication stack.',
+      detail: 'RAII wrappers/backends for UART, RS-485, LIN, IPC, TCP/UDP, Wi-Fi, Bluetooth RFCOMM, USB HID, generic USB, BLE GATT, CAN, I2C, SPI, VISA, TLS plus protocols and composed high-level stacks.',
+      defaultFolder: 'Bundle/C++/Communication',
+      entries: ['CppBundle/Communication=>.'],
+      requiredWindowsLibraries: ['ws2_32', 'hid', 'setupapi', 'BluetoothApis']
     },
     {
       label: 'Python execution bridge',
       group: 'C++ bundles',
-      description: 'Copy only the Python execution bridge.',
-      detail: 'C++ bridge files only: launch a Python process and exchange lines/JSON through pipes.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['external/pythonExec']
+      description: 'Create the maintained Python process bridge with a C ABI usable from C++.',
+      detail: 'Self-contained generated bridge for launching Python, exchanging stdin/stdout and keeping a persistent worker session.',
+      defaultFolder: 'Bundle/C++/PythonExec',
+      generator: 'c-python-bridge',
+      entries: []
     },
     {
       label: 'Lua execution bridge',
@@ -5309,19 +5946,11 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
     {
       label: 'Web UI backend server',
       group: 'C++ bundles',
-      description: 'Copy only webui.cpp and webui.h.',
-      detail: 'C++ HTTP/Web UI backend source only. Static HTML/JS/CSS assets are available from Scripts > Minimal Web UI frontend or Scripts > Embedded demo Web UI frontend.',
+      description: 'Create the maintained HTTP/Web UI backend with a C ABI usable from C++.',
+      detail: 'Self-contained backend for static files plus /api/state and /api/action. Pair it with the Scripts > Web UI frontend bundle.',
       defaultFolder: 'Bundle/C++/WebUI',
-      entries: ['webui/webui.cpp=>webui.cpp', 'webui/webui.h=>webui.h'],
-      requiredWindowsLibraries: ['ws2_32']
-    },
-    {
-      label: 'Complete bundle',
-      group: 'C++ bundles',
-      description: 'Copy the curated CPM_Utility C++ modules.',
-      detail: 'CPM_Utility, error management, communication stack, Python bridge and Web UI backend. Demo/static frontend files and OpenCV realtime demo are not included.',
-      defaultFolder: 'Bundle/C++/CPM_Utility',
-      entries: ['cpm_utility.cpp', 'cpm_utility.h', 'utility.ini', 'README_CPM_Utility.md=>README_CPM_Utility.md', 'ErrorManagement', 'Communication', 'external/pythonExec', 'webui/webui.cpp=>webui/webui.cpp', 'webui/webui.h=>webui/webui.h'],
+      generator: 'c-webui-server',
+      entries: [],
       requiredWindowsLibraries: ['ws2_32']
     },
     {
@@ -5343,14 +5972,6 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       entries: []
     },
     {
-      label: 'Robot demo Python scripts',
-      group: 'Script bundles',
-      description: 'Copy the original project-specific Python demo scripts.',
-      detail: 'Robot/Raspberry Pi/ESP32/LiDAR/camera scripts kept separate from the generic worker protocol starter.',
-      defaultFolder: 'Bundle/Scripts/RobotDemoPython',
-      entries: ['external/pythonScript']
-    },
-    {
       label: 'Minimal Web UI frontend',
       group: 'Script bundles',
       description: 'Create a generic HTML/JS/CSS frontend.',
@@ -5359,14 +5980,6 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       generator: 'script-minimal-webui',
       entries: []
     },
-    {
-      label: 'Embedded demo Web UI frontend',
-      group: 'Script bundles',
-      description: 'Copy the original embedded demo HTML, JavaScript, CSS and image assets.',
-      detail: 'Raspberry Pi/GPIO/camera/bus/captor oriented frontend kept separate from the generic starter.',
-      defaultFolder: 'Bundle/Scripts/WebUI/EmbeddedDemoFrontend',
-      entries: ['webui/example/frontEnd=>frontEnd']
-    }
   ];
 }
 
@@ -5412,18 +6025,27 @@ export function getBuiltInSnippets(): BuiltInSnippet[] {
   return [
     {
       id: 'cpp-main',
+      languages: ['cpp'],
+      category: 'Entry points & modules',
+      subcategory: 'Console entry points',
       label: 'C++ main entry point',
       description: 'Minimal console application entry point using std::cout.',
       body: CPP_MAIN_TEMPLATE
     },
     {
       id: 'c-main',
+      languages: ['c'],
+      category: 'Entry points & modules',
+      subcategory: 'Console entry points',
       label: 'C main entry point',
       description: 'Minimal C console application entry point using printf().',
       body: MAIN_TEMPLATE
     },
     {
       id: 'c-main-with-cpm-error',
+      languages: ['c'],
+      category: 'Error handling & cleanup',
+      subcategory: 'Application skeletons',
       label: 'C main with CPM error handling',
       description: 'main() skeleton with CPM error initialization, error label and cleanup path.',
       body: MAIN_WITH_ERROR_SOURCE_TEMPLATE
@@ -5433,6 +6055,8 @@ export function getBuiltInSnippets(): BuiltInSnippet[] {
     },
     {
       id: 'doc-file-header',
+      languages: ['c', 'cpp'],
+      category: 'Documentation & comments',
       label: 'Documentation / file description header',
       description: 'Program/file header with company block and changes table.',
       body: renderFileDescriptionHeader({
@@ -5450,83 +6074,943 @@ export function getBuiltInSnippets(): BuiltInSnippet[] {
     },
     {
       id: 'doc-change-line',
+      languages: ['c', 'cpp'],
+      category: 'Documentation & comments',
       label: 'Documentation / header change line',
       description: 'One formatted CHANGES/EVOLUTIONS table entry.',
       body: renderHeaderChangeEntry('${1:' + formatDateDdMmYy() + '}', '${2:S.NAME}', '${3:1.0.0}', '${4:Description}') + '\n'
     },
     {
       id: 'doc-comment-section',
+      languages: ['c', 'cpp'],
+      category: 'Documentation & comments',
       label: 'Documentation / comment section',
       description: 'Boxed section comment for Parameters, Constants, Types, etc.',
       body: renderCommentSection('${1:Parameters}', 'box')
     },
     {
       id: 'winmain',
+      languages: ['c', 'cpp'],
+      category: 'Entry points & modules',
+      subcategory: 'Windows entry points',
       label: 'WinMain entry point',
       description: 'Minimal Windows GUI application entry point.',
       body: WINMAIN_TEMPLATE
     },
     {
       id: 'dllmain',
+      languages: ['c', 'cpp'],
+      category: 'Entry points & modules',
+      subcategory: 'Windows entry points',
       label: 'DllMain lifecycle',
       description: 'Minimal Windows DLL entry point.',
       body: DLL_SOURCE_TEMPLATE.replace('#include "{{headerFile}}"\n', '')
     },
     {
       id: 'header-guard',
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Headers & compile-time',
       label: 'Header guard',
       description: 'Portable include guard skeleton.',
       body: '#ifndef ${1:MODULE_H}\n#define ${1:MODULE_H}\n\n${0}\n\n#endif /* ${1:MODULE_H} */\n'
     },
     {
       id: 'extern-c-block',
+      languages: ['cpp'],
+      category: 'Interoperability & ABI',
+      subcategory: 'C ABI',
       label: 'extern "C" block',
       description: 'C ABI block usable from C++ headers.',
       body: '#ifdef __cplusplus\nextern "C" {\n#endif\n\n${0}\n\n#ifdef __cplusplus\n}\n#endif\n'
     },
     {
       id: 'error-goto-cleanup',
+      languages: ['c'],
+      category: 'Error handling & cleanup',
+      subcategory: 'goto cleanup',
       label: 'Error handling / goto cleanup',
       description: 'C-style error path with one cleanup label.',
       body: 'int status = 0;\n\n${1:resource} = ${2:OpenResource()};\nif (${1:resource} == ${3:NULL})\n{\n    status = -1;\n    goto Cleanup;\n}\n\n${0}\n\nCleanup:\n    if (${1:resource} != ${3:NULL})\n    {\n        ${4:CloseResource}(${1:resource});\n    }\n    return status;\n'
     },
     {
       id: 'error-check-macro',
+      languages: ['c'],
+      category: 'Error handling & cleanup',
+      subcategory: 'Check macros',
       label: 'Error handling / check macro',
       description: 'Reusable macro that jumps to cleanup when an expression fails.',
       body: '#define CHECK_STATUS(expr) \\\n    do { \\\n        status = (expr); \\\n        if (status < 0) { \\\n            goto Cleanup; \\\n        } \\\n    } while (0)\n\n${0}\n'
     },
     {
       id: 'error-ini-load',
+      languages: ['c'],
+      category: 'Integrity & diagnostics',
+      subcategory: 'Logging',
       label: 'Error logging / load INI config',
       description: 'Initialize the CPM error module and load runtime logging options.',
       body: '#include "cpm_error.h"\n\nCpmError_InitDefaults();\nif (CpmError_LoadConfig("${1:error.ini}") < 0)\n{\n    CpmError_Log("Warning: error configuration file not found: %s\\n", "${1:error.ini}");\n}\n\n${0}\n'
     },
     {
+      id: 'ini-load-typed',
+      languages: ['c'],
+      category: 'Configuration & INI',
+      label: 'INI / load and read typed values',
+      description: 'Load cpm_ini and read string, integer and boolean values from sections.',
+      body: '#include "cpm_ini.h"\n\nCpmIniDocument ini;\nchar port[64];\nint baudrate = 9600;\nint enabled = 0;\n\nCpmIni_Init(&ini);\nif (CpmIni_Load(&ini, "${1:config.ini}") == CPM_INI_OK)\n{\n    CpmIni_GetString(&ini, "${2:serial}", "${3:port}", "COM1", port, sizeof(port));\n    CpmIni_GetInt(&ini, "${2:serial}", "${4:baudrate}", 9600, &baudrate);\n    CpmIni_GetBool(&ini, "${5:features}", "${6:enabled}", 0, &enabled);\n}\nCpmIni_Free(&ini);\n\n${0}'
+    },
+    {
+      id: 'ini-read-one-shot',
+      languages: ['c'],
+      category: 'Configuration & INI',
+      label: 'INI / one-shot read',
+      description: 'Read one INI value without keeping a document in memory.',
+      body: '#include "cpm_ini.h"\n\nchar value[${1:128}];\nint status = CpmIni_ReadString("${2:config.ini}", "${3:network}", "${4:host}", "${5:127.0.0.1}", value, sizeof(value));\nif (status < 0)\n{\n    ${0:// handle error}\n}\n'
+    },
+    {
+      id: 'ini-update-save',
+      languages: ['c'],
+      category: 'Configuration & INI',
+      label: 'INI / update and save',
+      description: 'Modify typed values in an INI document and save it.',
+      body: '#include "cpm_ini.h"\n\nCpmIniDocument ini;\nCpmIni_Init(&ini);\nif (CpmIni_Load(&ini, "${1:config.ini}") == CPM_INI_OK)\n{\n    CpmIni_SetInt(&ini, "${2:network}", "${3:port}", ${4:5025});\n    CpmIni_SetBool(&ini, "${5:features}", "${6:logging}", 1);\n    CpmIni_Save(&ini, "${1:config.ini}");\n}\nCpmIni_Free(&ini);\n${0}'
+    },
+    {
       id: 'file-read-loop',
+      languages: ['c'],
+      category: 'Files & paths',
+      subcategory: 'Text files',
       label: 'File I/O / read lines',
       description: 'Open a text file and read it line by line.',
       body: '#include <stdio.h>\n\nFILE *file = fopen("${1:input.txt}", "r");\nif (file == NULL)\n{\n    return -1;\n}\n\nchar line[${2:512}];\nwhile (fgets(line, sizeof(line), file) != NULL)\n{\n    ${0:// process line}\n}\n\nfclose(file);\n'
     },
     {
       id: 'win32-serial-open',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
       label: 'Communication / Win32 serial open',
       description: 'Open and configure a COM port with the Windows API.',
       body: '#ifdef _WIN32\n#include <windows.h>\n\nHANDLE serial = CreateFileA("\\\\.\\${1:COM3}", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);\nif (serial == INVALID_HANDLE_VALUE)\n{\n    return -1;\n}\n\nDCB dcb;\nSecureZeroMemory(&dcb, sizeof(dcb));\ndcb.DCBlength = sizeof(dcb);\nGetCommState(serial, &dcb);\ndcb.BaudRate = CBR_${2:115200};\ndcb.ByteSize = 8;\ndcb.Parity = NOPARITY;\ndcb.StopBits = ONESTOPBIT;\nSetCommState(serial, &dcb);\n${0}\nCloseHandle(serial);\n#endif\n'
     },
     {
       id: 'tcp-client-socket',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'TCP / UDP',
       label: 'Communication / TCP client socket',
       description: 'Minimal cross-platform TCP client skeleton.',
       body: '#if defined(_WIN32)\n#include <winsock2.h>\n#include <ws2tcpip.h>\n#pragma comment(lib, "ws2_32.lib")\n#else\n#include <arpa/inet.h>\n#include <sys/socket.h>\n#include <unistd.h>\n#define closesocket close\n#endif\n\n${0:// create socket, connect, send and receive}\n'
     },
     {
+      id: 'time-periodic-loop',
+      languages: ['c'],
+      category: 'Time & timers',
+      subcategory: 'Periodic work',
+      label: 'Time / periodic loop',
+      description: 'Drift-resistant periodic loop using the CPM time bundle.',
+      body: '#include "cpm_time.h"\n\nCpmPeriodicTimer timer;\nCpmPeriodicTimer_Init(&timer, ${1:10000}); /* microseconds */\n\nwhile (${2:running})\n{\n    int overrun = 0;\n    ${0:// periodic work}\n    CpmPeriodicTimer_WaitNext(&timer, &overrun);\n}\n'
+    },
+    {
+      id: 'json-read-object',
+      languages: ['c'],
+      category: 'Data & serialization',
+      subcategory: 'JSON',
+      label: 'JSON / parse object value',
+      description: 'Parse a JSON object and retrieve one typed member.',
+      body: '#include "cpm_json.h"\n\nCpmJsonToken tokens[${1:64}];\nint tokenCount = CpmJson_Parse(${2:jsonText}, tokens, ${1:64});\nif (tokenCount > 0)\n{\n    int valueToken = CpmJson_ObjectValue(${2:jsonText}, tokens, tokenCount, 0, "${3:value}");\n    int64_t value = 0;\n    if (valueToken >= 0)\n    {\n        CpmJson_GetInt64(${2:jsonText}, &tokens[valueToken], &value);\n    }\n}\n${0}'
+    },
+    {
+      id: 'checksum-modbus-crc',
+      languages: ['c'],
+      category: 'Integrity & diagnostics',
+      subcategory: 'Checksums & CRC',
+      label: 'Checksum / Modbus CRC16',
+      description: 'Calculate CRC-16/MODBUS for a byte frame.',
+      body: '#include "cpm_checksum.h"\n\nuint16_t crc = CpmCrc16Modbus(${1:frame}, ${2:frameSize});\n${0}'
+    },
+    {
+      id: 'buffer-build-frame',
+      languages: ['c'],
+      category: 'Data & serialization',
+      subcategory: 'Binary buffers',
+      label: 'Buffer / build binary frame',
+      description: 'Build a binary protocol frame with explicit endianness.',
+      body: '#include "cpm_buffer.h"\n\nCpmByteBuffer frame;\nCpmByteBuffer_Init(&frame);\nCpmByteBuffer_AppendU8(&frame, ${1:0x01});\nCpmByteBuffer_AppendU16BE(&frame, ${2:0x1234});\n\n${0:// use frame.data / frame.size}\n\nCpmByteBuffer_Free(&frame);\n'
+    },
+    {
+      id: 'thread-create-join',
+      languages: ['c'],
+      category: 'Threads & synchronization',
+      subcategory: 'Threads',
+      label: 'Thread / create and join',
+      description: 'Start a worker with the CPM thread bundle and join it.',
+      body: 'static int ${1:Worker}(void *userData)\n{\n    ${0:// worker code}\n    (void)userData;\n    return 0;\n}\n\nCpmThread thread;\nint workerResult = 0;\nCpmThread_Init(&thread);\nif (CpmThread_Create(&thread, ${1:Worker}, NULL) == 0)\n{\n    CpmThread_Join(&thread, &workerResult);\n}\n'
+    },
+    {
+      id: 'cpp-ini-load',
+      languages: ['cpp'],
+      category: 'Configuration & INI',
+      label: 'C++ / INI load and typed values',
+      description: 'Use cpm::IniDocument to load and read a configuration file.',
+      body: '#include "cpm_ini.hpp"\n\ncpm::IniDocument ini;\nif (ini.load("${1:config.ini}") == CPM_INI_OK)\n{\n    const auto port = ini.getString("${2:serial}", "${3:port}", "COM1");\n    const int baud = ini.getInt("${2:serial}", "${4:baudrate}", 115200);\n    ${0}\n}\n'
+    },
+    {
+      id: 'cpp-periodic-timer',
+      languages: ['cpp'],
+      category: 'Time & timers',
+      subcategory: 'Periodic work',
+      label: 'C++ / periodic timer',
+      description: 'Drift-resistant periodic loop using std::chrono.',
+      body: '#include "cpm_time.hpp"\n#include <chrono>\n\ncpm::PeriodicTimer timer(std::chrono::milliseconds(${1:10}));\nwhile (${2:running})\n{\n    ${0:// periodic work}\n    const bool overrun = timer.waitNext();\n    (void)overrun;\n}\n'
+    },
+    {
+      id: 'cpp-json-document',
+      languages: ['cpp'],
+      category: 'Data & serialization',
+      subcategory: 'JSON',
+      label: 'C++ / JSON document',
+      description: 'Parse JSON with cpm::JsonDocument and retrieve typed members.',
+      body: '#include "cpm_json.hpp"\n\ncpm::JsonDocument json(${1:jsonText});\nconst auto value = json.int64(json.value(json.root(), "${2:value}"), ${3:0});\n${0}'
+    },
+    {
+      id: 'cpp-ring-buffer',
+      languages: ['cpp'],
+      category: 'Data & serialization',
+      subcategory: 'Containers',
+      label: 'C++ / ring buffer',
+      description: 'Create and use a bounded type-safe ring buffer.',
+      body: '#include "cpm_containers.hpp"\n\ncpm::RingBuffer<${1:int}> queue(${2:64});\nqueue.push(${3:value});\nif (auto item = queue.pop())\n{\n    ${0:// use *item}\n}\n'
+    },
+    {
+      id: 'cpp-process-capture',
+      languages: ['cpp'],
+      category: 'Processes & environment',
+      subcategory: 'Process capture',
+      label: 'C++ / process capture',
+      description: 'Run a command and capture stdout with cpm::Process.',
+      body: '#include "cpm_process.hpp"\n\nauto result = cpm::Process::runCapture("${1:command}");\nif (result.exitCode == 0)\n{\n    ${0:// result.output}\n}\n'
+    },
+    {
+      id: 'rs485-open-transceive',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
+      label: 'Communication / RS-485 transceive',
+      description: 'Open a CPM RS-485 bus and perform one half-duplex transaction.',
+      body: '#include "cpm_rs485.h"\n\nCpmRs485 bus;\nCpmRs485Config cfg;\nCpmRs485_Init(&bus);\nCpmRs485_DefaultConfig(&cfg);\ncfg.uart.baudRate = ${1:115200};\ncfg.manualDirection = ${2:1};\n\nif (CpmRs485_Open(&bus, "${3:COM3}", &cfg) == 0)\n{\n    uint8_t tx[] = { ${4:0x01, 0x02} };\n    uint8_t rx[${5:256}];\n    int received = CpmRs485_Transceive(&bus, tx, sizeof(tx), rx, sizeof(rx), ${6:500});\n    ${0:// process received bytes}\n    (void)received;\n    CpmRs485_Close(&bus);\n}\n'
+    },
+    {
+      id: 'http-rest-get',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Network protocols',
+      label: 'Communication / HTTP GET',
+      description: 'Perform one HTTP/1.1 GET request with the CPM HTTP bundle.',
+      body: '#include "cpm_http.h"\n\nchar body[${1:4096}];\nCpmHttpResponse response;\nint status = CpmHttp_Get("http://${2:127.0.0.1:8080/api/status}", body, sizeof(body), &response, ${3:3000});\nif (status >= 200 && status < 300)\n{\n    ${0:// response.bodySize bytes are available in body}\n}\n'
+    },
+    {
+      id: 'mqtt-connect-publish',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Network protocols',
+      label: 'Communication / MQTT connect + publish',
+      description: 'Connect to a MQTT 3.1.1 broker and publish a QoS 0 message.',
+      body: '#include "cpm_mqtt.h"\n#include <string.h>\n\nCpmMqttClient mqtt;\nCpmMqttConnectOptions options;\nCpmMqtt_Init(&mqtt);\nCpmMqtt_DefaultConnectOptions(&options);\noptions.clientId = "${1:cpm-client}";\n\nif (CpmMqtt_Connect(&mqtt, "${2:127.0.0.1}", ${3:1883}, &options, ${4:3000}) == 0)\n{\n    const char *payload = "${5:hello}";\n    CpmMqtt_Publish(&mqtt, "${6:cpm/demo}", payload, strlen(payload), 0, 0, ${4:3000});\n    CpmMqtt_Disconnect(&mqtt);\n}\n${0}'
+    },
+    {
+      id: 'websocket-text-client',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Network protocols',
+      label: 'Communication / WebSocket text client',
+      description: 'Connect to a ws:// endpoint, send one text frame and receive one frame.',
+      body: '#include "cpm_websocket.h"\n\nCpmWebSocket ws;\nCpmWebSocketFrame frame;\nchar rx[${1:1024}];\nCpmWebSocket_Init(&ws);\nif (CpmWebSocket_Connect(&ws, "ws://${2:127.0.0.1:8080/ws}", NULL, NULL, ${3:3000}) == 0)\n{\n    CpmWebSocket_SendText(&ws, "${4:hello}");\n    if (CpmWebSocket_Receive(&ws, &frame, rx, sizeof(rx), ${3:3000}) > 0)\n    {\n        ${0:// inspect frame.opcode / frame.payloadSize}\n    }\n    CpmWebSocket_Close(&ws, 1000, NULL);\n}\n'
+    },
+    {
+      id: 'usb-hid-open-read',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'USB',
+      label: 'Communication / USB HID open + read',
+      description: 'Open a HID device by VID/PID and read one report.',
+      body: '#include "cpm_hid.h"\n\nCpmHidDevice hid;\nuint8_t report[${1:64}];\nCpmHid_Init(&hid);\nif (CpmHid_OpenVidPid(&hid, ${2:0x1234}, ${3:0x5678}, NULL) == 0)\n{\n    int count = CpmHid_Read(&hid, report, sizeof(report), ${4:1000});\n    ${0:// process count bytes}\n    (void)count;\n    CpmHid_Close(&hid);\n}\n'
+    },
+    {
+      id: 'tls-connect-query',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Network protocols',
+      label: 'Communication / TLS connect + query',
+      description: 'Open a verified TLS connection and exchange one request.',
+      body: '#include "cpm_tls.h"\n\nCpmTlsClient tls;\nCpmTlsConfig cfg;\nCpmTls_Init(&tls);\nCpmTls_DefaultConfig(&cfg);\nif (CpmTls_Connect(&tls, "${1:example.com}", ${2:443}, &cfg, ${3:5000}) == 0)\n{\n    const char request[] = "${4:GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n}";\n    char response[${5:4096}];\n    CpmTls_Write(&tls, request, sizeof(request) - 1);\n    int count = CpmTls_Read(&tls, response, sizeof(response), ${3:5000});\n    ${0:// process count bytes}\n    (void)count;\n    CpmTls_Close(&tls);\n}\n'
+    },
+    {
+      id: 'usb-libusb-enumerate',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'USB',
+      label: 'Communication / generic USB enumerate',
+      description: 'Load libusb dynamically and enumerate attached USB devices.',
+      body: '#include "cpm_usb.h"\n\nCpmUsbRuntime usb;\nCpmUsbDeviceInfo devices[${1:64}];\nsize_t count = 0;\nCpmUsb_RuntimeInit(&usb);\nif (CpmUsb_Load(&usb) == 0)\n{\n    CpmUsb_Enumerate(&usb, devices, ${1:64}, &count);\n    ${0:// inspect devices[0..count)}\n    CpmUsb_Unload(&usb);\n}\n'
+    },
+    {
+      id: 'modbus-rs485-read',
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
+      label: 'Communication / Modbus RS-485 read holding registers',
+      description: 'Use the composed Modbus RTU over RS-485 stack.',
+      body: '#include "cpm_modbus_rs485.h"\n\nCpmModbusRs485 mb;\nuint16_t values[${1:16}];\nsize_t valueCount = 0;\nCpmModbusRs485_Init(&mb, &${2:bus}, ${3:1}, ${4:500});\nif (CpmModbusRs485_ReadHolding(&mb, ${5:0}, ${6:4}, values, ${1:16}, &valueCount) == 0)\n{\n    ${0:// process values}\n}\n'
+    },
+    {
+      id: "c-variadic-function-printf",
+      languages: ['c'],
+      category: 'Functions & callbacks',
+      subcategory: 'Variadic functions',
+      label: "C variadic function / printf-style",
+      description: "Define a printf-style variadic C function with va_list and va_end.",
+      body: "#include <stdarg.h>\n#include <stdio.h>\n\nstatic int ${1:Logf}(const char *format, ...)\n{\n    va_list args;\n    va_start(args, format);\n    const int result = vfprintf(${2:stdout}, format, args);\n    va_end(args);\n    return result;\n}\n\n${0}"
+    },
+    {
+      id: "c-variadic-function-vpair",
+      languages: ['c'],
+      category: 'Functions & callbacks',
+      subcategory: 'Variadic functions',
+      label: "C variadic function / va_list pair",
+      description: "Split a variadic API into Foo(...) and VFoo(..., va_list) so arguments can be forwarded safely.",
+      body: "#include <stdarg.h>\n#include <stdio.h>\n\nstatic int ${1:VLogf}(FILE *stream, const char *format, va_list args)\n{\n    return vfprintf(stream, format, args);\n}\n\nstatic int ${2:Logf}(FILE *stream, const char *format, ...)\n{\n    va_list args;\n    va_start(args, format);\n    const int result = ${1:VLogf}(stream, format, args);\n    va_end(args);\n    return result;\n}\n\n${0}"
+    },
+    {
+      id: "c-va-copy-forward",
+      languages: ['c'],
+      category: 'Functions & callbacks',
+      subcategory: 'Variadic functions',
+      label: "C variadic function / va_copy",
+      description: "Duplicate a va_list before consuming it more than once.",
+      body: "#include <stdarg.h>\n#include <stdio.h>\n\nstatic void ${1:LogToBoth}(FILE *a, FILE *b, const char *format, va_list args)\n{\n    va_list copy;\n    va_copy(copy, args);\n    vfprintf(a, format, args);\n    vfprintf(b, format, copy);\n    va_end(copy);\n}\n\n${0}"
+    },
+    {
+      id: "c-variadic-macro-basic",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Variadic macros',
+      label: "Variadic macro / basic",
+      description: "Forward a mandatory format plus variadic arguments with __VA_ARGS__.",
+      body: "#define ${1:LOGF}(format, ...) ${2:Logf}(format, __VA_ARGS__)\n\n${1:LOGF}(\"value=%d\\n\", ${3:value});\n${0}"
+    },
+    {
+      id: "c-variadic-macro-vaopt",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Variadic macros',
+      label: "Variadic macro / optional arguments with __VA_OPT__",
+      description: "Use standard __VA_OPT__ to make the comma conditional (C23 / C++20).",
+      body: "#define ${1:LOGF}(format, ...) ${2:Logf}(format __VA_OPT__(,) __VA_ARGS__)\n\n${1:LOGF}(\"ready\\n\");\n${1:LOGF}(\"value=%d\\n\", ${3:value});\n${0}"
+    },
+    {
+      id: "c-variadic-macro-gnu-optional",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Variadic macros',
+      label: "Variadic macro / GNU optional arguments",
+      description: "Use the widely supported GNU comma-swallowing extension for C11/C17 toolchains.",
+      body: "#define ${1:LOGF}(format, ...) ${2:Logf}(format, ##__VA_ARGS__)\n\n${1:LOGF}(\"ready\\n\");\n${1:LOGF}(\"value=%d\\n\", ${3:value});\n${0}"
+    },
+    {
+      id: "c-macro-overload-1-2",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Macro dispatch',
+      label: "Macro / optional second argument by arity",
+      description: "Dispatch to one- or two-argument macro implementations.",
+      body: "#define ${1:CPM_PICK_2}(_1, _2, NAME, ...) NAME\n#define ${2:SET_VALUE_1}(value) ${3:SetValueDefault}(value)\n#define ${4:SET_VALUE_2}(value, timeout) ${5:SetValueTimeout}(value, timeout)\n#define ${6:SET_VALUE}(...) ${1:CPM_PICK_2}(__VA_ARGS__, ${4:SET_VALUE_2}, ${2:SET_VALUE_1})(__VA_ARGS__)\n\n${6:SET_VALUE}(${7:42});\n${6:SET_VALUE}(${7:42}, ${8:1000});\n${0}"
+    },
+    {
+      id: "c-macro-count-args",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Macro dispatch',
+      label: "Macro / count 1 to 8 arguments",
+      description: "Count a non-empty variadic argument list from 1 to 8 items.",
+      body: "#define CPM_ARG_N(_1,_2,_3,_4,_5,_6,_7,_8,N,...) N\n#define CPM_NARG_(...) CPM_ARG_N(__VA_ARGS__)\n#define CPM_NARG(...) CPM_NARG_(__VA_ARGS__,8,7,6,5,4,3,2,1)\n\nint count = CPM_NARG(${1:a}, ${2:b}, ${3:c}); /* 3 */\n${0}"
+    },
+    {
+      id: "c-macro-stringify",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Macro mechanics',
+      label: "Macro / stringify",
+      description: "Convert a macro argument to a string literal with #.",
+      body: "#define ${1:CPM_STRINGIFY_RAW}(x) #x\n#define ${2:CPM_STRINGIFY}(x) ${1:CPM_STRINGIFY_RAW}(x)\n\nconst char *text = ${2:CPM_STRINGIFY}(${3:MY_VALUE});\n${0}"
+    },
+    {
+      id: "c-macro-token-paste",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Macro mechanics',
+      label: "Macro / token paste",
+      description: "Generate identifiers with the ## token-pasting operator.",
+      body: "#define ${1:CPM_JOIN_RAW}(a, b) a##b\n#define ${2:CPM_JOIN}(a, b) ${1:CPM_JOIN_RAW}(a, b)\n\nint ${2:CPM_JOIN}(${3:channel_}, ${4:1}) = 0;\n${0}"
+    },
+    {
+      id: "c-macro-do-while",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Macro mechanics',
+      label: "Macro / safe multi-statement",
+      description: "Wrap a multi-statement macro in do { } while (0).",
+      body: "#define ${1:CPM_SET_AND_LOG}(target, value) \\\n    do { \\\n        (target) = (value); \\\n        ${2:LogValue}(target); \\\n    } while (0)\n\n${0}"
+    },
+    {
+      id: "c-xmacro-enum-string",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'X-macros',
+      label: "X-macro / enum + string table",
+      description: "Define one list once and generate an enum plus matching names.",
+      body: "#define ${1:STATE_LIST}(X) \\\n    X(${2:STATE_IDLE}) \\\n    X(${3:STATE_RUN}) \\\n    X(${4:STATE_ERROR})\n\n#define CPM_ENUM_ITEM(name) name,\ntypedef enum { ${1:STATE_LIST}(CPM_ENUM_ITEM) ${5:STATE_COUNT} } ${6:State};\n#undef CPM_ENUM_ITEM\n\n#define CPM_NAME_ITEM(name) #name,\nstatic const char *const ${7:StateNames}[] = { ${1:STATE_LIST}(CPM_NAME_ITEM) };\n#undef CPM_NAME_ITEM\n\n${0}"
+    },
+    {
+      id: "c-array-count-macro",
+      languages: ['c', 'cpp'],
+      category: 'Preprocessor & macros',
+      subcategory: 'Macro mechanics',
+      label: "Macro / array element count",
+      description: "Compute the element count of a true array at compile time.",
+      body: "#include <stddef.h>\n\n#define ${1:CPM_ARRAY_COUNT}(array) (sizeof(array) / sizeof((array)[0]))\n\nint values[] = { ${2:1, 2, 3, 4} };\nsize_t count = ${1:CPM_ARRAY_COUNT}(values);\n${0}"
+    },
+    {
+      id: "c-static-assert",
+      languages: ['c'],
+      category: 'Preprocessor & macros',
+      subcategory: 'C11 compile-time',
+      label: "C compile-time / static assert",
+      description: "Add a C11 compile-time assertion.",
+      body: "#include <assert.h>\n#include <stdint.h>\n\n_Static_assert(sizeof(${1:uint32_t}) == ${2:4}, \"${3:unexpected type size}\");\n${0}"
+    },
+    {
+      id: "c-generic-selection",
+      languages: ['c'],
+      category: 'Preprocessor & macros',
+      subcategory: 'C11 compile-time',
+      label: "C11 _Generic selection",
+      description: "Select an expression based on the compile-time type of an argument.",
+      body: "#include <math.h>\n#include <stdlib.h>\n\n#define ${1:CPM_ABS}(value) _Generic((value), \\\n    int: ${2:abs}, \\\n    long: ${3:labs}, \\\n    float: ${4:fabsf}, \\\n    double: ${5:fabs} \\\n)(value)\n\n${0}"
+    },
+    {
+      id: "c-callback-context",
+      languages: ['c'],
+      category: 'Functions & callbacks',
+      subcategory: 'Callbacks & function pointers',
+      label: "C callback / function + context",
+      description: "Declare and invoke a callback carrying an explicit user context pointer.",
+      body: "typedef void (*${1:CpmCallback})(void *context, int value);\n\ntypedef struct\n{\n    ${1:CpmCallback} callback;\n    void *context;\n} ${2:CpmCallbackSlot};\n\nstatic void ${3:Notify}(${2:CpmCallbackSlot} *slot, int value)\n{\n    if (slot != NULL && slot->callback != NULL)\n    {\n        slot->callback(slot->context, value);\n    }\n}\n\n${0}"
+    },
+    {
+      id: "c-function-pointer-table",
+      languages: ['c'],
+      category: 'Functions & callbacks',
+      subcategory: 'Callbacks & function pointers',
+      label: "C function pointer / dispatch table",
+      description: "Create a small table of operation function pointers.",
+      body: "typedef int (*${1:OperationFn})(int lhs, int rhs);\n\nstatic int ${2:Add}(int a, int b) { return a + b; }\nstatic int ${3:Sub}(int a, int b) { return a - b; }\n\nstatic const ${1:OperationFn} ${4:operations}[] =\n{\n    ${2:Add},\n    ${3:Sub}\n};\n\nint result = ${4:operations}[${5:0}](${6:10}, ${7:3});\n${0}"
+    },
+    {
+      id: "c-qsort-comparator",
+      languages: ['c'],
+      category: 'Functions & callbacks',
+      subcategory: 'Callbacks & function pointers',
+      label: "C callback / qsort comparator",
+      description: "Define a comparator and sort an array with qsort().",
+      body: "#include <stdlib.h>\n\nstatic int ${1:CompareInt}(const void *lhs, const void *rhs)\n{\n    const int a = *(const int *)lhs;\n    const int b = *(const int *)rhs;\n    return (a > b) - (a < b);\n}\n\nqsort(${2:values}, ${3:count}, sizeof(${2:values}[0]), ${1:CompareInt});\n${0}"
+    },
+    {
+      id: "c-designated-initializer",
+      languages: ['c'],
+      category: 'Data & serialization',
+      subcategory: 'C data patterns',
+      label: "C struct / designated initializer",
+      description: "Initialize only named fields of a structure.",
+      body: "typedef struct\n{\n    int baudrate;\n    int timeoutMs;\n    int enabled;\n} ${1:Config};\n\n${1:Config} config =\n{\n    .baudrate = ${2:115200},\n    .timeoutMs = ${3:1000},\n    .enabled = ${4:1}\n};\n\n${0}"
+    },
+    {
+      id: "c-bit-flags",
+      languages: ['c'],
+      category: 'Data & serialization',
+      subcategory: 'C data patterns',
+      label: "C enum / bit flags",
+      description: "Define bit flags and test/set/clear them.",
+      body: "typedef enum\n{\n    ${1:FLAG_RX} = 1u << 0,\n    ${2:FLAG_TX} = 1u << 1,\n    ${3:FLAG_ERROR} = 1u << 2\n} ${4:Flags};\n\nunsigned flags = ${1:FLAG_RX} | ${2:FLAG_TX};\nflags |= ${3:FLAG_ERROR};\nflags &= ~${2:FLAG_TX};\nif ((flags & ${1:FLAG_RX}) != 0u)\n{\n    ${0}\n}\n"
+    },
+    {
+      id: "c-snprintf-format",
+      languages: ['c'],
+      category: 'Strings & formatting',
+      subcategory: 'Formatting',
+      label: "C formatting / snprintf",
+      description: "Format text safely into a bounded buffer.",
+      body: "#include <stdio.h>\n\nchar text[${1:128}];\nconst int written = snprintf(text, sizeof(text), \"${2:value=%d}\", ${3:value});\nif (written < 0 || (size_t)written >= sizeof(text))\n{\n    ${0:// handle encoding error or truncation}\n}\n"
+    },
+    {
+      id: "c-udp-terminal",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'TCP / UDP',
+      label: "Communication / CPM UDP send + receive",
+      description: "Open the CPM UDP socket bundle, send a datagram and wait for a reply.",
+      body: "#include \"cpm_socket.h\"\n\nCpmSocketHandle udp = CpmSocket_UdpOpen(NULL, ${1:0}, ${2:0});\nif (udp != CPM_SOCKET_INVALID)\n{\n    const char request[] = \"${3:hello}\";\n    char reply[${4:512}];\n    CpmSocket_UdpSendTo(udp, \"${5:127.0.0.1}\", ${6:5000}, request, sizeof(request) - 1);\n    int count = CpmSocket_UdpReceive(udp, reply, sizeof(reply), ${7:1000});\n    ${0:// process count bytes}\n    (void)count;\n    CpmSocket_Close(udp);\n}\n"
+    },
+    {
+      id: "c-tcp-server",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'TCP / UDP',
+      label: "Communication / CPM TCP server",
+      description: "Listen for one TCP client with the CPM socket bundle.",
+      body: "#include \"cpm_socket.h\"\n\nCpmSocketHandle listener = CpmSocket_TcpListen(\"${1:0.0.0.0}\", ${2:5000}, ${3:8});\nif (listener != CPM_SOCKET_INVALID)\n{\n    CpmSocketEndpoint peer;\n    CpmSocketHandle client = CpmSocket_TcpAcceptTimeout(listener, ${4:5000}, &peer);\n    if (client != CPM_SOCKET_INVALID)\n    {\n        ${0:// receive/send}\n        CpmSocket_Close(client);\n    }\n    CpmSocket_Close(listener);\n}\n"
+    },
+    {
+      id: "c-uart-bundle",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
+      label: "Communication / CPM UART open + line",
+      description: "Open a serial port with the maintained CPM UART bundle.",
+      body: "#include \"cpm_uart.h\"\n\nCpmUart uart;\nCpmUart_Init(&uart);\nif (CpmUart_Open(&uart, \"${1:COM3}\", ${2:115200}, 8, 'N', 1) == 0)\n{\n    const char command[] = \"${3:*IDN?\\r\\n}\";\n    char reply[${4:512}];\n    CpmUart_WriteAll(&uart, command, sizeof(command) - 1);\n    int count = CpmUart_ReadLine(&uart, reply, sizeof(reply), ${5:1000});\n    ${0:// process count bytes}\n    (void)count;\n    CpmUart_Close(&uart);\n}\n"
+    },
+    {
+      id: "c-ipc-framed",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'IPC',
+      label: "Communication / CPM IPC framed message",
+      description: "Send and receive one length-framed IPC message.",
+      body: "#include \"cpm_ipc.h\"\n\nchar reply[${1:512}];\nif (CpmIpc_SendMessage(&${2:channel}, \"${3:ping}\", ${4:4}) == 0)\n{\n    uint32_t received = 0;\n    int status = CpmIpc_ReceiveMessage(&${2:channel}, reply, sizeof(reply), &received, ${5:1000});\n    ${0:// inspect status / received}\n    (void)status;\n}\n"
+    },
+    {
+      id: "c-visa-idn",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Instrumentation',
+      label: "Communication / VISA *IDN?",
+      description: "Discover VISA resources, open one and issue *IDN?.",
+      body: "#include \"cpm_visa.h\"\n\nCpmVisaRuntime visa;\nCpmVisaSession session;\nchar reply[${1:512}];\nCpmVisa_RuntimeInit(&visa);\nCpmVisa_SessionInit(&session);\nif (CpmVisa_Load(&visa) == 0 && CpmVisa_Open(&visa, &session, \"${2:USB0::...::INSTR}\", ${3:3000}) == 0)\n{\n    const char command[] = \"*IDN?\\n\";\n    CpmVisa_Write(&session, command, sizeof(command) - 1);\n    int count = CpmVisa_Read(&session, reply, sizeof(reply), ${4:1000});\n    ${0:// process count bytes}\n    (void)count;\n    CpmVisa_Close(&session);\n}\nCpmVisa_Unload(&visa);\n"
+    },
+    {
+      id: "c-scpi-client",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Instrumentation',
+      label: "Communication / SCPI generic client",
+      description: "Bind CpmScpi to transport callbacks and issue a query.",
+      body: "#include \"cpm_scpi.h\"\n\nCpmScpi scpi;\nCpmScpi_Init(&scpi, ${1:transportContext}, ${2:WriteCallback}, ${3:ReadCallback});\nCpmScpi_SetTimeout(&scpi, ${4:1000});\nchar reply[${5:512}];\nint count = CpmScpi_Query(&scpi, \"${6:*IDN?}\", reply, sizeof(reply));\n${0:// process count bytes}\n(void)count;\n"
+    },
+    {
+      id: "c-can-send-receive",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
+      label: "Communication / CAN send + receive",
+      description: "Send and receive one CAN frame with the CPM CAN bundle.",
+      body: "#include \"cpm_can.h\"\n\nCpmCan canBus;\nCpmCanFrame tx = {0};\nCpmCanFrame rx = {0};\nCpmCan_Init(&canBus);\nif (CpmCan_Open(&canBus, \"${1:can0}\", ${7:0}) == 0)\n{\n    tx.id = ${2:0x123};\n    tx.dlc = ${3:2};\n    tx.data[0] = ${4:0x01};\n    tx.data[1] = ${5:0x02};\n    CpmCan_Send(&canBus, &tx);\n    int status = CpmCan_Receive(&canBus, &rx, ${6:1000});\n    ${0:// inspect status / rx}\n    (void)status;\n    CpmCan_Close(&canBus);\n}\n"
+    },
+    {
+      id: "c-i2c-register-read",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
+      label: "Communication / I2C register read",
+      description: "Perform a write-then-read repeated-start transaction.",
+      body: "#include \"cpm_i2c.h\"\n\nuint8_t reg = ${1:0x00};\nuint8_t value[${2:2}];\nint status = CpmI2c_WriteRead(&${3:device}, &reg, 1, value, sizeof(value));\n${0:// inspect status / value}\n(void)status;\n"
+    },
+    {
+      id: "c-spi-transfer",
+      languages: ['c'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
+      label: "Communication / SPI full-duplex transfer",
+      description: "Perform one SPI transfer with matching TX/RX buffers.",
+      body: "#include \"cpm_spi.h\"\n\nuint8_t tx[] = { ${1:0x9F, 0x00, 0x00, 0x00} };\nuint8_t rx[sizeof(tx)] = {0};\nint status = CpmSpi_Transfer(&${2:spi}, tx, rx, sizeof(tx));\n${0:// inspect rx}\n(void)status;\n"
+    },
+    {
+      id: "cpp-variadic-template-fold",
+      languages: ['cpp'],
+      category: 'Templates & generic programming',
+      subcategory: 'Variadic templates',
+      label: "C++ variadic template / fold expression",
+      description: "Use a C++17 parameter pack and fold expression.",
+      body: "#include <iostream>\n\ntemplate <typename... Args>\nvoid ${1:PrintAll}(const Args&... args)\n{\n    (std::cout << ... << args) << '\\n';\n}\n\n${1:PrintAll}(${2:\"value=\", 42, \" ok\"});\n${0}"
+    },
+    {
+      id: "cpp-perfect-forward-pack",
+      languages: ['cpp'],
+      category: 'Templates & generic programming',
+      subcategory: 'Variadic templates',
+      label: "C++ variadic template / perfect forwarding",
+      description: "Forward a parameter pack preserving value categories.",
+      body: "#include <utility>\n\ntemplate <typename Function, typename... Args>\ndecltype(auto) ${1:Invoke}(Function&& function, Args&&... args)\n{\n    return std::forward<Function>(function)(std::forward<Args>(args)...);\n}\n\n${0}"
+    },
+    {
+      id: "cpp-generic-lambda-pack",
+      languages: ['cpp'],
+      category: 'Templates & generic programming',
+      subcategory: 'Variadic templates',
+      label: "C++ variadic generic lambda",
+      description: "Use a C++17 generic lambda with a variadic parameter pack.",
+      body: "#include <iostream>\n\nauto ${1:log} = [](const auto&... values)\n{\n    (std::cout << ... << values) << '\\n';\n};\n\n${1:log}(${2:\"value=\", 42});\n${0}"
+    },
+    {
+      id: "cpp-default-argument",
+      languages: ['cpp'],
+      category: 'Modern C++ & STL',
+      subcategory: 'Optional values & defaults',
+      label: "C++ function / default argument",
+      description: "Provide an optional function argument using a default value.",
+      body: "void ${1:Configure}(int baudrate, int timeoutMs = ${2:1000})\n{\n    ${0}\n}\n\n${1:Configure}(${3:115200});\n${1:Configure}(${3:115200}, ${4:250});\n"
+    },
+    {
+      id: "cpp-optional-parameter",
+      languages: ['cpp'],
+      category: 'Modern C++ & STL',
+      subcategory: 'Optional values & defaults',
+      label: "C++ std::optional parameter",
+      description: "Represent an explicitly optional value in a C++17 API.",
+      body: "#include <optional>\n\nvoid ${1:SetThreshold}(std::optional<double> threshold)\n{\n    if (threshold)\n    {\n        ${2:// use *threshold}\n    }\n    else\n    {\n        ${0:// disabled / default behavior}\n    }\n}\n"
+    },
+    {
+      id: "cpp-std-function-callback",
+      languages: ['cpp'],
+      category: 'Functions & callbacks',
+      subcategory: 'Callbacks & lambdas',
+      label: "C++ callback / std::function",
+      description: "Store an arbitrary callable as a callback.",
+      body: "#include <functional>\n\nusing ${1:Callback} = std::function<void(int)>;\n\nclass ${2:Device}\n{\npublic:\n    void setCallback(${1:Callback} callback) { callback_ = std::move(callback); }\n    void notify(int value) { if (callback_) callback_(value); }\nprivate:\n    ${1:Callback} callback_;\n};\n\n${0}"
+    },
+    {
+      id: "cpp-lambda-callback",
+      languages: ['cpp'],
+      category: 'Functions & callbacks',
+      subcategory: 'Callbacks & lambdas',
+      label: "C++ callback / capturing lambda",
+      description: "Pass a lambda that captures local state.",
+      body: "int ${1:count} = 0;\nauto callback = [&${1:count}](int value)\n{\n    ${1:count} += value;\n};\n\n${0}"
+    },
+    {
+      id: "cpp-scope-guard",
+      languages: ['cpp'],
+      category: 'Ownership & RAII',
+      label: "C++ RAII / scope guard",
+      description: "Run cleanup automatically when leaving scope, including exceptions.",
+      body: "#include <utility>\n\ntemplate <typename Function>\nclass ${1:ScopeGuard}\n{\npublic:\n    explicit ${1:ScopeGuard}(Function function) : function_(std::move(function)) {}\n    ~${1:ScopeGuard}() { if (active_) function_(); }\n    ${1:ScopeGuard}(const ${1:ScopeGuard}&) = delete;\n    ${1:ScopeGuard}& operator=(const ${1:ScopeGuard}&) = delete;\n    void dismiss() noexcept { active_ = false; }\nprivate:\n    Function function_;\n    bool active_ = true;\n};\n\ntemplate <typename Function>\n${1:ScopeGuard}<Function> ${2:MakeScopeGuard}(Function function)\n{\n    return ${1:ScopeGuard}<Function>(std::move(function));\n}\n\nauto guard = ${2:MakeScopeGuard}([&] { ${3:Cleanup}(); });\n${0}"
+    },
+    {
+      id: "cpp-unique-ptr",
+      languages: ['cpp'],
+      category: 'Ownership & RAII',
+      label: "C++ ownership / unique_ptr",
+      description: "Represent exclusive ownership with std::unique_ptr.",
+      body: "#include <memory>\n\nauto ${1:device} = std::make_unique<${2:Device}>(${3});\n${1:device}->${4:open}();\n${0}"
+    },
+    {
+      id: "cpp-shared-weak",
+      languages: ['cpp'],
+      category: 'Ownership & RAII',
+      label: "C++ ownership / shared_ptr + weak_ptr",
+      description: "Observe shared ownership without extending lifetime.",
+      body: "#include <memory>\n\nauto owner = std::make_shared<${1:Service}>();\nstd::weak_ptr<${1:Service}> observer = owner;\n\nif (auto locked = observer.lock())\n{\n    locked->${2:run}();\n}\n${0}"
+    },
+    {
+      id: "cpp-variant-visit",
+      languages: ['cpp'],
+      category: 'Modern C++ & STL',
+      label: "C++ std::variant / visit",
+      description: "Visit alternatives with an overloaded-lambda helper.",
+      body: "#include <string>\n#include <variant>\n#include <type_traits>\n\ntemplate <class... Ts> struct ${1:Overloaded} : Ts... { using Ts::operator()...; };\ntemplate <class... Ts> ${1:Overloaded}(Ts...) -> ${1:Overloaded}<Ts...>;\n\nstd::variant<int, double, std::string> value = ${2:42};\nstd::visit(${1:Overloaded}{\n    [](int v) { ${3:(void)v;} },\n    [](double v) { ${4:(void)v;} },\n    [](const std::string& v) { ${0:(void)v;} }\n}, value);\n"
+    },
+    {
+      id: "cpp-template-specialization",
+      languages: ['cpp'],
+      category: 'Templates & generic programming',
+      subcategory: 'Specialization',
+      label: "C++ template / specialization",
+      description: "Provide a full specialization for one type.",
+      body: "template <typename T>\nstruct ${1:TypeName}\n{\n    static constexpr const char *value = \"unknown\";\n};\n\ntemplate <>\nstruct ${1:TypeName}<int>\n{\n    static constexpr const char *value = \"int\";\n};\n\n${0}"
+    },
+    {
+      id: "cpp-enum-class-flags",
+      languages: ['cpp'],
+      category: 'Data & serialization',
+      subcategory: 'Type-safe data patterns',
+      label: "C++ enum class / bit flags",
+      description: "Define type-safe bit flags with operator overloads.",
+      body: "#include <cstdint>\n\nenum class ${1:Flags} : std::uint32_t\n{\n    None = 0,\n    Rx = 1u << 0,\n    Tx = 1u << 1,\n    Error = 1u << 2\n};\n\nconstexpr ${1:Flags} operator|(${1:Flags} lhs, ${1:Flags} rhs)\n{\n    return static_cast<${1:Flags}>(static_cast<std::uint32_t>(lhs) | static_cast<std::uint32_t>(rhs));\n}\n\n${0}"
+    },
+    {
+      id: "cpp-structured-binding",
+      languages: ['cpp'],
+      category: 'Modern C++ & STL',
+      label: "C++17 structured binding",
+      description: "Unpack tuple-like return values with structured bindings.",
+      body: "#include <utility>\n\nauto [${1:value}, ${2:status}] = ${3:GetValue}();\nif (${2:status})\n{\n    ${0:// use value}\n}\n"
+    },
+    {
+      id: "cpp-filesystem-iterate",
+      languages: ['cpp'],
+      category: 'Modern C++ & STL',
+      label: "C++ filesystem / directory iteration",
+      description: "Iterate regular files with std::filesystem.",
+      body: "#include <filesystem>\n\nfor (const auto& entry : std::filesystem::directory_iterator(\"${1:.}\"))\n{\n    if (entry.is_regular_file())\n    {\n        const auto path = entry.path();\n        ${0}\n    }\n}\n"
+    },
+    {
+      id: "cpp-lock-guard",
+      languages: ['cpp'],
+      category: 'Threads & synchronization',
+      subcategory: 'Standard library concurrency',
+      label: "C++ thread / lock_guard",
+      description: "Protect shared data with std::mutex and std::lock_guard.",
+      body: "#include <mutex>\n\nstd::mutex ${1:mutex};\n\n{\n    std::lock_guard<std::mutex> lock(${1:mutex});\n    ${0:// protected access}\n}\n"
+    },
+    {
+      id: "cpp-condition-variable",
+      languages: ['cpp'],
+      category: 'Threads & synchronization',
+      subcategory: 'Standard library concurrency',
+      label: "C++ thread / condition_variable",
+      description: "Wait on a predicate with std::condition_variable.",
+      body: "#include <condition_variable>\n#include <mutex>\n\nstd::mutex ${1:mutex};\nstd::condition_variable ${2:cv};\nbool ${3:ready} = false;\n\nstd::unique_lock<std::mutex> lock(${1:mutex});\n${2:cv}.wait(lock, [&] { return ${3:ready}; });\n${0}"
+    },
+    {
+      id: "cpp-async-future",
+      languages: ['cpp'],
+      category: 'Threads & synchronization',
+      subcategory: 'Standard library concurrency',
+      label: "C++ async / future",
+      description: "Run work asynchronously and retrieve its result.",
+      body: "#include <future>\n\nauto future = std::async(std::launch::async, []\n{\n    return ${1:42};\n});\n\nconst auto result = future.get();\n${0}"
+    },
+    {
+      id: "cpp-try-catch",
+      languages: ['cpp'],
+      category: 'Exceptions & errors',
+      label: "C++ exceptions / try-catch",
+      description: "Catch standard exceptions and preserve a final fallback handler.",
+      body: "#include <exception>\n#include <iostream>\n\ntry\n{\n    ${1:Operation}();\n}\ncatch (const std::exception& error)\n{\n    std::cerr << error.what() << '\\n';\n}\ncatch (...)\n{\n    ${0:// unknown exception}\n}\n"
+    },
+    {
+      id: "cpp-serial-bundle",
+      languages: ['cpp'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
+      label: "C++ communication / SerialPort",
+      description: "Open a serial port using the RAII CPM C++ wrapper.",
+      body: "#include \"cpm_uart.hpp\"\n#include <chrono>\n\ncpm::SerialPort serial;\nif (serial.open(\"${1:COM3}\", ${2:115200}))\n{\n    serial.write(\"${3:*IDN?\\r\\n}\");\n    const auto reply = serial.readLine(std::chrono::milliseconds(${4:1000}));\n    ${0}\n}\n"
+    },
+    {
+      id: "cpp-tcp-client-bundle",
+      languages: ['cpp'],
+      category: 'Communication',
+      subcategory: 'TCP / UDP',
+      label: "C++ communication / TcpClient",
+      description: "Connect, send and receive with the CPM RAII TCP client.",
+      body: "#include \"cpm_socket.hpp\"\n#include <chrono>\n\ncpm::TcpClient client;\nif (client.connect(\"${1:127.0.0.1}\", ${2:5000}, std::chrono::milliseconds(${3:3000})))\n{\n    client.send(\"${4:hello}\");\n    char reply[${5:512}];\n    int count = client.receive(reply, sizeof(reply), std::chrono::milliseconds(${6:1000}));\n    ${0}\n    (void)count;\n}\n"
+    },
+    {
+      id: "cpp-scpi-tcp-client",
+      languages: ['cpp'],
+      category: 'Communication',
+      subcategory: 'Instrumentation',
+      label: "C++ communication / SCPI over TCP",
+      description: "Compose TcpClient and ScpiClient for an instrument query.",
+      body: "#include \"cpm_socket.hpp\"\n#include \"cpm_scpi.hpp\"\n#include <chrono>\n\ncpm::TcpClient socket;\nif (socket.connect(\"${1:192.168.1.100}\", ${2:5025}))\n{\n    cpm::ScpiClient scpi(\n        [&](const void *data, std::size_t size) { return socket.send(data, size); },\n        [&](void *data, std::size_t size, int timeoutMs) { return socket.receive(data, size, std::chrono::milliseconds(timeoutMs)); });\n    const auto idn = scpi.idn();\n    ${0}\n}\n"
+    },
+    {
+      id: "cpp-visa-idn",
+      languages: ['cpp'],
+      category: 'Communication',
+      subcategory: 'Instrumentation',
+      label: "C++ communication / VISA *IDN?",
+      description: "Load VISA dynamically, open a resource and issue an identification query.",
+      body: "#include \"cpm_visa.hpp\"\n\ncpm::VisaRuntime visa;\nif (visa.load())\n{\n    const auto resources = visa.find();\n    if (!resources.empty())\n    {\n        cpm::VisaSession session;\n        if (session.open(visa, resources.front()))\n        {\n            session.write(\"*IDN?\\n\");\n            const auto reply = session.readText();\n            ${0}\n        }\n    }\n}\n"
+    },
+    {
+      id: "cpp-modbus-rs485",
+      languages: ['cpp'],
+      category: 'Communication',
+      subcategory: 'Serial & fieldbus',
+      label: "C++ communication / Modbus RS-485",
+      description: "Compose the RAII RS-485 bus and Modbus client.",
+      body: "#include \"cpm_rs485.hpp\"\n#include \"cpm_modbus_rs485.hpp\"\n\nCpmRs485Config cfg;\nCpmRs485_DefaultConfig(&cfg);\ncfg.uart.baudRate = ${1:115200};\n\ncpm::Rs485Bus bus;\nbus.open(\"${2:COM3}\", cfg);\ncpm::ModbusRs485Client modbus(bus.nativeHandle(), ${3:1}, ${4:500});\nconst auto registers = modbus.readHolding(${5:0}, ${6:4});\n${0}"
+    },
+    {
+      id: "c-file-read-all",
+      languages: ['c'],
+      category: "Files & paths",
+      subcategory: "Whole-file I/O",
+      label: "File / read whole text file",
+      description: "Load an entire text file with the CPM File & Path bundle and release it with free().",
+      body: "#include \"cpm_file.h\"\n#include <stdlib.h>\n\nchar *text = NULL;\nsize_t size = 0;\nif (CpmFile_ReadAllText(\"${1:input.txt}\", &text, &size) == CPM_FILE_OK)\n{\n    ${0:// use text / size}\n    free(text);\n}\n"
+    },
+    {
+      id: "c-string-builder",
+      languages: ['c'],
+      category: "Strings & formatting",
+      subcategory: "String builder",
+      label: "String / dynamic StringBuilder",
+      description: "Build formatted text incrementally with CpmStringBuilder.",
+      body: "#include \"cpm_string.h\"\n\nCpmStringBuilder builder;\nCpmStringBuilder_Init(&builder);\nCpmStringBuilder_Append(&builder, \"${1:prefix}\");\nCpmStringBuilder_AppendFormat(&builder, \" value=%d\", ${2:value});\n\n${0:// use builder.data}\nCpmStringBuilder_Free(&builder);\n"
+    },
+    {
+      id: "c-process-capture",
+      languages: ['c'],
+      category: "Processes & environment",
+      subcategory: "Process capture",
+      label: "Process / run and capture stdout",
+      description: "Execute a command and capture its stdout with cpm_process.",
+      body: "#include \"cpm_process.h\"\n#include <stdlib.h>\n\nchar *output = NULL;\nsize_t outputSize = 0;\nint exitCode = 0;\nif (CpmProcess_RunCapture(\"${1:command}\", &output, &outputSize, &exitCode) == 0)\n{\n    ${0:// inspect output / exitCode}\n    free(output);\n}\n"
+    },
+    {
+      id: "c-csv-read",
+      languages: ['c'],
+      category: "Data & serialization",
+      subcategory: "CSV",
+      label: "CSV / read rows with callback",
+      description: "Read a CSV file row by row with the CPM CSV bundle.",
+      body: "#include \"cpm_csv.h\"\n\nstatic int ${1:OnRow}(const CpmCsvRow *row, size_t rowIndex, void *userData)\n{\n    (void)rowIndex;\n    (void)userData;\n    ${0:// inspect row->fields / row->count}\n    return 0;\n}\n\nCpmCsv_ReadFile(\"${2:data.csv}\", ${3:','}, ${1:OnRow}, NULL);\n"
+    },
+    {
+      id: "c-ring-buffer",
+      languages: ['c'],
+      category: "Data & serialization",
+      subcategory: "Containers",
+      label: "Container / ring buffer",
+      description: "Create a fixed-capacity generic ring buffer.",
+      body: "#include \"cpm_containers.h\"\n\nCpmRingBuffer ring;\nif (CpmRingBuffer_Init(&ring, sizeof(${1:int}), ${2:64}) == 0)\n{\n    ${1:int} value = ${3:42};\n    CpmRingBuffer_Push(&ring, &value, ${4:1});\n    if (CpmRingBuffer_Pop(&ring, &value) == 0)\n    {\n        ${0:// use value}\n    }\n    CpmRingBuffer_Free(&ring);\n}\n"
+    },
+    {
+      id: "c-logger",
+      languages: ['c'],
+      category: "Integrity & diagnostics",
+      subcategory: "Logging",
+      label: "Logging / console + file",
+      description: "Initialize the CPM logger, configure a file and write formatted/hex logs.",
+      body: "#include \"cpm_log.h\"\n\nCpmLog_Init();\nCpmLog_SetLevel(CPM_LOG_${1:DEBUG});\nCpmLog_EnableConsole(1);\nCpmLog_SetFile(\"${2:application.log}\", 1);\nCpmLog_Write(CPM_LOG_INFO, \"${3:value=%d}\", ${4:value});\n${0}\nCpmLog_Shutdown();\n"
+    },
+    {
+      id: "cpp-file-utilities",
+      languages: ['cpp'],
+      category: "Files & paths",
+      subcategory: "std::filesystem",
+      label: "C++ file / read and write text",
+      description: "Use the CPM C++ file wrapper built around std::filesystem.",
+      body: "#include \"cpm_file.hpp\"\n\nconst auto text = cpm::readText(\"${1:input.txt}\");\ncpm::writeText(\"${2:output.txt}\", text);\n${0}"
+    },
+    {
+      id: "cpp-string-utilities",
+      languages: ['cpp'],
+      category: "Strings & formatting",
+      subcategory: "String utilities",
+      label: "C++ string / trim split join",
+      description: "Use CPM C++ string_view helpers for common text operations.",
+      body: "#include \"cpm_string.hpp\"\n\nconst auto clean = cpm::trim(${1:text});\nconst auto parts = cpm::split(clean, ${2:','});\nconst auto joined = cpm::join(parts, \"${3: | }\");\n${0}"
+    },
+    {
+      id: "cpp-blocking-queue",
+      languages: ['cpp'],
+      category: "Threads & synchronization",
+      subcategory: "Queues & events",
+      label: "C++ thread / blocking queue",
+      description: "Exchange typed work items between threads with cpm::BlockingQueue.",
+      body: "#include \"cpm_thread.hpp\"\n\ncpm::BlockingQueue<${1:int}> queue;\ncpm::JoiningThread worker([&]\n{\n    const auto value = queue.pop();\n    ${0:// process value}\n});\n\nqueue.push(${2:42});\n"
+    },
+    {
+      id: "cpp-csv-read",
+      languages: ['cpp'],
+      category: "Data & serialization",
+      subcategory: "CSV",
+      label: "C++ CSV / read file",
+      description: "Read an entire CSV file into vector rows.",
+      body: "#include \"cpm_csv.hpp\"\n\nconst auto rows = cpm::readCsv(\"${1:data.csv}\");\nfor (const auto& row : rows)\n{\n    ${0:// inspect row}\n}\n"
+    },
+    {
+      id: "cpp-byte-buffer",
+      languages: ['cpp'],
+      category: "Data & serialization",
+      subcategory: "Binary buffers",
+      label: "C++ buffer / build and parse frame",
+      description: "Build endian-aware binary frames with cpm::ByteBuffer and parse them with ByteReader.",
+      body: "#include \"cpm_buffer.hpp\"\n\ncpm::ByteBuffer frame;\nframe.u8(${1:0x01}).u16be(${2:0x1234});\n\ncpm::ByteReader reader(frame.data());\nconst auto type = reader.u8();\nconst auto value = reader.u16be();\n${0}"
+    },
+    {
+      id: "cpp-checksum-crc",
+      languages: ['cpp'],
+      category: "Integrity & diagnostics",
+      subcategory: "Checksums & CRC",
+      label: "C++ checksum / CRC16 + CRC32",
+      description: "Calculate checksums directly from STL-compatible containers.",
+      body: "#include \"cpm_checksum.hpp\"\n\nconst auto crc16 = cpm::crc16Modbus(${1:bytes});\nconst auto crc32 = cpm::crc32(${1:bytes});\n${0}"
+    },
+    {
+      id: "cpp-logger",
+      languages: ['cpp'],
+      category: "Integrity & diagnostics",
+      subcategory: "Logging",
+      label: "C++ logging / RAII logger",
+      description: "Use the RAII CPM logger wrapper with formatted and hexadecimal logging.",
+      body: "#include \"cpm_log.hpp\"\n\ncpm::Logger logger;\nlogger.setLevel(cpm::LogLevel::${1:Debug});\nlogger.setFile(\"${2:application.log}\");\nlogger.write(cpm::LogLevel::Info, \"${3:value=%d}\", ${4:value});\n${0}"
+    },
+    {
+      id: "cpp-static-assert",
+      languages: ['cpp'],
+      category: "Templates & generic programming",
+      subcategory: "Compile-time checks",
+      label: "C++ static_assert",
+      description: "Enforce a compile-time invariant with static_assert.",
+      body: "#include <cstdint>\n\nstatic_assert(${1:sizeof(std::uint32_t) == 4}, \"${2:unexpected type size}\");\n${0}"
+    },
+    {
+      id: "cpp-if-constexpr",
+      languages: ['cpp'],
+      category: "Templates & generic programming",
+      subcategory: "Compile-time branching",
+      label: "C++17 if constexpr",
+      description: "Branch on a type property at compile time.",
+      body: "#include <type_traits>\n\ntemplate <typename T>\nvoid ${1:Process}(const T& value)\n{\n    if constexpr (std::is_integral_v<T>)\n    {\n        ${2:(void)value;}\n    }\n    else\n    {\n        ${0:(void)value;}\n    }\n}\n"
+    },
+    {
       id: 'state-machine-switch',
+      languages: ['c'],
+      category: 'Architecture & patterns',
+      subcategory: 'State machines',
       label: 'Architecture / finite state machine',
       description: 'Simple switch-based state machine skeleton.',
       body: 'typedef enum\n{\n    STATE_INIT,\n    STATE_IDLE,\n    STATE_RUN,\n    STATE_ERROR\n} ${1:AppState};\n\nvoid ${2:RunStateMachine}(${1:AppState} *state)\n{\n    switch (*state)\n    {\n        case STATE_INIT:\n            *state = STATE_IDLE;\n            break;\n        case STATE_IDLE:\n            break;\n        case STATE_RUN:\n            break;\n        case STATE_ERROR:\n            break;\n        default:\n            *state = STATE_ERROR;\n            break;\n    }\n}\n'
     }
   ];
+}
+
+export function auditBuiltInSnippetCatalog(): string[] {
+  const issues: string[] = [];
+  const snippets = getBuiltInSnippets();
+  const ids = new Set<string>();
+  for (const snippet of snippets) {
+    if (!snippet.id.trim()) issues.push('Snippet with empty id.');
+    if (ids.has(snippet.id)) issues.push(`Duplicate snippet id: ${snippet.id}`);
+    ids.add(snippet.id);
+    if (!snippet.label.trim()) issues.push(`Snippet ${snippet.id} has an empty label.`);
+    if (!snippet.description.trim()) issues.push(`Snippet ${snippet.id} has an empty description.`);
+    if (!snippet.body.trim()) issues.push(`Snippet ${snippet.id} has an empty body.`);
+    if (!snippet.category.trim()) issues.push(`Snippet ${snippet.id} has no category.`);
+    if (snippet.languages.length === 0) issues.push(`Snippet ${snippet.id} has no language.`);
+    for (const language of snippet.languages) {
+      if (language !== 'c' && language !== 'cpp') issues.push(`Snippet ${snippet.id} has unsupported language: ${String(language)}`);
+    }
+    if (snippet.body.includes('�')) issues.push(`Snippet ${snippet.id} contains a replacement-character encoding error.`);
+    if (snippet.body.includes('CpmIpc_SendFrame') || snippet.body.includes('CpmIpc_ReceiveFrame')) {
+      issues.push(`Snippet ${snippet.id} references obsolete IPC framing API names.`);
+    }
+  }
+  return issues;
 }
 
 export class CpmTemplateService {
@@ -5553,6 +7037,9 @@ export class CpmTemplateService {
       case 'dll': return this.generateDll(projectDirectory);
       case 'error-module': return this.generateErrorModule(projectDirectory);
       case 'error-ini': return this.generateSingleTextFile(projectDirectory, '.ini', 'error', ERROR_INI_TEMPLATE, 'Error logging configuration');
+      case 'c-bundles': return this.generateBundledMyUtilModule(projectDirectory, 'C bundles');
+      case 'cpp-bundles': return this.generateBundledMyUtilModule(projectDirectory, 'C++ bundles');
+      case 'script-bundles': return this.generateBundledMyUtilModule(projectDirectory, 'Script bundles');
       case 'my-util-module': return this.generateBundledMyUtilModule(projectDirectory);
       case 'python-source': return this.generateSingleTextFile(projectDirectory, '.py', 'script', `#!/usr/bin/env python3\n\n\ndef main():\n    pass\n\n\nif __name__ == "__main__":\n    main()\n`, 'Python script file');
       case 'text': return this.generateSingleTextFile(projectDirectory, '.txt', 'new_file', '', 'Text file');
@@ -5563,10 +7050,9 @@ export class CpmTemplateService {
 
   private async pickNewFileWorkflow(hasUserTemplates: boolean): Promise<string | undefined> {
     const groups: Array<vscode.QuickPickItem & { value: string }> = [
-      { label: 'C', description: 'C sources, headers, DLL starter and C error/logging modules', value: 'group-c' },
-      { label: 'C++', description: 'C++ sources, classes and reusable C++ starters', value: 'group-cpp' },
-      { label: 'Module bundles', description: 'Generated C/C++ bundles and bundled utility modules', value: 'group-bundles' },
-      { label: 'Scripts and text', description: 'Python scripts and plain text files', value: 'group-scripts' }
+      { label: 'C', description: 'C files, starters and reusable C bundles', value: 'group-c' },
+      { label: 'C++', description: 'C++ files, classes and reusable C++ bundles', value: 'group-cpp' },
+      { label: 'Scripts and text', description: 'Scripts, text files and script bundles', value: 'group-scripts' }
     ];
 
     if (hasUserTemplates) {
@@ -5575,15 +7061,12 @@ export class CpmTemplateService {
 
     const group = await vscode.window.showQuickPick(groups, {
       title: 'Create a new file or starter module',
-      placeHolder: 'Select a CPM creation category'
+      placeHolder: 'Select a language or creation category'
     });
     if (!group) {
       return undefined;
     }
 
-    if (group.value === 'group-bundles') {
-      return 'my-util-module';
-    }
     if (group.value === 'group-user-templates') {
       return 'user-template';
     }
@@ -5593,19 +7076,21 @@ export class CpmTemplateService {
         { label: 'Source file', description: 'Create an empty C source or a generic main() template', value: 'c-source' },
         { label: 'Main with CPM error handling', description: 'Create main.c with file header, sections and CPM error path', value: 'c-main-error' },
         { label: 'Module (.c + .h)', description: 'Create a paired C implementation file and guarded header', value: 'c-module' },
-        { label: 'Header file', description: 'Create a guarded header usable from C or C++', value: 'c-header' },
+        { label: 'Header file', description: 'Create a guarded C/C++ compatible header', value: 'c-header' },
         { label: 'Windows DLL starter (.c + .h)', description: 'Create a minimal DllMain and export header', value: 'dll' },
-        { label: 'Error/logging module (.c + .h + .ini)', description: 'Create configurable C error handling with INI-controlled logging', value: 'error-module' },
-        { label: 'Error/logging configuration (.ini)', description: 'Create only the runtime error logging configuration file', value: 'error-ini' }
+        { label: 'Error/logging configuration (.ini)', description: 'Create only the runtime error logging configuration file', value: 'error-ini' },
+        { label: '$(package) Bundles...', description: 'INI, utilities, error handling, communication, Python/Lua and Web UI bundles', value: 'c-bundles' }
       ],
       'group-cpp': [
         { label: 'Source file', description: 'Create an empty C++ source or a generic C++ main() template', value: 'cpp-source' },
         { label: 'Class (.cpp + .hpp)', description: 'Create a minimal C++ class declaration and implementation', value: 'cpp-class' },
-        { label: 'Header file', description: 'Create a guarded header usable from C or C++', value: 'c-header' }
+        { label: 'Header file', description: 'Create a guarded C/C++ compatible header', value: 'c-header' },
+        { label: '$(package) Bundles...', description: 'C++ utilities, communication, bridges and reusable modules', value: 'cpp-bundles' }
       ],
       'group-scripts': [
         { label: 'Python script file', description: 'Create an empty .py script file', value: 'python-source' },
-        { label: 'Text file', description: 'Create an empty .txt file', value: 'text' }
+        { label: 'Text file', description: 'Create an empty .txt file', value: 'text' },
+        { label: '$(package) Bundles...', description: 'Python/Lua workers and Web UI frontend bundles', value: 'script-bundles' }
       ]
     };
 
@@ -5626,20 +7111,148 @@ export class CpmTemplateService {
 
     const builtIns = getBuiltInSnippets();
     const userSnippets = this.loadSnippets();
-    const items: Array<vscode.QuickPickItem & { body: string }> = [
-      ...builtIns.map((snippet) => ({ label: snippet.label, description: snippet.description, detail: 'Built-in C/C++ snippet', body: snippet.body })),
-      ...userSnippets.map((snippet) => ({ label: snippet.label, description: snippet.description || '', detail: 'Saved user snippet', body: snippet.body }))
+    const currentLanguage: SnippetLanguage | undefined = editor.document.languageId === 'cpp'
+      ? 'cpp'
+      : editor.document.languageId === 'c'
+        ? 'c'
+        : /\.(?:cc|cpp|cxx|hpp|hh|hxx)$/i.test(editor.document.fileName)
+          ? 'cpp'
+          : /\.(?:c|h)$/i.test(editor.document.fileName)
+            ? 'c'
+            : undefined;
+
+    const languageCounts = {
+      c: builtIns.filter((snippet) => snippet.languages.includes('c')).length,
+      cpp: builtIns.filter((snippet) => snippet.languages.includes('cpp')).length
+    };
+    const languageItems: Array<vscode.QuickPickItem & { value: 'c' | 'cpp' | 'saved' | 'all' }> = [
+      { label: 'C', description: `${languageCounts.c} built-in snippets${currentLanguage === 'c' ? ' • current editor' : ''}`, value: 'c' },
+      { label: 'C++', description: `${languageCounts.cpp} built-in snippets${currentLanguage === 'cpp' ? ' • current editor' : ''}`, value: 'cpp' },
+      { label: 'Search all built-in snippets', description: `${builtIns.length} snippets across C and C++`, value: 'all' }
     ];
-    const selected = await vscode.window.showQuickPick(items, {
+    if (userSnippets.length > 0) {
+      languageItems.push({ label: 'Saved snippets', description: `${userSnippets.length} personal snippet(s)`, value: 'saved' });
+    }
+    if (currentLanguage === 'cpp') {
+      const cIndex = languageItems.findIndex((item) => item.value === 'c');
+      const cppIndex = languageItems.findIndex((item) => item.value === 'cpp');
+      if (cIndex >= 0 && cppIndex >= 0) {
+        [languageItems[cIndex], languageItems[cppIndex]] = [languageItems[cppIndex], languageItems[cIndex]];
+      }
+    }
+
+    const root = await vscode.window.showQuickPick(languageItems, {
       title: 'CPM: Insert snippet',
-      placeHolder: 'Select a reusable code fragment to insert at the current cursor position',
-      matchOnDescription: true,
-      matchOnDetail: true
+      placeHolder: 'Select a language or snippet collection',
+      matchOnDescription: true
     });
-    if (!selected) {
+    if (!root) return;
+
+    if (root.value === 'saved') {
+      const selected = await vscode.window.showQuickPick(
+        userSnippets.map((snippet) => ({
+          label: snippet.label,
+          description: snippet.description || '',
+          detail: [snippet.language === 'cpp' ? 'C++' : snippet.language === 'c' ? 'C' : snippet.language === 'both' ? 'C/C++' : 'Saved snippet', snippet.category].filter(Boolean).join(' • '),
+          snippet
+        })),
+        { title: 'CPM: Insert snippet > Saved snippets', placeHolder: 'Select a saved snippet', matchOnDescription: true, matchOnDetail: true }
+      );
+      if (selected) await editor.insertSnippet(new vscode.SnippetString(selected.snippet.body));
       return;
     }
-    await editor.insertSnippet(new vscode.SnippetString(selected.body));
+
+    if (root.value === 'all') {
+      const selected = await vscode.window.showQuickPick(
+        builtIns.map((snippet) => ({
+          label: snippet.label,
+          description: snippet.description,
+          detail: `${snippet.languages.includes('c') && snippet.languages.includes('cpp') ? 'C/C++' : snippet.languages.includes('cpp') ? 'C++' : 'C'} • ${snippet.category}${snippet.subcategory ? ` › ${snippet.subcategory}` : ''}`,
+          snippet
+        })),
+        { title: 'CPM: Insert snippet > Search all', placeHolder: 'Search all built-in snippets', matchOnDescription: true, matchOnDetail: true }
+      );
+      if (selected) await editor.insertSnippet(new vscode.SnippetString(selected.snippet.body));
+      return;
+    }
+
+    const language = root.value;
+    const languageLabel = language === 'cpp' ? 'C++' : 'C';
+    const languageSnippets = builtIns.filter((snippet) => snippet.languages.includes(language));
+    const categoryOrder = [
+      'Entry points & modules',
+      'Preprocessor & macros',
+      'Functions & callbacks',
+      'Templates & generic programming',
+      'Modern C++ & STL',
+      'Ownership & RAII',
+      'Error handling & cleanup',
+      'Exceptions & errors',
+      'Configuration & INI',
+      'Files & paths',
+      'Strings & formatting',
+      'Time & timers',
+      'Threads & synchronization',
+      'Processes & environment',
+      'Data & serialization',
+      'Integrity & diagnostics',
+      'Communication',
+      'Architecture & patterns',
+      'Interoperability & ABI',
+      'Documentation & comments'
+    ];
+    const categories = Array.from(new Set(languageSnippets.map((snippet) => snippet.category)))
+      .sort((a, b) => {
+        const ai = categoryOrder.indexOf(a);
+        const bi = categoryOrder.indexOf(b);
+        if (ai >= 0 && bi >= 0) return ai - bi;
+        if (ai >= 0) return -1;
+        if (bi >= 0) return 1;
+        return a.localeCompare(b);
+      });
+    const category = await vscode.window.showQuickPick(
+      categories.map((name) => ({
+        label: name,
+        description: `${languageSnippets.filter((snippet) => snippet.category === name).length} snippet(s)`,
+        value: name
+      })),
+      { title: `CPM: Insert snippet > ${languageLabel}`, placeHolder: 'Select a category', matchOnDescription: true }
+    );
+    if (!category) return;
+
+    let candidates = languageSnippets.filter((snippet) => snippet.category === category.value);
+    const subcategories = Array.from(new Set(candidates.map((snippet) => snippet.subcategory).filter((value): value is string => Boolean(value))));
+    if (subcategories.length > 1) {
+      const subcategory = await vscode.window.showQuickPick([
+        { label: 'All snippets in this category', description: `${candidates.length} snippet(s)`, value: '' },
+        ...subcategories.sort((a, b) => a.localeCompare(b)).map((name) => ({
+          label: name,
+          description: `${candidates.filter((snippet) => snippet.subcategory === name).length} snippet(s)`,
+          value: name
+        }))
+      ], {
+        title: `CPM: Insert snippet > ${languageLabel} > ${category.value}`,
+        placeHolder: 'Select a sub-category or show all'
+      });
+      if (!subcategory) return;
+      if (subcategory.value) candidates = candidates.filter((snippet) => snippet.subcategory === subcategory.value);
+    }
+
+    const selected = await vscode.window.showQuickPick(
+      candidates.map((snippet) => ({
+        label: snippet.label,
+        description: snippet.description,
+        detail: snippet.subcategory || category.value,
+        snippet
+      })),
+      {
+        title: `CPM: Insert snippet > ${languageLabel} > ${category.value}`,
+        placeHolder: 'Select a reusable code fragment',
+        matchOnDescription: true,
+        matchOnDetail: true
+      }
+    );
+    if (selected) await editor.insertSnippet(new vscode.SnippetString(selected.snippet.body));
   }
 
   async insertFileDescriptionHeader(): Promise<void> {
@@ -5792,7 +7405,16 @@ export class CpmTemplateService {
       return;
     }
     const snippets = this.loadSnippets();
-    snippets.push({ id: `${sanitizeId(label)}-${Date.now()}`, label, description, body });
+    const inferredLanguage: StoredSnippetLanguage = editor.document.languageId === 'cpp'
+      ? 'cpp'
+      : editor.document.languageId === 'c'
+        ? 'c'
+        : /\.(?:cc|cpp|cxx|hpp|hh|hxx)$/i.test(editor.document.fileName)
+          ? 'cpp'
+          : /\.(?:c|h)$/i.test(editor.document.fileName)
+            ? 'c'
+            : 'both';
+    snippets.push({ id: `${sanitizeId(label)}-${Date.now()}`, label, description, body, language: inferredLanguage, category: 'Custom' });
     this.saveSnippets(snippets);
     vscode.window.showInformationMessage(`Saved C/C++ snippet: ${label}`);
   }
@@ -6078,24 +7700,71 @@ export class CpmTemplateService {
   }
 
 
-  private async generateBundledMyUtilModule(projectDirectory: string): Promise<NewFileGenerationResult | undefined> {
-    const modules = getBuiltInMyUtilModules();
-    const categories = [
+  private isBundledModuleAvailable(module: BundledModuleChoice): boolean {
+    if (module.generator) {
+      return true;
+    }
+    if (!module.entries.length) {
+      return false;
+    }
+    const bundleRoot = path.join(this.context.extensionPath, BUNDLED_MY_UTIL_ROOT);
+    return module.entries.every((entry) => {
+      const rawSourceEntry = entry.split('=>')[0].trim();
+      const source = path.resolve(bundleRoot, rawSourceEntry);
+      return source.startsWith(path.resolve(bundleRoot)) && fs.existsSync(source);
+    });
+  }
+
+  private async generateBundledMyUtilModule(projectDirectory: string, requestedGroup?: string): Promise<NewFileGenerationResult | undefined> {
+    const allModules = getBuiltInMyUtilModules();
+    const unavailableModules = allModules.filter((module) => !this.isBundledModuleAvailable(module));
+    const modules = allModules.filter((module) => this.isBundledModuleAvailable(module));
+    if (unavailableModules.length > 0) {
+      this.output.appendLine(`[C/C++ Templates] ${unavailableModules.length} legacy bundle choice(s) hidden because their bundled source files are not present in this build: ${unavailableModules.map((module) => module.label).join(', ')}`);
+    }
+    const languageGroups = [
       { label: 'C', description: 'Generated C utility bundles', group: 'C bundles' },
-      { label: 'C++', description: 'Generated C++ bundles and CPM_Utility C++ modules', group: 'C++ bundles' },
+      { label: 'C++', description: 'C++17 RAII bundles plus maintained C backends and bridges', group: 'C++ bundles' },
       { label: 'Scripts', description: 'Companion scripts and non-compiled helpers', group: 'Script bundles' }
     ].filter((category) => modules.some((module) => module.group === category.group));
 
-    const selectedCategory = await vscode.window.showQuickPick(categories, {
-      title: 'Module bundles',
-      placeHolder: 'Select a bundle folder'
-    });
-    if (!selectedCategory) {
-      return undefined;
+    let selectedGroup = requestedGroup;
+    let selectedGroupLabel = languageGroups.find((entry) => entry.group === requestedGroup)?.label;
+    if (!selectedGroup) {
+      const selectedLanguage = await vscode.window.showQuickPick(languageGroups, {
+        title: 'Reusable bundles',
+        placeHolder: 'Select the bundle language'
+      });
+      if (!selectedLanguage) {
+        return undefined;
+      }
+      selectedGroup = selectedLanguage.group;
+      selectedGroupLabel = selectedLanguage.label;
     }
 
-    const quickPickItems: Array<vscode.QuickPickItem & { module: BundledModuleChoice }> = modules
-      .filter((module) => module.group === selectedCategory.group)
+    const languageModules = modules.filter((module) => module.group === selectedGroup);
+    const bundleCategories = Array.from(new Set(languageModules.map((module) => getBundledModuleCategory(module))));
+    let selectedCategory: string | undefined;
+    if (bundleCategories.length > 1) {
+      const categoryChoice = await vscode.window.showQuickPick(bundleCategories.map((category) => ({
+        label: category,
+        description: `${languageModules.filter((module) => getBundledModuleCategory(module) === category).length} bundle(s)`,
+        category
+      })), {
+        title: `Create > ${selectedGroupLabel ?? selectedGroup} > Bundles`,
+        placeHolder: 'Select a bundle category'
+      });
+      if (!categoryChoice) {
+        return undefined;
+      }
+      selectedCategory = categoryChoice.category;
+    }
+
+    const filteredModules = selectedCategory
+      ? languageModules.filter((module) => getBundledModuleCategory(module) === selectedCategory)
+      : languageModules;
+
+    const quickPickItems: Array<vscode.QuickPickItem & { module: BundledModuleChoice }> = filteredModules
       .map((module) => ({
         label: module.label,
         description: module.description,
@@ -6104,7 +7773,7 @@ export class CpmTemplateService {
       }));
 
     const selected = await vscode.window.showQuickPick(quickPickItems, {
-      title: `Module bundles > ${selectedCategory.label}`,
+      title: `Create > ${selectedGroupLabel ?? selectedGroup} > Bundles${selectedCategory ? ` > ${selectedCategory}` : ''}`,
       matchOnDescription: true,
       matchOnDetail: true
     });
@@ -6526,7 +8195,7 @@ export class CpmTemplateService {
       return;
     }
     const snippets = this.loadSnippets();
-    snippets.push({ id: `${sanitizeId(label)}-${Date.now()}`, label, body });
+    snippets.push({ id: `${sanitizeId(label)}-${Date.now()}`, label, body, language: 'both', category: 'Imported' });
     this.saveSnippets(snippets);
     vscode.window.showInformationMessage(`Imported C/C++ snippet: ${label}`);
   }

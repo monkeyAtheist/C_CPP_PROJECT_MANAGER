@@ -127,7 +127,7 @@ function renderHtml(state: HomeState): string {
           <div class="actions primary-row">
             <button data-command="cpm.openWorkspace">Open workspace</button>
             <button data-command="cpm.createWorkspaceProject">Create workspace and project</button>
-            <button data-command="cpm.configureInstallation">Select toolchain</button><button data-command="cpm.installSupportedToolchains">Install toolchains</button>
+            <button data-command="cpm.configureInstallation">Select toolchain</button><button data-command="cpm.installSupportedToolchains">Install toolchains</button><button class="secondary" data-command="cpm.editBuildSettings">Settings</button><button class="secondary" data-command="cpm.openTools">Tools</button>
           </div>
         </div>
       </div>` : '';
@@ -148,7 +148,7 @@ function renderHtml(state: HomeState): string {
           <button class="secondary" data-command="cpm.chooseRunAction">Run options</button>
           <button class="secondary" data-command="cpm.selectBuildMode">Build mode</button>
           <button class="secondary" data-command="cpm.selectTargetType">Target type</button>
-          <button class="secondary" data-command="cpm.editBuildSettings">Build settings</button>
+          <button class="secondary" data-command="cpm.editBuildSettings">Settings</button><button class="secondary" data-command="cpm.openTools">Tools</button>
           <button class="secondary" data-command="cpm.createNewFile">Create file</button>
         </div>` : '';
 
@@ -275,6 +275,67 @@ function renderHtml(state: HomeState): string {
           <button class="secondary" data-command="cpm.insertSnippet">Insert snippet</button>
           <button class="secondary" data-command="cpm.manageFileTemplates">Manage templates</button>
           <button class="secondary" data-command="cpm.manageSnippets">Manage snippets</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <h2>Diagnostics and external equipment</h2>
+      <span>Serial, USB/PnP and VISA/USBTMC</span>
+    </div>
+    <div class="tools-grid">
+      <article class="card">
+        <div class="card-header">
+          <div class="tile-icon">I/O</div>
+          <div class="title-stack">
+            <small>Instrument diagnostics</small>
+            <strong>COM, USB and SCPI test console</strong>
+          </div>
+        </div>
+        <p class="muted">Enumerate connected interfaces, configure serial communication, discover VISA resources and send manual or predefined SCPI frames such as <code>*IDN?</code>.</p>
+        <div class="actions">
+          <button data-command="cpm.openInstrumentDiagnostics">Open Instrument Diagnostics</button>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-header">
+          <div class="tile-icon">NET</div>
+          <div class="title-stack">
+            <small>Network diagnostics</small>
+            <strong>Ethernet, Wi-Fi, TCP/UDP, BLE and Bluetooth</strong>
+          </div>
+        </div>
+        <p class="muted">Inspect local network interfaces, run single-target connectivity checks, exchange TCP/UDP frames and scan visible Wi-Fi/BLE devices.</p>
+        <div class="actions">
+          <button data-command="cpm.openNetworkDiagnostics">Open Network &amp; Wireless Diagnostics</button>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-header">
+          <div class="tile-icon">DEV</div>
+          <div class="title-stack">
+            <small>Unified devices</small>
+            <strong>CPM Device Manager</strong>
+          </div>
+        </div>
+        <p class="muted">Group COM, VISA, TCP, UDP and SSH endpoints under one reusable equipment profile, then reopen the appropriate diagnostic tool directly.</p>
+        <div class="actions">
+          <button data-command="cpm.openDeviceManager">Open CPM Devices</button>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-header">
+          <div class="tile-icon">SSH</div>
+          <div class="title-stack">
+            <small>Remote devices</small>
+            <strong>OpenSSH Device Manager</strong>
+          </div>
+        </div>
+        <p class="muted">Manage <code>~/.ssh/config</code> aliases and keys, test SSH devices and reuse them as CPM Remote Linux targets.</p>
+        <div class="actions">
+          <button data-command="cpm.openSshDeviceManager">Open SSH Devices</button>
         </div>
       </article>
     </div>

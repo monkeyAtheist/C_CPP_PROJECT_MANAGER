@@ -1,20 +1,12 @@
-# CPM C I2C module
+# CPM I²C bundle
 
-Minimal C wrapper for Linux I2C devices such as `/dev/i2c-1`.
+Linux `/dev/i2c-*` wrapper.
 
-Typical usage:
+Features:
+- open/select slave address;
+- raw read/write;
+- combined write+read transaction via `I2C_RDWR` (repeated start);
+- 8-bit register helpers;
+- 16-bit register addressing with selectable byte order.
 
-```c
-CpmI2cBus bus;
-uint8_t value = 0;
-
-CpmI2c_Init(&bus);
-if (CpmI2c_Open(&bus, "/dev/i2c-1") == 0)
-{
-    CpmI2c_SetAddress(&bus, 0x40);
-    CpmI2c_ReadRegister8(&bus, 0x00, &value);
-    CpmI2c_Close(&bus);
-}
-```
-
-The module returns `-2` on platforms where the low-level I2C backend is not implemented.
+Other platforms return an explicit unsupported result so project code can keep a portable API surface while providing another backend when required.

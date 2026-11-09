@@ -1,36 +1,13 @@
-# CPM CAN communication bundle
+# CPM CAN / SocketCAN bundle
 
-Pure C CAN helper focused on Linux SocketCAN.
+Linux SocketCAN helper supporting Classical CAN and CAN FD.
 
-Generated files:
+Features:
+- open/bind a CAN interface;
+- send/receive CAN and CAN-FD frames;
+- one or multiple hardware receive filters;
+- clear filters, loopback and receive-own-messages control;
+- CAN error-mask configuration;
+- text formatting for diagnostics.
 
-- `cpm_can.c`
-- `cpm_can.h`
-
-Main features:
-
-- Open a SocketCAN interface such as `can0`, `vcan0` or `can1`.
-- Send and receive classical CAN frames.
-- Optional CAN FD support through `CAN_RAW_FD_FRAMES`.
-- Standard and extended identifiers.
-- Remote/error frame flags.
-- Receive timeout, loopback, own-message reception and ID filters.
-- Small diagnostic formatter for logs.
-
-Typical Linux setup for a virtual CAN interface:
-
-```sh
-sudo modprobe vcan
-sudo ip link add dev vcan0 type vcan
-sudo ip link set up vcan0
-```
-
-Typical physical CAN setup:
-
-```sh
-sudo ip link set can0 down
-sudo ip link set can0 type can bitrate 500000
-sudo ip link set can0 up
-```
-
-Unsupported platforms return `CPM_CAN_ERROR_UNSUPPORTED` by default. For Windows CAN adapters, prefer adding a thin adapter around the vendor SDK, because PCAN, Kvaser, NI-XNET and Vector XL use different APIs.
+On non-Linux platforms the API returns an explicit unsupported result; add a vendor backend when using a USB CAN adapter whose SDK is not SocketCAN compatible.
