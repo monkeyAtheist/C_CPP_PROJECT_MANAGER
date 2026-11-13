@@ -734,8 +734,14 @@ function normalizeActions(value: unknown): string[] {
 }
 
 
+/**
+ * Prefer static GCC/MinGW compiler runtimes for new/unspecified projects.
+ * Keep explicitly saved dynamic and fully-static choices unchanged.
+ */
 function normalizeLinkageMode(value: unknown): CpmLinkageMode {
-  return value === 'static-runtime' || value === 'static' ? value : 'dynamic';
+  return value === 'dynamic' || value === 'static-runtime' || value === 'static'
+    ? value
+    : 'static-runtime';
 }
 
 function normalizeParallelJobs(value: unknown): number {

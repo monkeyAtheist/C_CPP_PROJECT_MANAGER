@@ -171,6 +171,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     buildTraceOutput,
     programOutput,
     buildDiagnostics,
+    builds,
     workspaces,
     home,
     buildSettings,

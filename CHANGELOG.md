@@ -1,3 +1,38 @@
+## [0.2.109] - Static runtime default and Run/Debug terminal cleanup
+
+- New/unspecified per-project linkage mode defaults to **Static compiler runtime**; explicitly saved Dynamic/Fully static modes and legacy static-link migrations are preserved.
+- Run and Debug now dispose previous CPM Run terminal tabs, including orphan tabs after extension-host reload, without touching user, build or debugger terminals.
+- Starting another Run/Debug also terminates tracked non-detached Program Output processes, while preserving deliberate Detached launches.
+- Kept terminal `isTransient: true` and legacy-revival cleanup from 0.2.106.
+- Added isolated offline regression tests and documented the limits of static compiler-runtime linkage.
+
+## [0.2.108] - Time bundle audit and interval/timeout callbacks
+
+- C: blocking `CpmTime_DelayWithCallbackMs` and non-blocking `CpmScheduler_ScheduleForMs` with interval callbacks, timeout or early-stop completion, explicit cancellation semantics.
+- C++17: `cpm::delayWithCallback` and `cpm::Scheduler::everyUntil`; `PeriodicTimer` now validates positive periods.
+- Hardened periodic catch-up to O(1) (skip missed ticks) instead of unbounded loops after suspend/resume; guarded Windows sleep rounding, invalid NaN/infinite delays and extreme period counts.
+- C++ scheduler: allow `stopBackground()` from a worker callback without joining itself (owner must join later).
+- Added four right-click snippets, C/C++ test suite and explicit timing limitations.
+
+# 0.2.107
+
+- Expanded the maintained C Time bundle into a complete timing/scheduling module: monotonic and epoch ns/us/ms/s clocks, local/UTC calendar values, duration decomposition/formatting, sleeps and numeric unit conversions.
+- Extended `CpmStopwatch` with restart/lap plus direct elapsed us/ms/s/min/h, structured parts and formatted strings.
+- Added `CpmDeadline` for simple timeout/deadline handling with remaining-time queries.
+- Added a dependency-free `CpmScheduler` for one-shot, wall-clock and periodic callbacks; C callbacks run deterministically on the calling thread through `Poll` / `WaitAndPoll`.
+- Expanded the C++17 Time bundle with richer `Stopwatch`, `Deadline`, `PeriodicTimer`, date/time helpers and a thread-safe `cpm::Scheduler` supporting polling or an optional background worker thread.
+- Added C/C++ snippets for elapsed values, deadlines and scheduled callbacks, and updated the existing periodic-timer snippet to report an overrun count.
+- Added strict C11/C++17 compile tests plus functional tests for elapsed timing, formatting, deadlines and callback scheduling.
+
+# 0.2.106
+
+- Fixed CPM Run terminals being revived by VS Code persistent terminal sessions after restart, which could unexpectedly relaunch one executable instance per previous Run terminal.
+- Integrated-terminal Run sessions now use transient VS Code terminals (`isTransient: true`) and are never persisted/revived.
+- Added migration cleanup for legacy `CPM: ...` terminals created by CPM <= 0.2.105, including terminals restored slightly after extension activation.
+- CPM Program Output child processes are now tracked and terminated with their process tree when the extension/window closes.
+- Detached Run mode remains intentionally independent and is now labelled explicitly as surviving VS Code close/reload.
+- CpmBuildService now participates in extension disposal so run-process lifecycle cleanup is deterministic.
+
 # 0.2.105
 
 - Reworked the right-click snippet picker into a hierarchical browser: C/C++ -> category -> optional sub-category -> snippet, with a dedicated global search and saved-snippet collection.

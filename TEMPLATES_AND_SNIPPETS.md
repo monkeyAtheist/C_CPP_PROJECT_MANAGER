@@ -316,3 +316,7 @@ The CPM build-settings editor now exposes application icon fields directly in th
 - `Icon File` / **Executable icon (Windows .ico)** for Windows resource embedding.
 - `Window Icon File` / **SDL window / application icon image** for SDL runtime window icons.
 - `Apply Window Icon Automatically` to enable generated SDL2/SDL3 `SDL_CreateWindow(...)` wrapping.
+
+## Time & Scheduler bundle (0.2.107)
+
+The C and C++ Time bundles now include elapsed-value conversion/formatting, deadlines and scheduled callbacks in addition to high-resolution clocks and periodic loops. See `CPM_0.2.107_ADVANCED_TIME_BUNDLES.md`.

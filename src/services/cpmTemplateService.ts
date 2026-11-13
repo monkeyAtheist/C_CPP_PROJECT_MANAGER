@@ -5151,7 +5151,7 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       group: 'C bundles',
       category: 'System',
       description: 'Create cpm_time.c, cpm_time.h and README.md.',
-      detail: 'Monotonic nanosecond/microsecond/millisecond clocks, sleeps, stopwatch and drift-resistant periodic timing for Windows/POSIX.',
+      detail: 'Monotonic/epoch clocks, elapsed values and formatting, stopwatch/lap, deadlines, periodic loops and one-shot/periodic callback scheduling.',
       defaultFolder: 'Bundle/C/System/Time',
       entries: ['CBundle/System/Time/cpm_time.c=>cpm_time.c', 'CBundle/System/Time/cpm_time.h=>cpm_time.h', 'CBundle/System/Time/README.md=>README.md']
     },
@@ -5575,8 +5575,8 @@ function getBuiltInMyUtilModules(): BundledModuleChoice[] {
       label: 'Time & periodic timers',
       group: 'C++ bundles',
       category: 'System',
-      description: 'Create std::chrono-based time, stopwatch and periodic-timer helpers.',
-      detail: 'Monotonic ns/us/ms clocks, generic sleepFor(), Stopwatch and drift-resistant PeriodicTimer.',
+      description: 'Create std::chrono-based time, stopwatch, deadlines and callback scheduling helpers.',
+      detail: 'Elapsed ns/us/ms/s/min/h, duration formatting, Stopwatch/lap, Deadline, PeriodicTimer and poll/background Scheduler.',
       defaultFolder: 'Bundle/C++/System/Time',
       entries: ['CppBundle/System/Time=>.']
     },
@@ -6212,6 +6212,69 @@ export function getBuiltInSnippets(): BuiltInSnippet[] {
       body: '#include "cpm_time.h"\n\nCpmPeriodicTimer timer;\nCpmPeriodicTimer_Init(&timer, ${1:10000}); /* microseconds */\n\nwhile (${2:running})\n{\n    int overrun = 0;\n    ${0:// periodic work}\n    CpmPeriodicTimer_WaitNext(&timer, &overrun);\n}\n'
     },
     {
+      id: 'time-elapsed-values',
+      languages: ['c'],
+      category: 'Time & timers',
+      subcategory: 'Elapsed time',
+      label: 'Time / elapsed values and string',
+      description: 'Read elapsed seconds/minutes/hours and format a stopwatch value.',
+      body: '#include "cpm_time.h"\n\nCpmStopwatch stopwatch = {0};\nCpmStopwatch_Start(&stopwatch);\n\n${0:// work}\n\ndouble seconds = CpmStopwatch_ElapsedSeconds(&stopwatch);\ndouble minutes = CpmStopwatch_ElapsedMinutes(&stopwatch);\ndouble hours = CpmStopwatch_ElapsedHours(&stopwatch);\nchar elapsedText[64];\nCpmStopwatch_Format(&stopwatch, CPM_DURATION_HMS_MS, elapsedText, sizeof(elapsedText));\n(void)seconds;\n(void)minutes;\n(void)hours;\n'
+    },
+    {
+      id: 'time-deadline-timeout',
+      languages: ['c'],
+      category: 'Time & timers',
+      subcategory: 'Deadlines',
+      label: 'Time / deadline timeout',
+      description: 'Create a timeout and query its remaining time.',
+      body: '#include "cpm_time.h"\n\nCpmDeadline deadline;\nCpmDeadline_AfterMs(&deadline, ${1:500});\n\nwhile (!CpmDeadline_IsExpired(&deadline))\n{\n    uint64_t remainingMs = CpmDeadline_RemainingMs(&deadline);\n    ${0:// wait / process}\n    (void)remainingMs;\n}\n'
+    },
+    {
+      id: 'time-scheduler-callback',
+      languages: ['c'],
+      category: 'Time & timers',
+      subcategory: 'Scheduled callbacks',
+      label: 'Time / callback scheduler',
+      description: 'Schedule one-shot and periodic callbacks on the polling thread.',
+      body: 'static void ${1:OnTimer}(CpmTimerId timerId, uint64_t scheduledNs, uint64_t firedNs, uint64_t invocation, void *userData)\n{\n    (void)timerId;\n    (void)scheduledNs;\n    (void)firedNs;\n    (void)userData;\n    ${0:// callback code}\n    (void)invocation;\n}\n\nCpmScheduler scheduler;\nCpmScheduler_Init(&scheduler);\nCpmScheduler_ScheduleAfterMs(&scheduler, ${2:250}, ${1:OnTimer}, NULL);\nCpmTimerId periodic = CpmScheduler_ScheduleEveryMs(&scheduler, ${3:2000}, ${3:2000}, ${1:OnTimer}, NULL);\n\nwhile (${4:running})\n{\n    CpmScheduler_WaitAndPoll(&scheduler, ${5:100}, 0);\n}\n\nCpmScheduler_Cancel(&scheduler, periodic);\nCpmScheduler_Free(&scheduler);\n'
+    },
+    {
+      id: "time-delay-interval-timeout",
+      languages: ['c'],
+      category: "Time & timers",
+      subcategory: "Delays & timeouts",
+      label: "Time / blocking callback until timeout",
+      description: "Blocking monotonic delay: invoke callback at each interval, stop early on nonzero return, skip missed ticks.",
+      body: "#include \"cpm_time.h\"\n\nstatic int ${1:OnInterval}(CpmTimerId id, uint64_t elapsedMs, uint64_t invocation, void *userData)\n{\n    (void)id; (void)elapsedMs; (void)invocation; (void)userData;\n    ${0:// Return nonzero to stop early}\n    return 0;\n}\n\n/* In your function: 0 = timeout, 1 = stopped, negative = error */\nint result = CpmTime_DelayWithCallbackMs(${2:5000}, ${3:250}, ${1:OnInterval}, NULL);\n(void)result;\n",
+    },
+    {
+      id: "time-scheduler-bounded",
+      languages: ['c'],
+      category: "Time & timers",
+      subcategory: "Scheduled callbacks",
+      label: "Time / interval callback until timeout (non-blocking)",
+      description: "Register a bounded periodic task on the polling scheduler with an optional finish callback.",
+      body: "#include \"cpm_time.h\"\n\nstatic int ${1:OnTick}(CpmTimerId id, uint64_t elapsedMs, uint64_t invocation, void *ctx)\n{\n    (void)id; (void)elapsedMs; (void)invocation; (void)ctx;\n    ${0:// Return nonzero when work is complete}\n    return 0;\n}\n\nstatic void ${2:OnFinished}(CpmTimerId id, CpmIntervalEndReason reason, uint64_t elapsedMs, uint64_t count, void *ctx)\n{\n    (void)id; (void)reason; (void)elapsedMs; (void)count; (void)ctx;\n}\n\nCpmScheduler scheduler;\nCpmScheduler_Init(&scheduler);\nCpmTimerId task = CpmScheduler_ScheduleForMs(&scheduler, ${3:5000}, ${4:250}, ${1:OnTick}, ${2:OnFinished}, NULL);\nwhile (CpmScheduler_IsScheduled(&scheduler, task))\n    CpmScheduler_WaitAndPoll(&scheduler, 100, 0);\nCpmScheduler_Free(&scheduler);\n",
+    },
+    {
+      id: "cpp-delay-interval-timeout",
+      languages: ['cpp'],
+      category: "Time & timers",
+      subcategory: "Delays & timeouts",
+      label: "C++ / blocking callback until timeout",
+      description: "Use std::chrono for a monotonic blocking delay with interim callback and early-stop option.",
+      body: "#include \"cpm_time.hpp\"\n#include <chrono>\n\nconst bool stoppedEarly = cpm::delayWithCallback(\n    std::chrono::milliseconds(${1:5000}),\n    std::chrono::milliseconds(${2:250}),\n    [](std::chrono::milliseconds elapsed, std::uint64_t invocation) {\n        (void)elapsed; (void)invocation;\n        ${0:// return true to stop early}\n        return false;\n    });\n(void)stoppedEarly;\n",
+    },
+    {
+      id: "cpp-scheduler-bounded",
+      languages: ['cpp'],
+      category: "Time & timers",
+      subcategory: "Scheduled callbacks",
+      label: "C++ / interval callback until timeout (non-blocking)",
+      description: "Use scheduler.everyUntil(interval, timeout, callback, onFinish) in manual-poll or worker mode.",
+      body: "#include \"cpm_time.hpp\"\n#include <chrono>\n\ncpm::Scheduler scheduler;\nconst auto id = scheduler.everyUntil(\n    std::chrono::milliseconds(${1:250}),\n    std::chrono::milliseconds(${2:5000}),\n    [](const cpm::TimerEvent& event) {\n        (void)event;\n        ${0:// return true to stop early}\n        return false;\n    },\n    [](cpm::TimerId id, cpm::TimedEndReason why, std::uint64_t ticks) {\n        (void)id; (void)why; (void)ticks;\n    });\nwhile (scheduler.scheduled(id))\n    scheduler.waitAndPoll(std::chrono::milliseconds(100));\n",
+    },
+    {
       id: 'json-read-object',
       languages: ['c'],
       category: 'Data & serialization',
@@ -6262,7 +6325,25 @@ export function getBuiltInSnippets(): BuiltInSnippet[] {
       subcategory: 'Periodic work',
       label: 'C++ / periodic timer',
       description: 'Drift-resistant periodic loop using std::chrono.',
-      body: '#include "cpm_time.hpp"\n#include <chrono>\n\ncpm::PeriodicTimer timer(std::chrono::milliseconds(${1:10}));\nwhile (${2:running})\n{\n    ${0:// periodic work}\n    const bool overrun = timer.waitNext();\n    (void)overrun;\n}\n'
+      body: '#include "cpm_time.hpp"\n#include <chrono>\n\ncpm::PeriodicTimer timer(std::chrono::milliseconds(${1:10}));\nwhile (${2:running})\n{\n    ${0:// periodic work}\n    const std::uint64_t overruns = timer.waitNext();\n    (void)overruns;\n}\n'
+    },
+    {
+      id: 'cpp-time-elapsed-values',
+      languages: ['cpp'],
+      category: 'Time & timers',
+      subcategory: 'Elapsed time',
+      label: 'C++ / elapsed values and string',
+      description: 'Read elapsed seconds/minutes/hours and format a stopwatch.',
+      body: '#include "cpm_time.hpp"\n\ncpm::Stopwatch stopwatch;\nstopwatch.start();\n\n${0:// work}\n\nconst double seconds = stopwatch.elapsedSeconds();\nconst double minutes = stopwatch.elapsedMinutes();\nconst double hours = stopwatch.elapsedHours();\nconst auto parts = stopwatch.parts();\nconst std::string elapsedText = stopwatch.str();\n(void)seconds;\n(void)minutes;\n(void)hours;\n(void)parts;\n'
+    },
+    {
+      id: 'cpp-time-scheduler',
+      languages: ['cpp'],
+      category: 'Time & timers',
+      subcategory: 'Scheduled callbacks',
+      label: 'C++ / callback scheduler',
+      description: 'Run one-shot and periodic callbacks with optional background execution.',
+      body: '#include "cpm_time.hpp"\n#include <chrono>\n\ncpm::Scheduler scheduler;\n\nscheduler.after(std::chrono::milliseconds(${1:250}), [](const cpm::TimerEvent& event) {\n    ${0:// one-shot callback}\n    (void)event;\n});\n\nconst cpm::TimerId periodic = scheduler.every(std::chrono::seconds(${2:2}), [](const cpm::TimerEvent& event) {\n    // periodic callback\n    (void)event;\n});\n\nscheduler.startBackground();\n// ...\nscheduler.cancel(periodic);\nscheduler.stopBackground();\n'
     },
     {
       id: 'cpp-json-document',

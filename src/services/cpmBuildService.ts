@@ -2,7 +2,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { execFileSync, spawn } from 'child_process';
+import { ChildProcess, execFileSync, spawn } from 'child_process';
 import * as vscode from 'vscode';
 import { CpmBuildMode, CpmProjectFile, CpmWorkspaceProjectRef } from '../model/types';
 import { CpmNativeTargetSettings, CpmParser } from '../model/cpmParser';
@@ -131,7 +131,7 @@ export interface CpmBuildHealthSnapshot {
   cmakeBuildDirectory?: string;
 }
 
-export class CpmBuildService {
+export class CpmBuildService implements vscode.Disposable {
   constructor(
     private readonly parser: CpmParser,
     private readonly workspaces: CpmWorkspaceService,
@@ -145,9 +145,130 @@ export class CpmBuildService {
     private readonly dependencies?: CpmDependencyService,
     private readonly cmake?: CpmCMakeService,
     private readonly importLibraries?: CpmImportLibraryService
-  ) {}
+  ) {
+    this.disposables.push(vscode.window.onDidCloseTerminal((terminal) => {
+      this.runTerminals.delete(terminal);
+    }));
+    this.disposables.push(vscode.window.onDidOpenTerminal((terminal) => {
+      if (terminal.name.startsWith('CPM: ')) {
+        // A CPM <= 0.2.105 terminal can be revived slightly after extension
+        // activation. Dispose it immediately so its executable cannot remain
+        // running after a persisted-terminal restore.
+        try { terminal.dispose(); } catch { /* best effort migration cleanup */ }
+      }
+    }));
+    this.disposeLegacyRestoredRunTerminals();
+  }
 
   private currentReport: CpmBuildReport | undefined;
+  private readonly managedRunProcesses = new Set<ChildProcess>();
+  private readonly runTerminals = new Set<vscode.Terminal>();
+  private readonly disposables: vscode.Disposable[] = [];
+
+  dispose(): void {
+    for (const terminal of this.runTerminals) {
+      try { terminal.dispose(); } catch { /* best effort during extension shutdown */ }
+    }
+    this.runTerminals.clear();
+
+    for (const child of [...this.managedRunProcesses]) {
+      this.terminateManagedRunProcess(child);
+    }
+    this.managedRunProcesses.clear();
+
+    for (const disposable of this.disposables.splice(0)) {
+      disposable.dispose();
+    }
+  }
+
+  /**
+   * Keep one CPM-managed interactive Run at a time. A terminal created with
+   * shellPath = target.exe does not necessarily disappear from the VS Code UI
+   * when the target exits; each Run used to leave another tab behind.
+   *
+   * Search window.terminals too: after an extension-host reload the old
+   * Terminal objects may no longer be in this.runTerminals. Never dispose
+   * ordinary user terminals or debugger-owned terminals.
+   *
+   * Disposing a *running* CPM Run terminal intentionally terminates that old
+   * program when replacing it with a new Run/Debug session.
+   */
+  private stopPreviousInteractiveRuns(nextAction: 'Run' | 'Debug'): void {
+    const previous = new Set<vscode.Terminal>(this.runTerminals);
+    for (const terminal of vscode.window.terminals) {
+      if (terminal.name.startsWith('CPM Run: ')) {
+        previous.add(terminal);
+      }
+    }
+    let terminalsClosed = 0;
+    for (const terminal of previous) {
+      try {
+        terminal.dispose();
+        terminalsClosed++;
+      } catch {
+        // A terminal may have already closed between discovery and disposal.
+      }
+      this.runTerminals.delete(terminal);
+    }
+
+    // Program Output is a non-detached process too; avoid leaving a previous
+    // executable running if the user switches output mode or starts Debug.
+    const processes = [...this.managedRunProcesses];
+    for (const child of processes) {
+      this.terminateManagedRunProcess(child);
+    }
+    if (terminalsClosed > 0 || processes.length > 0) {
+      this.output.appendLine(`[C/C++] ${nextAction}: closed ${terminalsClosed} previous CPM Run terminal(s) and stopped ${processes.length} previous captured process(es).`);
+    }
+  }
+
+  private disposeLegacyRestoredRunTerminals(): void {
+    let disposed = 0;
+    for (const terminal of vscode.window.terminals) {
+      if (!terminal.name.startsWith('CPM: ')) {
+        continue;
+      }
+      // CPM <= 0.2.105 created executable-backed terminals without isTransient.
+      // VS Code can revive those terminals after restart, which re-launches the
+      // configured executable once for every stored Run terminal. Close them
+      // once during activation so upgrading immediately clears the old state.
+      try {
+        terminal.dispose();
+        disposed++;
+      } catch {
+        // Best effort only; newly-created CPM terminals use isTransient below.
+      }
+    }
+    if (disposed > 0) {
+      this.output.appendLine(`[C/C++] Closed ${disposed} restored legacy CPM Run terminal(s) to prevent executable relaunch on startup.`);
+    }
+  }
+
+  private trackManagedRunProcess(child: ChildProcess): void {
+    this.managedRunProcesses.add(child);
+    const release = (): void => { this.managedRunProcesses.delete(child); };
+    child.once('close', release);
+    child.once('error', release);
+  }
+
+  private terminateManagedRunProcess(child: ChildProcess): void {
+    if (child.killed || child.exitCode !== null || child.signalCode !== null) {
+      this.managedRunProcesses.delete(child);
+      return;
+    }
+    const pid = child.pid;
+    if (process.platform === 'win32' && pid) {
+      try {
+        execFileSync('taskkill.exe', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+        this.managedRunProcesses.delete(child);
+        return;
+      } catch {
+        // Fall back to Node's kill below.
+      }
+    }
+    try { child.kill('SIGTERM'); } catch { /* process may already be gone */ }
+    this.managedRunProcesses.delete(child);
+  }
 
   get buildMode(): CpmBuildMode {
     return this.projectSettings.getCpmConfigurationValue<CpmBuildMode>('buildMode', 'debug');
@@ -255,7 +376,7 @@ export class CpmBuildService {
 
   getLinkageMode(projectRef?: CpmWorkspaceProjectRef): CpmLinkageMode {
     const ref = projectRef ?? this.workspaces.activeProjectRef;
-    if (!ref?.exists) return 'dynamic';
+    if (!ref?.exists) return 'static-runtime';
     return this.projectSettings.getSettings(ref).linkageMode;
   }
 
@@ -273,16 +394,16 @@ export class CpmBuildService {
     const current = this.getLinkageMode(ref);
     const selected = await vscode.window.showQuickPick([
       {
+        label: '$(package) Static compiler runtime (default)',
+        value: 'static-runtime' as CpmLinkageMode,
+        description: 'Embed GCC/MinGW runtime where possible',
+        detail: 'Adds -static-libgcc/-static-libstdc++ while leaving third-party libraries such as SDL dynamic unless configured otherwise.'
+      },
+      {
         label: '$(debug-disconnect) Dynamic',
         value: 'dynamic' as CpmLinkageMode,
         description: 'Normal dynamic runtime/dependency linkage',
         detail: 'Compiler and third-party DLLs may be copied beside the target or resolved through PATH.'
-      },
-      {
-        label: '$(package) Static compiler runtime',
-        value: 'static-runtime' as CpmLinkageMode,
-        description: 'Embed GCC/MinGW runtime where possible',
-        detail: 'Adds -static-libgcc/-static-libstdc++ while leaving third-party libraries such as SDL dynamic unless configured otherwise.'
       },
       {
         label: '$(archive) Fully static when available',
@@ -602,10 +723,25 @@ export class CpmBuildService {
     const outputMode = normalizeRunOutputMode(this.projectSettings.getCpmConfigurationValue<string>('runOutputMode', 'integrated-terminal'));
     const renderedCommand = [executablePath, ...args].map(renderArgument).join(' ');
 
+    // Replace old CPM Run sessions only after the new executable and cwd have
+    // been validated. This avoids a growing list of dead terminal tabs.
+    this.stopPreviousInteractiveRuns('Run');
+
     if (outputMode === 'integrated-terminal') {
-      const terminal = vscode.window.createTerminal({ name: `CPM: ${ref.name}`, shellPath: executablePath, shellArgs: args, cwd, env });
+      const terminal = vscode.window.createTerminal({
+        name: `CPM Run: ${ref.name}`,
+        shellPath: executablePath,
+        shellArgs: args,
+        cwd,
+        env,
+        // Important: VS Code persistent terminal sessions may revive a custom
+        // shell executable after restart. A CPM Run terminal must never be
+        // restored because that would re-launch the target unexpectedly.
+        isTransient: true
+      });
+      this.runTerminals.add(terminal);
       terminal.show(false);
-      this.output.appendLine(`[C/C++] Started in integrated terminal: ${renderedCommand}`);
+      this.output.appendLine(`[C/C++] Started in transient integrated terminal: ${renderedCommand}`);
     } else if (outputMode === 'output-channel') {
       this.programOutput.clear();
       this.programOutput.appendLine(`=== ${ref.name} ===`);
@@ -614,6 +750,7 @@ export class CpmBuildService {
       this.programOutput.appendLine('');
       this.programOutput.show(true);
       const child = spawn(executablePath, args, { cwd, env, detached: false, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
+      this.trackManagedRunProcess(child);
       child.stdout?.on('data', (data: Buffer) => this.programOutput.append(data.toString()));
       child.stderr?.on('data', (data: Buffer) => this.programOutput.append(data.toString()));
       child.on('error', (error) => this.programOutput.appendLine(`\n[CPM] Failed to start process: ${error.message}`));
@@ -624,6 +761,7 @@ export class CpmBuildService {
       child.once('error', (error) => void vscode.window.showErrorMessage(`Unable to start ${executablePath}: ${error.message}`));
       child.unref();
       this.output.appendLine(`[C/C++] Started detached: ${renderedCommand}`);
+      this.output.appendLine('[C/C++] Detached mode intentionally leaves the process independent from VS Code; CPM will not stop it when the window closes.');
     }
     this.output.appendLine(`[C/C++] Runtime PATH prepended with: ${this.runtimeSearchDirectories(config, executablePath, targetPath).join(path.delimiter)}`);
   }
@@ -732,6 +870,9 @@ export class CpmBuildService {
       externalConsole: false, avoidWindowsConsoleRedirection: false, internalConsoleOptions: 'neverOpen',
       logging: { programOutput: true }, MIMode: 'gdb', miDebuggerPath: config.debuggerPath || 'gdb', environment: debugEnvironment
     };
+    // Debug is a replacement for a previous CPM Run, but debugger-created
+    // terminals themselves belong to VS Code and are not disposed here.
+    this.stopPreviousInteractiveRuns('Debug');
     const started = await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(vscode.Uri.file(ref.absolutePath)), debugConfig);
     if (!started) vscode.window.showErrorMessage('Unable to start the VS Code C/C++ debug session. Check that the Microsoft C/C++ extension and gdb are installed.');
     return started;

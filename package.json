@@ -2,7 +2,7 @@
   "name": "c-cpp-project-manager-and-build",
   "displayName": "C/C++ Project Manager and Build",
   "description": "Create, organize, build, run and debug generic C/C++ workspaces and projects with GCC, MinGW or another configurable toolchain.",
-  "version": "0.2.105",
+  "version": "0.2.109",
   "publisher": "JerryCrozet-ElectronicEngineer",
   "license": "MIT",
   "engines": {
@@ -134,7 +134,7 @@
     "package": "vsce package",
     "package:marketplace": "vsce package --allow-missing-repository",
     "publish:marketplace": "vsce publish --allow-missing-repository",
-    "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.105.vsix",
+    "publish:prebuilt": "vsce publish --packagePath c-cpp-project-manager-and-build-0.2.109.vsix",
     "clean:out": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\""
   },
   "contributes": {
@@ -754,7 +754,7 @@
       },
       {
         "command": "cpm.editBuildSettingsSafeMode",
-        "title": "Project Build Settings (Safe Mode)…",
+        "title": "Project Build Settings (Safe Mode)\u2026",
         "icon": "$(shield)",
         "category": "C/C++ Project Manager"
       },
