@@ -1,27 +1,56 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CpmBuildService } from '../services/cpmBuildService';
+import { executeWebviewCommand, hardenHtml, mediaUri, safeJson } from './webviewKit';
+import { CpmBuildService, CpmLastBuildResult } from '../services/cpmBuildService';
 import { CpmInstallationService } from '../services/cpmInstallationService';
 import { CpmWorkspaceService } from '../services/cpmWorkspaceService';
+import { resolveToolStatus } from '../utils/toolStatus';
 
+const BUILD_MODE_SHORT: Record<string, string> = { debug: 'D32', release: 'R32', debug64: 'D64', release64: 'R64' };
+const BUILD_MODE_LONG: Record<string, string> = { debug: 'Debug, 32-bit', release: 'Release, 32-bit', debug64: 'Debug, 64-bit', release64: 'Release, 64-bit' };
+const TARGET_SHORT: Record<string, string> = { 'Executable': 'EXE', 'Dynamic Link Library': 'DLL', 'Static Library': 'LIB' };
+
+interface HomeToolState { role: string; label: string; path: string; status: 'ok' | 'missing' | 'unresolved'; message: string }
+
+export interface HomeState {
+  workspace?: { name: string; path: string; projectCount: number };
+  project?: { name: string; path: string; targetType: string; targetShort: string };
+  mode: string;
+  modeShort: string;
+  modeLong: string;
+  toolchain: { root?: string; source?: string; configuredCount: number; tools: HomeToolState[] };
+  lastBuild?: CpmLastBuildResult;
+  problems: { errors: number; warnings: number };
+  recents: Array<{ name: string; path: string; lastOpened: number; exists: boolean; current: boolean }>;
+}
+
+/**
+ * Home page. The HTML skeleton is rendered once; every later change (workspace, configuration, build result,
+ * problems, recents) is pushed with postMessage and drawn by media/webview/home.js, so the page never reloads.
+ */
 export class HomePanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private readonly disposables: vscode.Disposable[] = [];
+  private updateTimer: NodeJS.Timeout | undefined;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly workspaces: CpmWorkspaceService,
     private readonly builds: CpmBuildService,
-    private readonly installations: CpmInstallationService
+    private readonly installations: CpmInstallationService,
+    private readonly diagnostics?: vscode.DiagnosticCollection
   ) {
-    this.disposables.push(this.workspaces.onDidChange(() => this.update()));
+    this.disposables.push(
+      this.workspaces.onDidChange(() => this.update()),
+      this.builds.onDidFinishBuild(() => this.update()),
+      vscode.languages.onDidChangeDiagnostics(() => this.scheduleUpdate())
+    );
   }
 
   dispose(): void {
+    if (this.updateTimer) clearTimeout(this.updateTimer);
     this.panel?.dispose();
-    for (const disposable of this.disposables) {
-      disposable.dispose();
-    }
+    for (const disposable of this.disposables) disposable.dispose();
   }
 
   show(): void {
@@ -30,374 +59,127 @@ export class HomePanel implements vscode.Disposable {
       this.update();
       return;
     }
-
-    this.panel = vscode.window.createWebviewPanel(
-      'cpm.home',
-      'C/C++ Project Manager',
-      vscode.ViewColumn.One,
-      { enableScripts: true, retainContextWhenHidden: true }
-    );
+    this.panel = vscode.window.createWebviewPanel('cpm.home', 'C/C++ Project Manager', vscode.ViewColumn.One, {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')]
+    });
     this.panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, 'media', 'cpm.svg');
     this.panel.onDidDispose(() => { this.panel = undefined; });
-    this.panel.webview.onDidReceiveMessage(async (message: { command?: string }) => {
-      if (!message.command) {
-        return;
-      }
-      await vscode.commands.executeCommand(message.command);
-      this.update();
-    });
-    this.update();
+    this.panel.webview.onDidReceiveMessage((message) => void this.handleMessage(message));
+    this.panel.webview.html = this.renderSkeleton(this.panel.webview);
   }
 
+  /** Pushes fresh state to an open page (no reload). */
   update(): void {
-    if (!this.panel) {
-      return;
+    if (!this.panel) return;
+    void this.panel.webview.postMessage({ type: 'state', state: this.collectState() });
+  }
+
+  private scheduleUpdate(): void {
+    if (!this.panel) return;
+    if (this.updateTimer) clearTimeout(this.updateTimer);
+    this.updateTimer = setTimeout(() => this.update(), 250);
+  }
+
+  private async handleMessage(message: any): Promise<void> {
+    try {
+      switch (String(message?.type ?? '')) {
+        case 'ready':
+          this.update();
+          return;
+        case 'command':
+          await executeWebviewCommand(message.command);
+          return;
+        case 'openRecent': {
+          const target = String(message.path ?? '');
+          const known = this.workspaces.getRecentWorkspaces().find((entry) => entry.path === target);
+          if (!known) return;
+          if (!known.exists) {
+            const answer = await vscode.window.showWarningMessage(`${known.name} no longer exists at ${known.path}.`, 'Remove from recents');
+            if (answer) await this.workspaces.forgetRecentWorkspace(known.path);
+            return;
+          }
+          await this.workspaces.load(known.path);
+          return;
+        }
+        case 'forgetRecent':
+          await this.workspaces.forgetRecentWorkspace(String(message.path ?? ''));
+          return;
+        case 'revealRecent': {
+          const target = String(message.path ?? '');
+          if (this.workspaces.getRecentWorkspaces().some((entry) => entry.path === target)) await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(target));
+          return;
+        }
+      }
+    } catch (error) {
+      void vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.update();
     }
+  }
+
+  private collectState(): HomeState {
     const workspace = this.workspaces.currentWorkspace;
     const activeProject = this.workspaces.activeProjectRef;
-    const project = activeProject ? this.workspaces.getProject(activeProject) : undefined;
+    const project = activeProject?.exists ? this.workspaces.getProject(activeProject) : undefined;
     const toolchain = this.installations.getActiveInstallation(workspace?.cpmDir, false);
-    const detectedToolchainCount = this.installations.getConfiguredInstallations().length;
-    const mode = this.builds.buildMode;
-    this.panel.webview.html = renderHtml({
-      workspace: workspace?.path,
-      workspaceName: workspace?.name,
-      projectCount: workspace?.projects.length ?? 0,
-      projectName: activeProject?.name,
-      projectPath: activeProject?.absolutePath,
-      targetType: project?.targetType,
-      cCompiler: toolchain?.cCompilerExe ?? toolchain?.compileExe,
-      cppCompiler: toolchain?.cppCompilerExe,
-      archiver: toolchain?.archiverExe,
-      debuggerPath: toolchain?.debuggerExe,
-      toolchainRoot: toolchain?.root,
-      toolchainSource: toolchain?.source,
-      detectedToolchainCount,
-      mode
+    const root = toolchain?.root ?? '';
+    const tool = (role: string, label: string, executable: string | undefined): HomeToolState => {
+      if (!executable) return { role, label, path: '', status: 'missing', message: `${label} is not configured` };
+      const result = resolveToolStatus(executable, workspace?.cpmDir, root);
+      return { role, label, path: executable, status: result.status, message: result.message };
+    };
+    let errors = 0;
+    let warnings = 0;
+    this.diagnostics?.forEach((_uri, items) => {
+      for (const item of items) {
+        if (item.severity === vscode.DiagnosticSeverity.Error) errors++;
+        else if (item.severity === vscode.DiagnosticSeverity.Warning) warnings++;
+      }
     });
+    const mode = this.builds.buildMode;
+    const targetType = project?.targetType ?? '';
+    return {
+      workspace: workspace ? { name: workspace.name, path: workspace.path, projectCount: workspace.projects.length } : undefined,
+      project: activeProject?.exists ? { name: activeProject.name, path: activeProject.absolutePath, targetType, targetShort: TARGET_SHORT[targetType] ?? targetType } : undefined,
+      mode,
+      modeShort: BUILD_MODE_SHORT[mode] ?? mode,
+      modeLong: BUILD_MODE_LONG[mode] ?? mode,
+      toolchain: {
+        root: toolchain?.root,
+        source: toolchain?.source,
+        configuredCount: this.installations.getConfiguredInstallations().length,
+        tools: toolchain ? [
+          tool('C compiler', 'gcc', toolchain.cCompilerExe ?? toolchain.compileExe),
+          tool('C++ compiler', 'g++', toolchain.cppCompilerExe),
+          tool('Archiver', 'ar', toolchain.archiverExe),
+          tool('Debugger', 'gdb', toolchain.debuggerExe)
+        ] : []
+      },
+      lastBuild: this.builds.lastBuild,
+      problems: { errors, warnings },
+      recents: this.workspaces.getRecentWorkspaces().map((entry) => ({ ...entry, current: Boolean(workspace && path.resolve(workspace.path) === path.resolve(entry.path)) }))
+    };
   }
-}
 
-interface HomeState {
-  workspace?: string;
-  workspaceName?: string;
-  projectCount: number;
-  projectName?: string;
-  projectPath?: string;
-  targetType?: string;
-  cCompiler?: string;
-  cppCompiler?: string;
-  archiver?: string;
-  debuggerPath?: string;
-  toolchainRoot?: string;
-  toolchainSource?: string;
-  detectedToolchainCount: number;
-  mode: string;
-}
-
-function renderHtml(state: HomeState): string {
-  const nonce = makeNonce();
-  const hasWorkspace = Boolean(state.workspace);
-  const hasProject = Boolean(state.projectPath);
-  const workspaceName = escapeHtml(state.workspaceName ?? 'No workspace loaded');
-  const workspacePath = escapeHtml(state.workspace ?? 'Open an existing .cws/.prj file or create a new C/C++ workspace.');
-  const projectName = escapeHtml(state.projectName ?? 'No project loaded');
-  const projectPath = escapeHtml(state.projectPath ?? 'Load or create a C/C++ project to enable build, run and file-generation actions.');
-  const mode = escapeHtml(state.mode);
-  const targetType = escapeHtml(state.targetType ?? 'No target');
-  const projectCountLabel = `${state.projectCount} project${state.projectCount === 1 ? '' : 's'}`;
-  const toolchainRoot = escapeHtml(state.toolchainRoot ?? 'No C/C++ toolchain selected');
-  const compilerLine = escapeHtml([
-    state.cCompiler ? `C: ${compactPath(state.cCompiler)}` : 'C: not configured',
-    state.cppCompiler ? `C++: ${compactPath(state.cppCompiler)}` : 'C++: not configured',
-    state.archiver ? `AR: ${compactPath(state.archiver)}` : 'AR: not configured',
-    state.debuggerPath ? `DBG: ${compactPath(state.debuggerPath)}` : 'DBG: not configured'
-  ].join(' · '));
-  const detectedLabel = state.detectedToolchainCount > 0
-    ? `${state.detectedToolchainCount} configured toolchain${state.detectedToolchainCount === 1 ? '' : 's'}`
-    : 'toolchains detected on demand';
-  const sourceLabel = escapeHtml(state.toolchainSource ?? 'auto');
-
-  const emptyState = !hasProject ? `
-      <div class="empty-state">
-        <div class="empty-icon">CPM</div>
-        <div>
-          <h3>No project loaded</h3>
-          <p>Open an existing C/C++ workspace or create a starter project. The selected project folder can be synchronized with the standard VS Code C/C++ IntelliSense configuration.</p>
-          <div class="actions primary-row">
-            <button data-command="cpm.openWorkspace">Open workspace</button>
-            <button data-command="cpm.createWorkspaceProject">Create workspace and project</button>
-            <button data-command="cpm.configureInstallation">Select toolchain</button><button data-command="cpm.installSupportedToolchains">Install toolchains</button><button class="secondary" data-command="cpm.editBuildSettings">Settings</button><button class="secondary" data-command="cpm.openTools">Tools</button>
-          </div>
-        </div>
-      </div>` : '';
-
-  const workspaceActions = hasWorkspace ? `
-        <div class="actions">
-          <button data-command="cpm.openWorkspace">Open another workspace</button>
-          <button class="secondary" data-command="cpm.createWorkspaceProject">Create</button>
-          <button class="secondary" data-command="cpm.openWorkspaceInCpm">Open workspace file</button>
-        </div>` : '';
-
-  const projectActions = hasProject ? `
-        <div class="actions project-actions">
-          <button data-command="cpm.chooseBuildAction">Build / rebuild / clean</button>
-          <button class="secondary" data-command="cpm.run">Run</button>
-          <button class="secondary" data-command="cpm.runDebug">Debug</button>
-          <button class="secondary" data-command="cpm.buildAndRun">Build &amp; Run</button><button class="secondary" data-command="cpm.debugWithGdb">Build &amp; Debug</button>
-          <button class="secondary" data-command="cpm.chooseRunAction">Run options</button>
-          <button class="secondary" data-command="cpm.selectBuildMode">Build mode</button>
-          <button class="secondary" data-command="cpm.selectTargetType">Target type</button>
-          <button class="secondary" data-command="cpm.editBuildSettings">Settings</button><button class="secondary" data-command="cpm.openTools">Tools</button>
-          <button class="secondary" data-command="cpm.createNewFile">Create file</button>
-        </div>` : '';
-
-  return `<!DOCTYPE html>
+  private renderSkeleton(webview: vscode.Webview): string {
+    const style = mediaUri(webview, 'home.css');
+    const script = mediaUri(webview, 'home.js');
+    const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>C/C++ Project Manager</title>
-  <style>
-    :root { color-scheme: light dark; }
-    * { box-sizing: border-box; }
-    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 28px 28px 46px; max-width: 1240px; margin: auto; }
-    h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: .1px; }
-    h2 { font-size: 18px; margin: 0; }
-    h3 { font-size: 16px; margin: 0 0 7px; }
-    p { margin: 0; line-height: 1.55; }
-    .muted { color: var(--vscode-descriptionForeground); }
-    .section { margin-top: 24px; }
-    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-    .section-heading span { color: var(--vscode-descriptionForeground); font-size: 12px; }
-    .overview-grid, .tools-grid { display: grid; gap: 12px; }
-    .overview-grid { grid-template-columns: repeat(auto-fit, minmax(390px, 1fr)); }
-    .tools-grid { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
-    .card { border: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); padding: 17px; border-radius: 8px; min-width: 0; }
-    .card-header { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
-    .tile-icon { display: grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 9px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); font-size: 11px; font-weight: 800; letter-spacing: .3px; }
-    .title-stack { min-width: 0; }
-    .title-stack strong { display: block; font-size: 15px; overflow-wrap: anywhere; }
-    .title-stack small { color: var(--vscode-descriptionForeground); }
-    .path { font-family: var(--vscode-editor-font-family); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; color: var(--vscode-descriptionForeground); background: var(--vscode-textCodeBlock-background); border-radius: 4px; padding: 8px 9px; margin: 9px 0 13px; }
-    .tag { display: inline-block; border: 1px solid var(--vscode-panel-border); padding: 3px 8px; border-radius: 999px; font-size: 12px; margin-right: 5px; color: var(--vscode-descriptionForeground); }
-    .actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
-    button { border: 1px solid var(--vscode-button-border, transparent); background: var(--vscode-button-background); color: var(--vscode-button-foreground); padding: 7px 11px; cursor: pointer; border-radius: 3px; font: inherit; }
-    button:hover { background: var(--vscode-button-hoverBackground); }
-    button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
-    button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
-    .empty-state { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: start; border: 1px dashed var(--vscode-panel-border); background: var(--vscode-sideBar-background); padding: 19px; border-radius: 8px; margin-bottom: 12px; }
-    .empty-state p { color: var(--vscode-descriptionForeground); max-width: 840px; }
-    .empty-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 12px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); font-size: 15px; font-weight: 800; letter-spacing: .5px; }
-    .primary-row button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
-    .toolchain-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
-    .toolchain-card .actions { margin-top: 0; justify-content: flex-end; }
-    @media (max-width: 760px) {
-      body { padding: 20px 18px 36px; }
-      .overview-grid, .tools-grid { grid-template-columns: 1fr; }
-      .toolchain-card { grid-template-columns: 1fr; }
-      .toolchain-card .actions { justify-content: flex-start; }
-      .empty-state { grid-template-columns: 1fr; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C/C++ Project Manager</title>
+${style ? `<link rel="stylesheet" href="${style.toString()}">` : ''}
 </head>
-<body>
-  <h1>C/C++ Project Manager</h1>
-  <div class="muted">Create, organize, build, run and debug C/C++ workspaces with GCC, MinGW, Clang or another configurable compiler.</div>
-
-  <section class="section">
-    <div class="section-heading">
-      <h2>Workspace and active project</h2>
-      <span>${escapeHtml(projectCountLabel)}</span>
-    </div>
-    ${emptyState}
-    <div class="overview-grid">
-      <article class="card">
-        <div class="card-header">
-          <div class="tile-icon">WS</div>
-          <div class="title-stack">
-            <small>Workspace</small>
-            <strong>${workspaceName}</strong>
-          </div>
-        </div>
-        <div class="path">${workspacePath}</div>
-        ${workspaceActions}
-      </article>
-
-      <article class="card">
-        <div class="card-header">
-          <div class="tile-icon">PRJ</div>
-          <div class="title-stack">
-            <small>Active project</small>
-            <strong>${projectName}</strong>
-          </div>
-        </div>
-        <div class="path">${projectPath}</div>
-        <span class="tag">${mode}</span><span class="tag">${targetType}</span>
-        ${projectActions}
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-heading">
-      <h2>Libraries, templates and reusable code</h2>
-      <span>C/C++ symbols, templates and snippets</span>
-    </div>
-    <div class="tools-grid">
-      <article class="card">
-        <div class="card-header">
-          <div class="tile-icon">LIB</div>
-          <div class="title-stack">
-            <small>Libraries</small>
-            <strong>Embedded C/C++ symbol explorer</strong>
-          </div>
-        </div>
-        <p class="muted">Browse C/C++ API packs, search symbols and insert parameterized calls from the Libraries view.</p>
-        <div class="actions">
-          <button data-command="cpm.library.findFunction">Find symbol</button>
-          <button class="secondary" data-command="cpm.library.reloadPacks">Reload packs</button>
-        </div>
-      </article>
-
-      <article class="card">
-        <div class="card-header">
-          <div class="tile-icon">TPL</div>
-          <div class="title-stack">
-            <small>Templates and snippets</small>
-            <strong>C/C++ starter files and reusable fragments</strong>
-          </div>
-        </div>
-        <p class="muted">Create .c, .cpp, .h, .hpp, DLL and class starters, or insert snippets at the active cursor position.</p>
-        <div class="actions">
-          <button data-command="cpm.createNewFile">Create file</button>
-          <button class="secondary" data-command="cpm.insertSnippet">Insert snippet</button>
-          <button class="secondary" data-command="cpm.manageFileTemplates">Manage templates</button>
-          <button class="secondary" data-command="cpm.manageSnippets">Manage snippets</button>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-heading">
-      <h2>Diagnostics and external equipment</h2>
-      <span>Serial, USB/PnP and VISA/USBTMC</span>
-    </div>
-    <div class="tools-grid">
-      <article class="card">
-        <div class="card-header">
-          <div class="tile-icon">I/O</div>
-          <div class="title-stack">
-            <small>Instrument diagnostics</small>
-            <strong>COM, USB and SCPI test console</strong>
-          </div>
-        </div>
-        <p class="muted">Enumerate connected interfaces, configure serial communication, discover VISA resources and send manual or predefined SCPI frames such as <code>*IDN?</code>.</p>
-        <div class="actions">
-          <button data-command="cpm.openInstrumentDiagnostics">Open Instrument Diagnostics</button>
-        </div>
-      </article>
-      <article class="card">
-        <div class="card-header">
-          <div class="tile-icon">NET</div>
-          <div class="title-stack">
-            <small>Network diagnostics</small>
-            <strong>Ethernet, Wi-Fi, TCP/UDP, BLE and Bluetooth</strong>
-          </div>
-        </div>
-        <p class="muted">Inspect local network interfaces, run single-target connectivity checks, exchange TCP/UDP frames and scan visible Wi-Fi/BLE devices.</p>
-        <div class="actions">
-          <button data-command="cpm.openNetworkDiagnostics">Open Network &amp; Wireless Diagnostics</button>
-        </div>
-      </article>
-      <article class="card">
-        <div class="card-header">
-          <div class="tile-icon">DEV</div>
-          <div class="title-stack">
-            <small>Unified devices</small>
-            <strong>CPM Device Manager</strong>
-          </div>
-        </div>
-        <p class="muted">Group COM, VISA, TCP, UDP and SSH endpoints under one reusable equipment profile, then reopen the appropriate diagnostic tool directly.</p>
-        <div class="actions">
-          <button data-command="cpm.openDeviceManager">Open CPM Devices</button>
-        </div>
-      </article>
-      <article class="card">
-        <div class="card-header">
-          <div class="tile-icon">SSH</div>
-          <div class="title-stack">
-            <small>Remote devices</small>
-            <strong>OpenSSH Device Manager</strong>
-          </div>
-        </div>
-        <p class="muted">Manage <code>~/.ssh/config</code> aliases and keys, test SSH devices and reuse them as CPM Remote Linux targets.</p>
-        <div class="actions">
-          <button data-command="cpm.openSshDeviceManager">Open SSH Devices</button>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-heading">
-      <h2>C/C++ toolchain</h2>
-      <span>${escapeHtml(detectedLabel)}</span>
-    </div>
-    <article class="card toolchain-card">
-      <div>
-        <div class="card-header">
-          <div class="tile-icon">CFG</div>
-          <div class="title-stack">
-            <small>Selected toolchain · ${sourceLabel}</small>
-            <strong>${toolchainRoot}</strong>
-          </div>
-        </div>
-        <div class="path">${compilerLine}</div>
-      </div>
-      <div class="actions">
-        <button data-command="cpm.configureInstallation">Detect / select toolchain</button><button data-command="cpm.installSupportedToolchains">Install toolchains</button>
-        <button class="secondary" data-command="cpm.syncCppTools">Sync IntelliSense</button>
-        <button class="secondary" data-command="cpm.diagnoseCppTools">Diagnose IntelliSense</button>
-        <button class="secondary" data-command="cpm.openProjectHealthReport">Project Health</button>
-        <button class="secondary" data-command="cpm.repairProjectHealth">Repair Health</button>
-        <button class="secondary" data-command="cpm.repairCppToolsProvider">Repair provider</button>
-      </div>
-    </article>
-  </section>
-
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    document.querySelectorAll('[data-command]').forEach((button) => {
-      button.addEventListener('click', () => vscode.postMessage({ command: button.dataset.command }));
-    });
-  </script>
+<body class="home">
+<div id="app" class="home-shell" aria-live="polite"></div>
+<script>window.CPM_HOME_INIT = ${safeJson(this.collectState())};</script>
+${script ? `<script src="${script.toString()}"></script>` : ''}
 </body>
 </html>`;
-}
-
-function compactPath(value: string): string {
-  const parent = path.basename(path.dirname(value));
-  const base = path.basename(value);
-  return parent ? `${parent}/${base}` : base;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function makeNonce(): string {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let index = 0; index < 32; index += 1) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
+    return hardenHtml(html, webview, { sharedStyles: true });
   }
-  return result;
 }

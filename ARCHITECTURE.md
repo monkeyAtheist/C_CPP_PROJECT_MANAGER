@@ -35,6 +35,14 @@ For multi-architecture SDL SDKs, include directory resolution now returns the pr
 - `src/views/homePanel.ts`: global workspace and toolchain dashboard.
 - `src/views/buildSettingsPanel.ts`: generic CPM build-settings editor.
 - `src/views/instrumentDiagnosticsPanel.ts`: standalone COM/VISA/USB diagnostic webview with communication settings, SCPI presets and a TX/RX console.
+- `src/views/webviewKit.ts`: shared webview helpers — `hardenHtml` (strict nonce CSP, shared stylesheet, harmonization layer), `executeWebviewCommand` (only `cpm.*` commands from pages), `safeJson`, `mediaUri`. Every panel assigns its HTML through it.
+- `media/webview/home.js` / `home.css`: Home page client, redrawn from `HomeState` messages (no reload).
+- `media/webview/cpm-harmonize.css`: typography/control layer applied after the styles of older generated pages.
+- `src/utils/toolStatus.ts`: checks configured tools and files (explicit path, active toolchain, PATH) for Home and Settings.
+- `data/starter_catalog.json`: built-in Library explorer starter entries per pack mode (`createLanguagePackEntries` loads it lazily).
+- `media/walkthrough/*.md`: steps of the `cpm.gettingStarted` walkthrough.
+- `media/webview/cpm-webview.css`: shared design system for the diagnostics webviews (VS Code theme variables only; full-height workbench layout scoped to `body.cpm-app`).
+- `media/webview/instrumentDiagnostics.js`: Instrument Diagnostics webview client (structured TX/RX log, docked composer with history recall, side-panel tabs, sequences). Initial data is injected as `window.CPM_INSTRUMENT_INIT`; the panel's `localResourceRoots` must include `media/`.
 
 The public command and configuration namespace is `cpm.*`. A small compatibility migration shim reads old settings only once and rewrites them to the CPM namespace.
 

@@ -8,6 +8,14 @@ import { CpmTemplateService } from './cpmTemplateService';
 import { CpmSdlService, CpmSdlInstallation, CpmSdlRuntimeMode, CpmSdlResolvedVersion } from './cpmSdlService';
 
 const LAST_WORKSPACE_KEY = 'cpm.lastWorkspace';
+const RECENT_WORKSPACES_KEY = 'cpm.recentWorkspaces.v1';
+const MAX_RECENT_WORKSPACES = 10;
+
+export interface CpmRecentWorkspace {
+  path: string;
+  name: string;
+  lastOpened: number;
+}
 
 export class CpmWorkspaceService implements vscode.Disposable {
   private workspace: CpmWorkspace | undefined;
@@ -111,6 +119,24 @@ export class CpmWorkspaceService implements vscode.Disposable {
     }
   }
 
+  getRecentWorkspaces(): Array<CpmRecentWorkspace & { exists: boolean }> {
+    const stored = this.context.globalState.get<CpmRecentWorkspace[]>(RECENT_WORKSPACES_KEY, []);
+    return (Array.isArray(stored) ? stored : [])
+      .filter((entry) => entry && typeof entry.path === 'string')
+      .map((entry) => ({ path: entry.path, name: String(entry.name || path.basename(entry.path)), lastOpened: Number(entry.lastOpened) || 0, exists: fs.existsSync(entry.path) }));
+  }
+
+  async forgetRecentWorkspace(filePath: string): Promise<void> {
+    const kept = this.getRecentWorkspaces().filter((entry) => !samePath(entry.path, filePath)).map(({ exists: _exists, ...entry }) => entry);
+    await this.context.globalState.update(RECENT_WORKSPACES_KEY, kept);
+    this.changeEmitter.fire();
+  }
+
+  private async rememberRecentWorkspace(filePath: string, name: string): Promise<void> {
+    const others = this.getRecentWorkspaces().filter((entry) => !samePath(entry.path, filePath)).map(({ exists: _exists, ...entry }) => entry);
+    await this.context.globalState.update(RECENT_WORKSPACES_KEY, [{ path: filePath, name, lastOpened: Date.now() }, ...others].slice(0, MAX_RECENT_WORKSPACES));
+  }
+
   async load(filePath: string): Promise<void> {
     const extension = path.extname(filePath).toLowerCase();
     if (extension !== '.cws' && extension !== '.prj') {
@@ -118,6 +144,7 @@ export class CpmWorkspaceService implements vscode.Disposable {
     }
     this.workspace = extension === '.cws' ? this.parser.parseWorkspace(filePath) : this.parser.parseStandaloneProject(filePath);
     await this.context.workspaceState.update(LAST_WORKSPACE_KEY, filePath);
+    await this.rememberRecentWorkspace(filePath, this.workspace?.name ?? path.basename(filePath, extension));
     this.output.appendLine(`[CPM] Loaded ${extension === '.cws' ? 'workspace' : 'project'}: ${filePath}`);
     this.changeEmitter.fire();
     if (extension === '.cws') {
@@ -820,6 +847,12 @@ export class CpmWorkspaceService implements vscode.Disposable {
   }
 
 
+  /** Sets the target type of a project without prompting (used by the CPM configuration picker). */
+  setTargetType(projectRef: CpmWorkspaceProjectRef, targetType: 'Executable' | 'Dynamic Link Library' | 'Static Library'): void {
+    this.parser.setTargetType(projectRef.absolutePath, targetType);
+    this.refresh();
+  }
+
   async selectTargetType(projectRef?: CpmWorkspaceProjectRef): Promise<void> {
     const ref = projectRef ?? this.activeProjectRef;
     if (!ref?.exists) {
@@ -1272,4 +1305,9 @@ export function generatePrototypeHeader(source: string, headerName: string): str
   const guard = headerName.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
   const body = prototypes.length ? prototypes.join('\n') : '/* No non-static function definitions were detected automatically. */';
   return `#ifndef ${guard}\n#define ${guard}\n\n#ifdef __cplusplus\nextern "C" {\n#endif\n\n${body}\n\n#ifdef __cplusplus\n}\n#endif\n\n#endif /* ${guard} */\n`;
+}
+
+function samePath(left: string, right: string): boolean {
+  const normalize = (value: string) => path.resolve(value).replace(/[\\/]+$/, '');
+  return process.platform === 'win32' ? normalize(left).toLowerCase() === normalize(right).toLowerCase() : normalize(left) === normalize(right);
 }

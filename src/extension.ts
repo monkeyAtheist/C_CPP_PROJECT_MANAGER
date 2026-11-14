@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { initWebviewKit } from './views/webviewKit';
 import { CpmParser } from './model/cpmParser';
 import { CpmTreeProvider, FileNode, FolderNode, ProjectNode } from './providers/cpmTreeProvider';
 import { CpmFileSymbolsProvider } from './providers/cpmFileSymbolsProvider';
@@ -35,6 +36,7 @@ import { NetworkDiagnosticsPanel } from './views/networkDiagnosticsPanel';
 import { CpmDeviceEndpoint, CpmDeviceRegistry } from './services/cpmDeviceRegistry';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  initWebviewKit(context);
   const output = vscode.window.createOutputChannel('C/C++ Project Manager');
   const buildTraceOutput = vscode.window.createOutputChannel('C/C++ Project Manager - Build Trace');
   const programOutput = vscode.window.createOutputChannel('C/C++ Project Manager - Program Output');
@@ -86,38 +88,85 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     signatureHelpProvider,
     '(', ','
   );
-  const home = new HomePanel(context, workspaces, builds, installations);
+  const home = new HomePanel(context, workspaces, builds, installations, buildDiagnostics);
   const buildSettings = new BuildSettingsPanel(workspaces, parser, projectSettings);
   const instrumentDiagnostics = new InstrumentDiagnosticsPanel(context, instruments, output, deviceRegistry);
   const networkDiagnostics = new NetworkDiagnosticsPanel(context, networkDiagnosticsService, instruments, output, workspaces, projectSettings, deviceRegistry);
   const quickActions = new QuickActionsView(workspaces, builds, projectSettings);
   const quickActionsRegistration = vscode.window.registerTreeDataProvider('cpm.quickActions', quickActions);
 
-  const statusBarItems = [
-    createStatusBarAction('$(home)', 'C/C++ Project Manager home', 'cpm.openHome', 99),
-    createStatusBarAction('$(folder-opened)', 'Open a C/C++ workspace or project', 'cpm.openWorkspace', 98),
-    createStatusBarAction('$(tools)', 'Build / rebuild / clean active project', 'cpm.chooseBuildAction', 97),
-    createStatusBarAction('$(play)', 'Run active target', 'cpm.run', 96),
-    createStatusBarAction('$(debug-alt)', 'Debug active target', 'cpm.runDebug', 95),
-    createStatusBarAction('$(settings-gear)', 'CPM settings and tools', 'cpm.editBuildSettings', 94)
-  ];
+  // Status bar: one configuration item (project · mode · target) + Build / Run / Debug + build problems.
+  // Everything stays hidden until a CPM workspace is loaded.
+  const configStatusItem = createStatusBarAction('$(project) CPM', 'CPM configuration — click to change the build mode or the target type', 'cpm.selectConfiguration', 99);
+  const buildStatusItem = createStatusBarAction('$(tools)', 'Build / rebuild / clean the active project (Ctrl+F7 builds)', 'cpm.chooseBuildAction', 98);
+  const runStatusItem = createStatusBarAction('$(play)', 'Run the active target (Ctrl+F5)', 'cpm.run', 97);
+  const debugStatusItem = createStatusBarAction('$(debug-alt)', 'Debug the active target (F5)', 'cpm.runDebug', 96);
+  const problemsStatusItem = createStatusBarAction('', 'CPM build problems — click to open the Problems view', 'workbench.actions.view.problems', 95);
+  const statusBarItems = [configStatusItem, buildStatusItem, runStatusItem, debugStatusItem, problemsStatusItem];
+  const BUILD_MODE_SHORT: Record<string, string> = { debug: 'D32', release: 'R32', debug64: 'D64', release64: 'R64' };
+  const TARGET_SHORT: Record<string, string> = { 'Executable': 'EXE', 'Dynamic Link Library': 'DLL', 'Static Library': 'LIB' };
 
   const updateToolbarContexts = (): void => {
     const activeRef = workspaces.activeProjectRef;
     const targetType = activeRef?.exists ? workspaces.getProject(activeRef)?.targetType : undefined;
     const targetKey = targetType === 'Dynamic Link Library' ? 'dll' : targetType === 'Static Library' ? 'lib' : targetType === 'Executable' ? 'exe' : 'none';
+    void vscode.commands.executeCommand('setContext', 'cpm.workspaceLoaded', Boolean(workspaces.currentWorkspace));
     void vscode.commands.executeCommand('setContext', 'cpm.buildMode', builds.buildMode);
     void vscode.commands.executeCommand('setContext', 'cpm.targetType', targetKey);
     void vscode.commands.executeCommand('setContext', 'cpm.linkageMode', builds.getLinkageMode());
     void vscode.commands.executeCommand('setContext', 'cpm.buildBackend', activeRef?.exists ? projectSettings.getSettings(activeRef).buildBackend : 'direct');
   };
 
+  const updateProblemsStatus = (): void => {
+    let errors = 0;
+    let warnings = 0;
+    buildDiagnostics.forEach((_uri, diagnostics) => {
+      for (const diagnostic of diagnostics) {
+        if (diagnostic.severity === vscode.DiagnosticSeverity.Error) errors++;
+        else if (diagnostic.severity === vscode.DiagnosticSeverity.Warning) warnings++;
+      }
+    });
+    if (!workspaces.currentWorkspace || (errors === 0 && warnings === 0)) { problemsStatusItem.hide(); return; }
+    problemsStatusItem.text = `$(error) ${errors}  $(warning) ${warnings}`;
+    problemsStatusItem.backgroundColor = errors > 0 ? new vscode.ThemeColor('statusBarItem.errorBackground') : undefined;
+    problemsStatusItem.show();
+  };
+
   const updateStatusBar = (): void => {
-    const show = vscode.workspace.getConfiguration('cpm').get<boolean>('showPersistentStatusBarActions', true);
-    for (const item of statusBarItems) {
-      if (show) item.show(); else item.hide();
-    }
+    const loaded = Boolean(workspaces.currentWorkspace);
+    const showActions = loaded && vscode.workspace.getConfiguration('cpm').get<boolean>('showPersistentStatusBarActions', true);
+    const activeRef = workspaces.activeProjectRef;
+    const targetType = activeRef?.exists ? workspaces.getProject(activeRef)?.targetType : undefined;
+    const parts = [activeRef?.name ?? 'No project', BUILD_MODE_SHORT[builds.buildMode] ?? builds.buildMode];
+    if (targetType) parts.push(TARGET_SHORT[targetType] ?? targetType);
+    configStatusItem.text = `$(project) ${parts.join(' · ')}`;
+    if (loaded) configStatusItem.show(); else configStatusItem.hide();
+    for (const item of [buildStatusItem, runStatusItem]) { if (showActions) item.show(); else item.hide(); }
+    if (showActions && targetType !== 'Static Library') debugStatusItem.show(); else debugStatusItem.hide();
+    updateProblemsStatus();
     updateToolbarContexts();
+  };
+
+  const selectConfiguration = async (): Promise<void> => {
+    type ConfigItem = vscode.QuickPickItem & { apply?: () => unknown };
+    const activeRef = workspaces.activeProjectRef;
+    const targetType = activeRef?.exists ? workspaces.getProject(activeRef)?.targetType : undefined;
+    const modes: Array<[string, string, string]> = [['debug', 'D32', 'Debug, 32-bit'], ['release', 'R32', 'Release, 32-bit'], ['debug64', 'D64', 'Debug, 64-bit'], ['release64', 'R64', 'Release, 64-bit']];
+    const targets: Array<['Executable' | 'Dynamic Link Library' | 'Static Library', string, string]> = [['Executable', 'EXE', 'Executable (.exe)'], ['Dynamic Link Library', 'DLL', 'Dynamic link library (.dll + import library)'], ['Static Library', 'LIB', 'Static library (.a / .lib)']];
+    const items: ConfigItem[] = [{ label: 'Build mode', kind: vscode.QuickPickItemKind.Separator }];
+    for (const [value, short, description] of modes) {
+      items.push({ label: `${value === builds.buildMode ? '$(check)' : '$(blank)'} ${short}`, description, apply: () => projectSettings.updateCpmConfigurationValue('buildMode', value) });
+    }
+    if (activeRef?.exists) {
+      items.push({ label: `Target type — ${activeRef.name}`, kind: vscode.QuickPickItemKind.Separator });
+      for (const [value, short, description] of targets) {
+        items.push({ label: `${value === targetType ? '$(check)' : '$(blank)'} ${short}`, description, apply: () => workspaces.setTargetType(activeRef, value) });
+      }
+    }
+    items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
+    items.push({ label: '$(settings-gear) Open project settings…', apply: () => vscode.commands.executeCommand('cpm.editBuildSettings') });
+    const picked = await vscode.window.showQuickPick(items, { title: 'CPM configuration', placeHolder: `Current: ${configStatusItem.text.replace('$(project) ', '')}` });
+    if (picked?.apply) { await picked.apply(); updateStatusBar(); }
   };
 
   const selectAutocompleteProfile = async (): Promise<void> => {
@@ -219,6 +268,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       updateStatusBar();
       void scheduleOptionalCppToolsSync(cppTools, workspaces.currentWorkspace);
     }),
+    vscode.languages.onDidChangeDiagnostics(() => updateProblemsStatus()),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('cpm')) {
         updateStatusBar();
@@ -286,6 +336,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('cpm.enableAutomaticSuggestions', () => cppTools.enableAutomaticSuggestions(workspaces.currentWorkspace)),
     register('cpm.addWorkspaceFolderForIntelliSense', () => cppTools.addConfigurationRootToWorkspace(workspaces.currentWorkspace)),
     register('cpm.selectBuildMode', () => builds.selectBuildMode()),
+    register('cpm.selectConfiguration', () => selectConfiguration()),
+    register('cpm.openGettingStarted', () => vscode.commands.executeCommand('workbench.action.openWalkthrough', 'JerryCrozet-ElectronicEngineer.c-cpp-project-manager-and-build#cpm.gettingStarted', false)),
     register('cpm.selectBuildModeD32', () => builds.selectBuildMode()),
     register('cpm.selectBuildModeR32', () => builds.selectBuildMode()),
     register('cpm.selectBuildModeD64', () => builds.selectBuildMode()),

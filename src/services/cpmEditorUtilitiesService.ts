@@ -1,5 +1,6 @@
 // @ts-nocheck
 import * as vscode from 'vscode';
+import { hardenHtml } from '../views/webviewKit';
 
 export class CpmEditorUtilitiesService {
   async openCharacterTable(): Promise<void> { await openCharacterTable(undefined); }
@@ -503,7 +504,7 @@ async function openCharacterTable(context) {
     const editor = vscode.window.activeTextEditor;
     const initialText = editor && !editor.selection.isEmpty ? editor.document.getText(editor.selection) : 'A';
     const panel = vscode.window.createWebviewPanel('cpmCharacterTable', 'CPM: Character table / converter', vscode.ViewColumn.Beside, { enableScripts: true, retainContextWhenHidden: true });
-    panel.webview.html = buildCharacterTableHtml(initialText);
+    panel.webview.html = hardenHtml(buildCharacterTableHtml(initialText), panel.webview, { harmonize: true });
     panel.webview.onDidReceiveMessage(async (message) => {
         if (!message || typeof message !== 'object')
             return;
@@ -846,7 +847,7 @@ async function openNumberConverter(context) {
     const editor = vscode.window.activeTextEditor;
     const initialText = editor && !editor.selection.isEmpty ? editor.document.getText(editor.selection) : '0x2A';
     const panel = vscode.window.createWebviewPanel('cpmNumberBitConverter', 'CPM: Number / bit converter', vscode.ViewColumn.Beside, { enableScripts: true, retainContextWhenHidden: true });
-    panel.webview.html = buildNumberBitConverterHtml(initialText);
+    panel.webview.html = hardenHtml(buildNumberBitConverterHtml(initialText), panel.webview, { harmonize: true });
     panel.webview.onDidReceiveMessage(async (message) => {
         if (!message || typeof message !== 'object')
             return;
@@ -1050,7 +1051,7 @@ function buildLogicStateDesignerHtml() {
 async function openTruthTableDesigner(context) {
     const editor = vscode.window.activeTextEditor;
     const panel = vscode.window.createWebviewPanel('cpmTruthTableDesigner', 'CPM: Truth table / FSM designer', vscode.ViewColumn.Beside, { enableScripts: true, retainContextWhenHidden: true });
-    panel.webview.html = buildLogicStateDesignerHtml();
+    panel.webview.html = hardenHtml(buildLogicStateDesignerHtml(), panel.webview, { harmonize: true });
     panel.webview.onDidReceiveMessage(async (message) => {
         if (!message || typeof message !== 'object')
             return;
@@ -1527,7 +1528,7 @@ async function openDigitalFilterDesigner(context) {
     const editor = vscode.window.activeTextEditor;
     const initialText = editor && !editor.selection.isEmpty ? editor.document.getText(editor.selection) : '';
     const panel = vscode.window.createWebviewPanel('cpmDigitalFilterDesigner', 'CPM: Digital filter designer', vscode.ViewColumn.Beside, { enableScripts: true, retainContextWhenHidden: true });
-    panel.webview.html = buildDigitalFilterDesignerHtml(initialText);
+    panel.webview.html = hardenHtml(buildDigitalFilterDesignerHtml(initialText), panel.webview, { harmonize: true });
     panel.webview.onDidReceiveMessage(async (message) => {
         if (!message || typeof message !== 'object')
             return;

@@ -1,0 +1,18 @@
+/*
+ * CPM — harmonization layer for older generated pages (Library explorer, editor tools, color picker,
+ * DLL import batch). Loaded AFTER a page's own styles: aligns typography, headings, controls and focus
+ * with the CPM design system without touching each page's layout.
+ */
+body { font-family: var(--vscode-font-family); font-size: 13px; line-height: 1.45; color: var(--vscode-foreground); }
+h1 { font-size: 20px; font-weight: 600; letter-spacing: 0; }
+h2 { font-size: 15px; font-weight: 600; }
+h3 { font-size: 13px; font-weight: 600; }
+code, pre, kbd, samp { font-family: var(--vscode-editor-font-family, Consolas, monospace); }
+button { border-radius: 4px; font: inherit; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
+input, select, textarea { border-radius: 3px; font: inherit; }
+textarea, input.mono, .mono { font-family: var(--vscode-editor-font-family, Consolas, monospace); }
+input:focus, select:focus, textarea:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--vscode-button-background); }
+table { border-collapse: collapse; }
+::placeholder { color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground)); }

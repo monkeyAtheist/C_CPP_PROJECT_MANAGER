@@ -20859,7 +20859,7 @@
                       "library": "Python Language",
                       "category": "Packaging, Environments & Deployment",
                       "description": "Create or update a virtual environment directory.",
-                      "longDescription": "Create or update a virtual environment directory.\n\nLegacy workflow retained from `virtual environment bootstrap`:\n```python\npython -m venv .venv\n# Windows: .venv\\Scripts\u0007ctivate\n# Linux/macOS: source .venv/bin/activate\npython -m pip install --upgrade pip\n```\n\nPackaging workflow retained from `venv create activate cross platform`:\n```python\npython -m venv .venv\n# PowerShell: .\\.venv\\Scripts\\Activate.ps1\n# cmd.exe:    .venv\\Scripts\\activate.bat\n# Linux/macOS: source .venv/bin/activate\npython -m pip install --upgrade pip\n```",
+                      "longDescription": "Create or update a virtual environment directory.\n\nLegacy workflow retained from `virtual environment bootstrap`:\n```python\npython -m venv .venv\n# Windows: .venv\\Scripts\\activate\n# Linux/macOS: source .venv/bin/activate\npython -m pip install --upgrade pip\n```\n\nPackaging workflow retained from `venv create activate cross platform`:\n```python\npython -m venv .venv\n# PowerShell: .\\.venv\\Scripts\\Activate.ps1\n# cmd.exe:    .venv\\Scripts\\activate.bat\n# Linux/macOS: source .venv/bin/activate\npython -m pip install --upgrade pip\n```",
                       "parameters": [
                         {
                           "name": "builder",

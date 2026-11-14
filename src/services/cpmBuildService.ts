@@ -131,7 +131,20 @@ export interface CpmBuildHealthSnapshot {
   cmakeBuildDirectory?: string;
 }
 
+export interface CpmLastBuildResult {
+  project: string;
+  success: boolean;
+  rebuild: boolean;
+  finishedAt: number;
+  durationMs: number;
+  failedAt?: string;
+}
+
 export class CpmBuildService implements vscode.Disposable {
+  private readonly buildFinishedEmitter = new vscode.EventEmitter<CpmLastBuildResult>();
+  /** Fired after every build or rebuild, successful or not. */
+  readonly onDidFinishBuild = this.buildFinishedEmitter.event;
+  lastBuild: CpmLastBuildResult | undefined;
   constructor(
     private readonly parser: CpmParser,
     private readonly workspaces: CpmWorkspaceService,
@@ -451,6 +464,7 @@ export class CpmBuildService implements vscode.Disposable {
     }
 
     const report = this.beginOutput(`${rebuild ? 'Rebuild' : 'Build'} ${ref.name}`);
+    const buildStartedAt = Date.now();
     let success = false;
     let failedAt = '';
     try {
@@ -496,6 +510,8 @@ export class CpmBuildService implements vscode.Disposable {
       return true;
     } finally {
       this.finishOutput(report, success, failedAt);
+      this.lastBuild = { project: ref.name, success, rebuild, finishedAt: Date.now(), durationMs: Date.now() - buildStartedAt, failedAt: failedAt || undefined };
+      this.buildFinishedEmitter.fire(this.lastBuild);
     }
   }
 

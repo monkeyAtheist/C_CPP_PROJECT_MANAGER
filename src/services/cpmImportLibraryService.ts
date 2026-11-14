@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process';
 import * as vscode from 'vscode';
+import { hardenHtml } from '../views/webviewKit';
 import { CpmBuildMode, CpmWorkspaceProjectRef } from '../model/types';
 import { FileNode } from '../providers/cpmTreeProvider';
 import { CpmInstallationService } from './cpmInstallationService';
@@ -212,7 +213,7 @@ export class CpmImportLibraryService {
         if (!this.dllBatchRows.some((row) => samePath(row.dllPath, filePath))) this.dllBatchRows.push(this.createDllBatchRow(filePath, ref));
       }
     }
-    this.dllPanel.webview.html = this.renderDllBatchPanel();
+    this.dllPanel.webview.html = hardenHtml(this.renderDllBatchPanel(), this.dllPanel.webview, { harmonize: true });
     this.dllPanel.reveal(vscode.ViewColumn.Active);
   }
 

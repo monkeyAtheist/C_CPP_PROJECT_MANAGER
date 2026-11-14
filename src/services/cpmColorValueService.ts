@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { hardenHtml } from '../views/webviewKit';
 
 interface RgbColor {
   r: number;
@@ -45,7 +46,7 @@ export class CpmColorValueService {
       { enableScripts: true, retainContextWhenHidden: true }
     );
 
-    panel.webview.html = buildColorValuePickerHtml(initialHex, initialFormat, 255);
+    panel.webview.html = hardenHtml(buildColorValuePickerHtml(initialHex, initialFormat, 255), panel.webview, { harmonize: true });
     panel.webview.onDidReceiveMessage(async (message: unknown) => {
       if (!message || typeof message !== 'object') {
         return;

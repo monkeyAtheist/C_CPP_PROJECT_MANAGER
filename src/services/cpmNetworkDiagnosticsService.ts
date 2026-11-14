@@ -53,6 +53,17 @@ export interface BleAdvertisementInfo {
   rssi?: number;
   connectable?: boolean;
   timestamp?: number;
+  /** Public / Random (Windows 10 2004+). */
+  addressType?: string;
+  /** Advertisement PDU kinds seen for this address (ConnectableUndirected, ScanResponse...). */
+  advertisementTypes?: string[];
+  /** Advertised service UUIDs, formatted with a short SIG name when known. */
+  services?: string[];
+  /** Manufacturer-specific data company identifiers, formatted with a vendor name when known. */
+  manufacturers?: string[];
+  txPower?: number;
+  /** Number of advertisement packets received during the scan window. */
+  packets?: number;
 }
 
 export interface BluetoothDeviceInfo {
@@ -746,46 +757,109 @@ $items | ConvertTo-Json -Depth 4 -Compress
   }
 
   private async scanWindowsBle(durationMs: number): Promise<BleAdvertisementInfo[]> {
+    // IMPORTANT: WinRT raises BluetoothLEAdvertisementWatcher.Received on a thread-pool thread.
+    // A PowerShell scriptblock converted to a delegate (add_Received({...})) cannot run there
+    // (ScriptBlockDelegateInvokedFromWrongThread) and the failure is swallowed by WinRT, so the
+    // previous implementation always returned an empty list. Register-ObjectEvent queues the
+    // events from any thread; they are then consumed on the script thread with Get-Event.
     const script = String.raw`
 $ErrorActionPreference='Stop'
 [Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementWatcher,Windows.Devices.Bluetooth,ContentType=WindowsRuntime] | Out-Null
 $watcher = New-Object Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementWatcher
 $watcher.ScanningMode = [Windows.Devices.Bluetooth.Advertisement.BluetoothLEScanningMode]::Active
-$items = [System.Collections.Concurrent.ConcurrentDictionary[string,object]]::new()
-$handler = {
-  param($sender,$eventArgs)
-  try {
-    $address = ('{0:X12}' -f [UInt64]$eventArgs.BluetoothAddress)
-    $name = [string]$eventArgs.Advertisement.LocalName
-    $connectable = $null
-    try { $connectable = [bool]$eventArgs.IsConnectable } catch {}
-    $items[$address] = [PSCustomObject]@{
-      address = $address
-      name = $name
-      rssi = [int]$eventArgs.RawSignalStrengthInDBm
-      connectable = $connectable
-      timestamp = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
-    }
-  } catch {}
-}.GetNewClosure()
-$token = $watcher.add_Received($handler)
+try { $watcher.AllowExtendedAdvertisements = $true } catch {}
+$rxId = 'CpmBleRx_' + [Guid]::NewGuid().ToString('N')
+$stopId = 'CpmBleStop_' + [Guid]::NewGuid().ToString('N')
+$devices = @{}
+$script:packetCount = 0
+$stopError = ''
+$status = ''
+function Add-Advertisement($e) {
+  if ($null -eq $e) { return }
+  $script:packetCount++
+  $address = ('{0:X12}' -f [UInt64]$e.BluetoothAddress)
+  $entry = $devices[$address]
+  if ($null -eq $entry) {
+    $entry = @{ name=''; rssi=$null; connectable=$null; addressType=''; types=@{}; services=@{}; companies=@{}; txPower=$null; packets=0; timestamp=0 }
+    $devices[$address] = $entry
+  }
+  $entry.packets = [int]$entry.packets + 1
+  $entry.rssi = [int]$e.RawSignalStrengthInDBm
+  $entry.timestamp = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
+  $advType = ''
+  try { $advType = [string]$e.AdvertisementType; if ($advType) { $entry.types[$advType] = $true } } catch {}
+  $connectable = $null
+  if ($null -ne $e.PSObject.Properties['IsConnectable']) { try { $connectable = [bool]$e.IsConnectable } catch {} }
+  if ($null -eq $connectable -and $advType -and $advType -ne 'ScanResponse') { $connectable = ($advType -match '^Connectable') }
+  if ($connectable -eq $true) { $entry.connectable = $true } elseif ($null -ne $connectable -and $null -eq $entry.connectable) { $entry.connectable = $false }
+  try { $addrType = [string]$e.BluetoothAddressType; if ($addrType) { $entry.addressType = $addrType } } catch {}
+  try { if ($null -ne $e.TransmitPowerLevelInDBm) { $entry.txPower = [int]$e.TransmitPowerLevelInDBm } } catch {}
+  $adv = $e.Advertisement
+  if ($null -ne $adv) {
+    try { $localName = [string]$adv.LocalName; if ($localName.Trim()) { $entry.name = $localName.Trim() } } catch {}
+    try { foreach ($uuid in @($adv.ServiceUuids)) { if ($null -ne $uuid) { $entry.services[[string]$uuid] = $true } } } catch {}
+    try { foreach ($m in @($adv.ManufacturerData)) { if ($null -ne $m) { $entry.companies[[string]([int]$m.CompanyId)] = $true } } } catch {}
+  }
+}
+function Read-Queue() {
+  foreach ($evt in @(Get-Event -SourceIdentifier $rxId -ErrorAction SilentlyContinue)) {
+    try { Add-Advertisement $evt.SourceEventArgs } catch {}
+    Remove-Event -EventIdentifier $evt.EventIdentifier -ErrorAction SilentlyContinue
+  }
+}
+Register-ObjectEvent -InputObject $watcher -EventName Received -SourceIdentifier $rxId | Out-Null
+Register-ObjectEvent -InputObject $watcher -EventName Stopped -SourceIdentifier $stopId | Out-Null
 try {
   $watcher.Start()
-  Start-Sleep -Milliseconds ${durationMs}
+  $deadline = [DateTime]::UtcNow.AddMilliseconds(${durationMs})
+  while ([DateTime]::UtcNow -lt $deadline) {
+    Start-Sleep -Milliseconds 120
+    Read-Queue
+    $stopEvt = @(Get-Event -SourceIdentifier $stopId -ErrorAction SilentlyContinue) | Select-Object -First 1
+    if ($null -ne $stopEvt) { try { $stopError = [string]$stopEvt.SourceEventArgs.Error } catch {}; break }
+    if ([string]$watcher.Status -eq 'Aborted') { break }
+  }
 } finally {
+  $status = [string]$watcher.Status
   try { $watcher.Stop() } catch {}
-  try { if ($null -ne $token) { $watcher.remove_Received($token) } } catch {}
+  Read-Queue
+  Unregister-Event -SourceIdentifier $rxId -ErrorAction SilentlyContinue
+  Unregister-Event -SourceIdentifier $stopId -ErrorAction SilentlyContinue
+  Get-Event -ErrorAction SilentlyContinue | Remove-Event -ErrorAction SilentlyContinue
 }
-@($items.Values | Sort-Object rssi -Descending) | ConvertTo-Json -Depth 5 -Compress | Write-Output
+$list = @()
+foreach ($key in $devices.Keys) {
+  $d = $devices[$key]
+  $list += [PSCustomObject]@{
+    address = $key; name = $d.name; rssi = $d.rssi; connectable = $d.connectable; addressType = $d.addressType
+    advertisementTypes = @($d.types.Keys | ForEach-Object { [string]$_ })
+    serviceUuids = @($d.services.Keys | ForEach-Object { [string]$_ })
+    companyIds = @($d.companies.Keys | ForEach-Object { [string]$_ })
+    txPower = $d.txPower; packets = $d.packets; timestamp = $d.timestamp
+  }
+}
+[PSCustomObject]@{ status = $status; stopError = $stopError; packets = $script:packetCount; devices = @($list) } | ConvertTo-Json -Depth 6 -Compress | Write-Output
 `;
-    const stdout = await runPowerShell(script, durationMs + 8000);
-    return normalizeArray<any>(parseJson(stdout)).map((item) => ({
+    const stdout = await runPowerShell(script, durationMs + 12000);
+    const parsed: any = parseJson(stdout);
+    const raw = parsed && !Array.isArray(parsed) && typeof parsed === 'object' && 'devices' in parsed ? parsed : { status: '', stopError: '', devices: parsed };
+    const status = String(raw.status ?? '');
+    const stopError = String(raw.stopError ?? '');
+    if ((stopError && stopError !== 'Success') || status === 'Aborted') throw new Error(describeBleWatcherFailure(status, stopError));
+    return unwrapJsonArray(raw.devices).map((item: any): BleAdvertisementInfo => ({
       address: formatBluetoothAddress(String(item?.address ?? '')),
       name: String(item?.name ?? ''),
-      rssi: Number.isFinite(Number(item?.rssi)) ? Number(item.rssi) : undefined,
+      rssi: item?.rssi === null || item?.rssi === undefined || !Number.isFinite(Number(item.rssi)) ? undefined : Number(item.rssi),
       connectable: typeof item?.connectable === 'boolean' ? item.connectable : undefined,
-      timestamp: Number.isFinite(Number(item?.timestamp)) ? Number(item.timestamp) : undefined
-    })).filter((item) => item.address.length > 0);
+      timestamp: Number.isFinite(Number(item?.timestamp)) && Number(item.timestamp) > 0 ? Number(item.timestamp) : undefined,
+      addressType: item?.addressType ? String(item.addressType) : undefined,
+      advertisementTypes: unwrapJsonArray(item?.advertisementTypes).map(String).filter(Boolean),
+      services: unwrapJsonArray(item?.serviceUuids).map((uuid) => describeBleServiceUuid(String(uuid))).filter(Boolean),
+      manufacturers: unwrapJsonArray(item?.companyIds).map((id) => describeBleCompanyId(Number(id))).filter(Boolean),
+      txPower: item?.txPower === null || item?.txPower === undefined || !Number.isFinite(Number(item.txPower)) ? undefined : Number(item.txPower),
+      packets: Number.isFinite(Number(item?.packets)) ? Number(item.packets) : undefined
+    })).filter((item) => item.address.length > 0)
+      .sort((a, b) => Number(b.rssi ?? -999) - Number(a.rssi ?? -999));
   }
 
   private async discoverWindowsBluetooth(): Promise<BluetoothDeviceInfo[]> {
@@ -1001,6 +1075,62 @@ function parseHttpLikeHeaders(text: string): Map<string, string> {
   return headers;
 }
 
+/** Accept PowerShell 5.1 JSON quirks: scalar instead of 1-element array, or {value:[...],Count:n}. */
+function unwrapJsonArray(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object' && Array.isArray((value as any).value)) return (value as any).value;
+  return value === undefined || value === null || value === '' ? [] : [value];
+}
+
+function describeBleWatcherFailure(status: string, stopError: string): string {
+  switch (stopError) {
+    case 'RadioNotAvailable': return 'Bluetooth radio unavailable: Bluetooth is turned off or no BLE adapter is present. Turn Bluetooth on in Windows Settings and scan again.';
+    case 'DisabledByUser': return 'Bluetooth access is disabled for desktop apps (Windows Settings › Privacy & security › Radios / Bluetooth).';
+    case 'DisabledByPolicy': return 'Bluetooth LE scanning is disabled by a system or group policy.';
+    case 'NotSupported': return 'The Bluetooth adapter or driver does not support BLE advertisement scanning.';
+    case 'ResourceInUse': return 'The Bluetooth adapter is busy (another application is already scanning). Close the other scanner and retry.';
+    case 'ConsentRequired': return 'Windows requires user consent before scanning Bluetooth LE devices.';
+    case 'TransportNotSupported': return 'The Bluetooth transport does not support LE scanning.';
+    case 'OtherError': return 'The BLE watcher stopped with an unspecified adapter error. Try toggling Bluetooth off/on.';
+  }
+  if (status === 'Aborted') return 'The BLE watcher was aborted by Windows — Bluetooth is probably turned off or the adapter is unavailable.';
+  return `The BLE watcher stopped unexpectedly (${stopError || status || 'unknown reason'}).`;
+}
+
+const BLE_SIG_SERVICES: Record<number, string> = {
+  0x1800: 'Generic Access', 0x1801: 'Generic Attribute', 0x1802: 'Immediate Alert', 0x1803: 'Link Loss', 0x1804: 'Tx Power',
+  0x1805: 'Current Time', 0x1809: 'Health Thermometer', 0x180a: 'Device Information', 0x180d: 'Heart Rate', 0x180f: 'Battery',
+  0x1810: 'Blood Pressure', 0x1811: 'Alert Notification', 0x1812: 'HID', 0x1814: 'Running Speed', 0x1816: 'Cycling Speed',
+  0x1818: 'Cycling Power', 0x1819: 'Location & Navigation', 0x181a: 'Environmental Sensing', 0x181c: 'User Data',
+  0x181d: 'Weight Scale', 0x1826: 'Fitness Machine', 0xfe59: 'Nordic DFU', 0xfeaa: 'Eddystone', 0xfd6f: 'Exposure Notification'
+};
+
+function describeBleServiceUuid(raw: string): string {
+  const uuid = raw.trim().replace(/[{}]/g, '').toLowerCase();
+  if (!uuid) return '';
+  const sig = /^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/.exec(uuid);
+  if (sig) {
+    const short = parseInt(sig[1], 16);
+    const name = BLE_SIG_SERVICES[short];
+    return `0x${sig[1].toUpperCase()}${name ? ` ${name}` : ''}`;
+  }
+  if (uuid === '6e400001-b5a3-f393-e0a9-e50e24dcca9e') return 'Nordic UART (NUS)';
+  return uuid;
+}
+
+const BLE_COMPANY_IDS: Record<number, string> = {
+  0x0002: 'Intel', 0x0006: 'Microsoft', 0x000d: 'Texas Instruments', 0x000f: 'Broadcom', 0x001d: 'Qualcomm',
+  0x0030: 'STMicroelectronics', 0x004c: 'Apple', 0x0059: 'Nordic Semiconductor', 0x0075: 'Samsung', 0x0087: 'Garmin',
+  0x00e0: 'Google', 0x0131: 'Cypress', 0x0171: 'Amazon', 0x02e5: 'Espressif', 0x0499: 'Ruuvi'
+};
+
+function describeBleCompanyId(id: number): string {
+  if (!Number.isFinite(id) || id < 0 || id > 0xffff) return '';
+  const hex = `0x${id.toString(16).toUpperCase().padStart(4, '0')}`;
+  const name = BLE_COMPANY_IDS[id];
+  return name ? `${name} (${hex})` : hex;
+}
+
 function validateUuid(value: string): string {
   const uuid = String(value ?? '').trim();
   if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid)) throw new Error('Invalid BLE GATT UUID.');
@@ -1024,11 +1154,11 @@ $ErrorActionPreference='Stop'
 [Windows.Devices.Bluetooth.GenericAttributeProfile.GattClientCharacteristicConfigurationDescriptorValue,Windows.Devices.Bluetooth,ContentType=WindowsRuntime] | Out-Null
 [Windows.Storage.Streams.DataReader,Windows.Storage.Streams,ContentType=WindowsRuntime] | Out-Null
 [Windows.Storage.Streams.DataWriter,Windows.Storage.Streams,ContentType=WindowsRuntime] | Out-Null
+$script:AsTaskOperation = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation${'`'}1' } | Select-Object -First 1
+if ($null -eq $script:AsTaskOperation) { throw 'Unable to resolve WinRT AsTask(IAsyncOperation) helper.' }
 function Await($Operation, [Type]$ResultType) {
-  $method = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetParameters().Count -eq 1 } | Select-Object -First 1
-  if ($null -eq $method) { throw 'Unable to resolve WinRT AsTask helper.' }
-  $task = $method.MakeGenericMethod($ResultType).Invoke($null, @($Operation))
-  $task.Wait()
+  $task = $script:AsTaskOperation.MakeGenericMethod($ResultType).Invoke($null, @($Operation))
+  if (-not $task.Wait(20000)) { throw 'WinRT BLE operation timed out after 20 s.' }
   return $task.Result
 }
 function BufferToData($buffer) {
@@ -1084,21 +1214,32 @@ $result = Await ($characteristic.WriteValueWithResultAsync($buffer)) ([Windows.D
 [PSCustomObject]@{ address=('${addressHex}' -replace '(.{2})(?=.)','$1:'); serviceUuid='${safeService}'; characteristicUuid='${safeCharacteristic}'; status=[string]$result.Status; hex=(($bytes | ForEach-Object { $_.ToString('X2') }) -join ' '); text='' } | ConvertTo-Json -Depth 5 -Compress
 `;
   return prelude + locate + String.raw`
-$samples = [System.Collections.Concurrent.ConcurrentQueue[object]]::new()
-$handler = {
-  param($sender,$eventArgs)
-  try {
-    $data = BufferToData $eventArgs.CharacteristicValue
-    $samples.Enqueue([PSCustomObject]@{ timestamp=[DateTimeOffset]::Now.ToUnixTimeMilliseconds(); hex=$data.hex; text=$data.text })
-  } catch {}
-}.GetNewClosure()
-$token = $characteristic.add_ValueChanged($handler)
+$samples = New-Object System.Collections.ArrayList
+# ValueChanged is raised on a WinRT thread-pool thread: queue it with Register-ObjectEvent
+# instead of a scriptblock delegate (which cannot run outside the PowerShell runspace thread).
+$gattId = 'CpmGatt_' + [Guid]::NewGuid().ToString('N')
+function Read-GattQueue() {
+  foreach ($evt in @(Get-Event -SourceIdentifier $gattId -ErrorAction SilentlyContinue)) {
+    try {
+      $data = BufferToData $evt.SourceEventArgs.CharacteristicValue
+      $ts = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
+      try { $ts = $evt.SourceEventArgs.Timestamp.ToUnixTimeMilliseconds() } catch {}
+      [void]$samples.Add([PSCustomObject]@{ timestamp=$ts; hex=$data.hex; text=$data.text })
+    } catch {}
+    Remove-Event -EventIdentifier $evt.EventIdentifier -ErrorAction SilentlyContinue
+  }
+}
+Register-ObjectEvent -InputObject $characteristic -EventName ValueChanged -SourceIdentifier $gattId | Out-Null
 $mode = if (([string]$characteristic.CharacteristicProperties) -match 'Notify') { [Windows.Devices.Bluetooth.GenericAttributeProfile.GattClientCharacteristicConfigurationDescriptorValue]::Notify } else { [Windows.Devices.Bluetooth.GenericAttributeProfile.GattClientCharacteristicConfigurationDescriptorValue]::Indicate }
+$enable = 'Unknown'
 try {
   $enable = Await ($characteristic.WriteClientCharacteristicConfigurationDescriptorAsync($mode)) ([Windows.Devices.Bluetooth.GenericAttributeProfile.GattCommunicationStatus])
-  Start-Sleep -Milliseconds ${durationMs}
+  $deadline = [DateTime]::UtcNow.AddMilliseconds(${durationMs})
+  while ([DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; Read-GattQueue }
 } finally {
-  try { $characteristic.remove_ValueChanged($token) } catch {}
+  Read-GattQueue
+  Unregister-Event -SourceIdentifier $gattId -ErrorAction SilentlyContinue
+  Get-Event -ErrorAction SilentlyContinue | Remove-Event -ErrorAction SilentlyContinue
   try { $null = Await ($characteristic.WriteClientCharacteristicConfigurationDescriptorAsync([Windows.Devices.Bluetooth.GenericAttributeProfile.GattClientCharacteristicConfigurationDescriptorValue]::None)) ([Windows.Devices.Bluetooth.GenericAttributeProfile.GattCommunicationStatus]) } catch {}
 }
 [PSCustomObject]@{ address=('${addressHex}' -replace '(.{2})(?=.)','$1:'); serviceUuid='${safeService}'; characteristicUuid='${safeCharacteristic}'; status=[string]$enable; hex=''; text=''; samples=@($samples.ToArray()) } | ConvertTo-Json -Depth 6 -Compress
